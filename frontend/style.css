@@ -1,0 +1,28 @@
+*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{margin:0;background:#f3f8fb;color:#123}
+.layout{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+.sidebar{background:#073b4c;color:white;padding:18px}
+.sidebar button{width:100%;margin:8px 0;padding:12px;border:0;border-radius:12px;background:#0b5c73;color:white;font-weight:800;cursor:pointer}
+.sidebar .danger,.danger{background:#b42318!important;color:white}
+.content{padding:20px;max-width:1280px}
+.page{display:none}.page.active{display:block}
+.card{background:white;border-radius:18px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.06);margin-bottom:14px}
+.grid{display:grid;grid-template-columns:1.3fr .7fr;gap:16px}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.full{grid-column:1/-1}
+label{font-weight:800;font-size:13px;color:#344;display:block}
+input,select,textarea{width:100%;margin-top:5px;padding:11px;border:1px solid #d8e3e8;border-radius:12px;font-size:15px;background:white}
+textarea{min-height:70px}.btn{border:0;border-radius:13px;padding:11px 14px;font-weight:900;cursor:pointer;margin:6px 4px 6px 0}
+.primary{background:#0077aa;color:white}
+.hidden{display:none!important}
+.passenger{border:1px solid #dbe8ee;border-radius:16px;padding:14px;margin-bottom:12px;background:#fbfdff}
+.service{border:1px solid #e0ebf0;border-radius:14px;padding:12px;margin-top:10px;background:white}
+.line{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed #dbe8ee}
+.sticky{position:sticky;top:14px}
+.login-screen{position:fixed;inset:0;background:#073b4c;display:flex;align-items:center;justify-content:center;z-index:99;padding:18px}
+.login-card{background:white;border-radius:20px;padding:22px;max-width:420px;width:100%}
+.error{color:#b42318;margin-top:10px}.user-box{background:#0b5c73;border-radius:12px;padding:10px;margin-bottom:10px}
+pre{background:#0b1220;color:#d6edf5;padding:14px;border-radius:12px;overflow:auto}
+.status-badge{float:right;padding:6px 10px;border-radius:999px;font-weight:900;font-size:12px}
+.status-cancelled{background:#ffecec;color:#b42318}.status-checked-in{background:#eafaf0;color:#14733b}.status-confirmed{background:#e2f5ff;color:#00709e}.status-pending{background:#fff3cd;color:#805500}.status-completed{background:#eeeeff;color:#3730a3}
+@media(max-width:850px){.layout{grid-template-columns:1fr}.grid,.form-grid{grid-template-columns:1fr}.sticky{position:static}}

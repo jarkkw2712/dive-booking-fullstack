@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dive Booking Fullstack</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <h1>Dive Admin</h1>
+    <p>Login ผ่าน Backend API</p>
+    <label>Username</label>
+    <input id="loginUsername" value="admin">
+    <label>Password</label>
+    <input id="loginPassword" type="password" value="1234">
+    <button onclick="login()" class="btn primary">Login</button>
+    <div id="loginError" class="error"></div>
+  </div>
+</div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <h2>Dive Admin</h2>
+    <div id="userBox" class="user-box"></div>
+    <button onclick="showPage('bookingPage')">+ เพิ่ม Booking</button>
+    <button onclick="showPage('managePage')">จัดการ Booking</button>
+    <button onclick="showPage('reportPage')">Reports</button>
+    <button onclick="showPage('adminPage')">Admin</button>
+    <button onclick="logout()" class="danger">Logout</button>
+  </aside>
+
+  <main class="content">
+    <section id="bookingPage" class="page active">
+      <h1>เพิ่ม / แก้ไข Booking</h1>
+      <div class="grid">
+        <div>
+          <div class="card">
+            <h2>ข้อมูลหลัก</h2>
+            <div class="form-grid">
+              <div>
+                <label>ประเภท</label>
+                <select id="tripType" onchange="toggleReturnDate()">
+                  <option value="one_way">ครั้งเดียว</option>
+                  <option value="round_trip">Round Trip</option>
+                </select>
+              </div>
+              <div><label>วันเดินทางไป</label><input id="travelDate" type="date"></div>
+              <div><label>วันกลับ</label><input id="returnDate" type="date" disabled></div>
+              <div>
+                <label>คำนำหน้า</label>
+                <select id="leaderTitle"><option></option><option>นาย</option><option>นาง</option><option>นางสาว</option><option>เด็กชาย</option><option>เด็กหญิง</option></select>
+              </div>
+              <div><label>ชื่อหัวหน้าทริป</label><input id="leaderFirstName"></div>
+              <div><label>นามสกุลหัวหน้าทริป</label><input id="leaderLastName"></div>
+              <div><label>เบอร์โทร</label><input id="phone"></div>
+              <div><label>จำนวนคน</label><input id="paxCount" type="number" min="1" value="1"></div>
+              <div>
+                <label>ช่องทาง</label>
+                <select id="source"><option>ลูกค้าเก่า</option><option>ไทยเที่ยวไทย</option><option>Agent</option><option>ผู้บริหาร</option><option>Walk-in</option><option>Facebook</option></select>
+              </div>
+              <div><label>Agent</label><input id="agentName"></div>
+              <div>
+                <label>สถานะ</label>
+                <select id="status"><option>pending</option><option selected>confirmed</option><option>checked-in</option><option>completed</option><option>cancelled</option></select>
+              </div>
+              <div>
+                <label>ชำระเงิน</label>
+                <select id="paymentMethod"><option>เงินสด</option><option>โอนผ่านธนาคาร</option></select>
+              </div>
+              <div class="full"><label>หมายเหตุ</label><textarea id="bookingNote"></textarea></div>
+            </div>
+            <button onclick="syncPassengerCount()" class="btn">ปรับจำนวนผู้เดินทาง</button>
+          </div>
+
+          <div class="card">
+            <h2>Smart Paste รายชื่อ</h2>
+            <textarea id="passengerText" placeholder="1. นาย สมชาย ใจดี&#10;2. นางสาว สมศรี สดใส"></textarea>
+            <button onclick="parsePassengerText()" class="btn">สร้างจากข้อความ</button>
+          </div>
+
+          <div class="card">
+            <h2>ผู้เดินทาง</h2>
+            <div id="passengerList"></div>
+          </div>
+        </div>
+
+        <div class="card sticky">
+          <h2>สรุป</h2>
+          <div id="summary"></div>
+          <h2>รวม <span id="grandTotal">0</span> บาท</h2>
+          <button id="saveNewBtn" onclick="saveBooking()" class="btn primary">บันทึก Booking ใหม่</button>
+          <button id="saveEditBtn" onclick="updateBooking()" class="btn primary hidden">บันทึกการแก้ไข</button>
+          <button onclick="startNewBooking()" class="btn">เริ่ม Booking ใหม่</button>
+          <button onclick="cancelBooking()" class="btn danger">ยกเลิก Booking</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="managePage" class="page">
+      <h1>จัดการ Booking</h1>
+      <div class="card">
+        <label>กรองวันเดินทาง</label>
+        <input id="manageDate" type="date" onchange="loadBookings()">
+        <button onclick="loadBookings()" class="btn">Refresh</button>
+        <div id="bookingList"></div>
+      </div>
+    </section>
+
+    <section id="reportPage" class="page">
+      <h1>Reports</h1>
+      <div class="card">
+        <label>วันที่</label>
+        <input id="reportDate" type="date">
+        <button onclick="loadDailyManagementReport()" class="btn primary">Daily Management Report</button>
+        <button onclick="sendLineDailyReport()" class="btn">ส่ง LINE ผู้บริหาร</button>
+        <pre id="reportOutput"></pre>
+      </div>
+    </section>
+
+    <section id="adminPage" class="page">
+      <h1>Admin</h1>
+      <div class="card">
+        <button onclick="testApi()" class="btn primary">Test Backend API</button>
+        <button onclick="loadMasterData()" class="btn">Reload Master Data</button>
+        <pre id="adminOutput"></pre>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
