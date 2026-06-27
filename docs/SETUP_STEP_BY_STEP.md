@@ -44,13 +44,13 @@ npm run dev
 Backend should run at:
 
 ```text
-http://localhost:3000
+http://dive-booking-api.onrender.com
 ```
 
 Test:
 
 ```text
-http://localhost:3000/api/health
+http://dive-booking-api.onrender.com/api/health
 ```
 
 ## Step 3: Frontend

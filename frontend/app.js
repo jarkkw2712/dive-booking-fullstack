@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:3000/api";
+const API_BASE = "https://dive-booking-api.onrender.com";
 let token = localStorage.getItem("token") || "";
 let currentUser = JSON.parse(localStorage.getItem("user") || "null");
 let masterData = { programs: [], addOns: [] };
