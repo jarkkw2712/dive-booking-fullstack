@@ -142,3 +142,89 @@ select
 from v_booking_summary
 where status='checked-in'
 group by travel_date;
+
+
+-- Sprint 1.3 Company Profile / System Setting
+create table if not exists company_profile (
+  profile_id text primary key default 'default',
+  company_name text,
+  tax_id text,
+  address text,
+  phone text,
+  email text,
+  website text,
+  line_oa text,
+  facebook text,
+  logo_url text,
+  signature_url text,
+  stamp_url text,
+  bank_name text,
+  bank_account text,
+  bank_account_name text,
+  promptpay text,
+  promptpay_qr_url text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+
+-- Sprint 1.4 Master Data Pro
+create table if not exists master_agents (
+  agent_id text primary key,
+  agent_name text not null,
+  description text,
+  active_flag boolean default true,
+  sort_order int default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists master_boats (
+  boat_id text primary key,
+  boat_name text not null,
+  description text,
+  active_flag boolean default true,
+  sort_order int default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists master_islands (
+  island_id text primary key,
+  island_name text not null,
+  description text,
+  active_flag boolean default true,
+  sort_order int default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists master_price_reasons (
+  reason_id text primary key,
+  reason_name text not null,
+  description text,
+  active_flag boolean default true,
+  sort_order int default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists master_payment_methods (
+  method_id text primary key,
+  method_name text not null,
+  description text,
+  active_flag boolean default true,
+  sort_order int default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists master_statuses (
+  status_id text primary key,
+  status_name text not null,
+  description text,
+  active_flag boolean default true,
+  sort_order int default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);

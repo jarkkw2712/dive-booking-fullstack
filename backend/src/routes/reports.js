@@ -49,6 +49,16 @@ router.get("/print-center", requirePermission("printDailyReport"), async (req, r
       preAddOns: (p.preAddOns || []).filter(a => a.selected).map(a => `${a.name} x ${a.qty}`).join(", "),
       islandAddOns: (p.islandAddOns || []).map(a => `${a.name} x ${a.qty}`).join(", ")
     })));
+  } else if (type === "driver") {
+    rows = daily.map(b => ({
+      bookingCode: b.bookingCode,
+      leader: [b.leaderTitle, b.leaderFirstName, b.leaderLastName].filter(Boolean).join(" "),
+      phone: b.phone,
+      pax: b.passengers?.length || 0,
+      travelDate: b.travelDate,
+      source: b.source,
+      note: b.bookingNote
+    }));
   } else if (type === "insurance") {
     rows = daily.flatMap(b => (b.passengers || []).map(p => ({
       firstName: p.firstName,

@@ -167,3 +167,63 @@ body.locked .layout{display:none}
     grid-template-columns:1fr!important;
   }
 }
+
+
+/* ===== Sprint 1.2 Receipt / Report Templates ===== */
+.doc-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.receipt-paper{background:white;color:#111;width:210mm;max-width:100%;min-height:297mm;margin:auto;padding:18mm;border:1px solid #e5e7eb;box-shadow:0 12px 30px rgba(0,0,0,.08)}
+.receipt-header{display:flex;justify-content:space-between;gap:20px;border-bottom:3px solid #073b4c;padding-bottom:14px;margin-bottom:18px}
+.receipt-brand{display:flex;gap:14px;align-items:center}
+.receipt-logo{width:72px;height:72px;object-fit:contain;border-radius:12px;border:1px solid #e5e7eb}
+.receipt-title{text-align:right}
+.receipt-title h1{margin:0;font-size:30px;color:#073b4c}
+.receipt-meta{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
+.receipt-box{border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fafafa}
+.receipt-table{width:100%;border-collapse:collapse;margin-top:14px}
+.receipt-table th,.receipt-table td{border-bottom:1px solid #e5e7eb;padding:9px;text-align:left}
+.receipt-table th{background:#f3f8fb}
+.receipt-total{margin-left:auto;width:320px;max-width:100%;margin-top:14px}
+.receipt-total .line{display:flex;justify-content:space-between;border-bottom:1px dashed #d1d5db;padding:8px 0}
+.paid-stamp{display:inline-block;border:3px solid #b42318;color:#b42318;padding:8px 18px;font-size:24px;font-weight:900;transform:rotate(-8deg);opacity:.75}
+.signature-row{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:50px;text-align:center}
+.signature-line{border-top:1px solid #333;padding-top:8px}
+.report-paper{background:white;padding:18px;border-radius:18px}
+.report-title{display:flex;justify-content:space-between;border-bottom:2px solid #073b4c;margin-bottom:14px;padding-bottom:10px}
+.report-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}
+.report-kpi{background:#f3f8fb;border-radius:14px;padding:12px}
+@media(max-width:850px){
+  .receipt-paper{width:100%;min-height:auto;padding:14px;border-radius:14px}
+  .receipt-header,.receipt-meta,.signature-row{grid-template-columns:1fr;display:block}
+  .receipt-title{text-align:left;margin-top:12px}
+  .report-summary{grid-template-columns:1fr 1fr}
+}
+@media print{
+  body{background:white!important}
+  .receipt-paper{width:210mm;box-shadow:none;border:0;margin:0;padding:12mm}
+  .report-paper{box-shadow:none;border:0}
+  .doc-toolbar,.sidebar,.mobile-menu-toggle,.login-screen{display:none!important}
+}
+
+
+/* ===== Sprint 1.3 Company Setting ===== */
+.company-logo-preview{width:96px;height:96px;object-fit:contain;border:1px solid #dbe8ee;border-radius:16px;background:#fff}
+.setting-status-ok{padding:10px;border-radius:12px;background:#eafaf0;color:#14733b;font-weight:800}
+.setting-status-error{padding:10px;border-radius:12px;background:#ffecec;color:#b42318;font-weight:800}
+
+
+/* ===== Sprint 1.4 Master Data Pro ===== */
+.master-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.master-editor{border:2px solid #0b83b7}
+.master-data-table{width:100%;border-collapse:collapse;font-size:13px}
+.master-data-table th,.master-data-table td{border:1px solid #dbe8ee;padding:8px;vertical-align:top}
+.master-data-table th{background:#f4f8fb}
+.status-active{display:inline-block;background:#eafaf0;color:#14733b;border-radius:999px;padding:4px 9px;font-weight:800}
+.status-inactive{display:inline-block;background:#ffecec;color:#b42318;border-radius:999px;padding:4px 9px;font-weight:800}
+
+
+/* ===== Sprint 1.5 User / Permission Management ===== */
+.permission-matrix{width:100%;border-collapse:collapse;font-size:13px}
+.permission-matrix th,.permission-matrix td{border:1px solid #dbe8ee;padding:8px;text-align:center}
+.permission-matrix th{background:#f4f8fb;position:sticky;top:0}
+.permission-matrix td:first-child{text-align:left;font-weight:800;background:#fbfdff}
+.user-role-badge{display:inline-block;border-radius:999px;padding:4px 9px;background:#eef7ff;color:#075985;font-weight:800}

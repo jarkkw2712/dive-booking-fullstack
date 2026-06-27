@@ -300,6 +300,168 @@
       </div>
     </section>
 
+
+    <section id="receiptTemplatePage" class="page">
+      <h1>Receipt / Document Template</h1>
+      <div class="card">
+        <h2>Company Info</h2>
+        <p class="muted">ตั้งค่าโลโก้และข้อมูลบริษัทสำหรับใบเสร็จ/เอกสารพิมพ์</p>
+        <div class="form-grid">
+          <div><label>ชื่อบริษัท</label><input id="companyName" value="Dive Tour Company"></div>
+          <div><label>เบอร์โทร</label><input id="companyPhone" value="081-000-0000"></div>
+          <div class="full"><label>ที่อยู่</label><input id="companyAddress" value="Phuket, Thailand"></div>
+          <div><label>Tax ID</label><input id="companyTaxId" value="-"></div>
+          <div><label>PromptPay / Bank</label><input id="companyPaymentInfo" value="PromptPay: 000-000-0000"></div>
+          <div class="full"><label>Logo URL</label><input id="companyLogoUrl" placeholder="https://.../logo.png หรือ assets/logo.png"></div>
+        </div>
+        <button class="btn btn-primary mt" onclick="saveCompanySettings()">Save Template Setting</button>
+        <button class="btn btn-soft mt" onclick="previewReceiptTemplate()">Preview Receipt</button>
+      </div>
+      <div class="card">
+        <h2>Preview</h2>
+        <div id="receiptPreviewRoot"></div>
+      </div>
+    </section>
+
+
+    <section id="companySettingPage" class="page">
+      <h1>Company Setting</h1>
+
+      <div class="card">
+        <h2>ข้อมูลบริษัท</h2>
+        <p class="muted">ข้อมูลนี้จะถูกใช้ร่วมกันใน Receipt / Voucher / Invoice / Report ทั้งหมด</p>
+
+        <div class="form-grid">
+          <div><label>ชื่อบริษัท</label><input id="csCompanyName"></div>
+          <div><label>Tax ID</label><input id="csTaxId"></div>
+          <div class="full"><label>ที่อยู่</label><input id="csAddress"></div>
+          <div><label>เบอร์โทร</label><input id="csPhone"></div>
+          <div><label>Email</label><input id="csEmail"></div>
+          <div><label>Website</label><input id="csWebsite"></div>
+          <div><label>LINE OA</label><input id="csLineOa"></div>
+          <div><label>Facebook</label><input id="csFacebook"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>โลโก้ / เอกสาร</h2>
+        <div class="form-grid">
+          <div class="full"><label>Logo URL</label><input id="csLogoUrl" placeholder="https://.../logo.png หรือ assets/logo.png"></div>
+          <div class="full"><label>Signature URL</label><input id="csSignatureUrl" placeholder="https://.../signature.png"></div>
+          <div class="full"><label>ตราประทับ / Stamp URL</label><input id="csStampUrl" placeholder="https://.../stamp.png"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>บัญชี / PromptPay</h2>
+        <div class="form-grid">
+          <div><label>ชื่อธนาคาร</label><input id="csBankName"></div>
+          <div><label>เลขบัญชี</label><input id="csBankAccount"></div>
+          <div><label>ชื่อบัญชี</label><input id="csBankAccountName"></div>
+          <div><label>PromptPay</label><input id="csPromptPay"></div>
+          <div class="full"><label>PromptPay QR URL</label><input id="csPromptPayQrUrl" placeholder="https://.../promptpay-qr.png"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <button class="btn btn-primary" onclick="saveCompanyProfile()">Save Company Profile</button>
+        <button class="btn btn-soft" onclick="loadCompanyProfileToForm()">Reload</button>
+        <button class="btn btn-soft" onclick="previewCompanyReceipt()">Preview Receipt</button>
+        <div id="companySettingStatus" class="muted mt"></div>
+      </div>
+
+      <div class="card">
+        <h2>Preview</h2>
+        <div id="companyReceiptPreview"></div>
+      </div>
+    </section>
+
+
+    <section id="masterDataProPage" class="page">
+      <h1>Master Data Pro</h1>
+
+      <div class="card">
+        <h2>จัดการข้อมูลหลังบ้าน</h2>
+        <p class="muted">ข้อมูลนี้จะถูกใช้ใน Booking, Report, Receipt และระบบสิทธิ์</p>
+        <div class="three-grid">
+          <button class="btn btn-soft" onclick="loadMasterDataPro('programs')">Programs</button>
+          <button class="btn btn-soft" onclick="loadMasterDataPro('addons')">Add-ons</button>
+          <button class="btn btn-soft" onclick="loadMasterDataPro('agents')">Agents</button>
+          <button class="btn btn-soft" onclick="loadMasterDataPro('boats')">Boats</button>
+          <button class="btn btn-soft" onclick="loadMasterDataPro('islands')">Islands</button>
+          <button class="btn btn-soft" onclick="loadMasterDataPro('price_reasons')">Price Reasons</button>
+          <button class="btn btn-soft" onclick="loadMasterDataPro('payment_methods')">Payment Methods</button>
+          <button class="btn btn-soft" onclick="loadMasterDataPro('statuses')">Statuses</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="master-toolbar">
+          <h2 id="mdpTitle">เลือกหมวดข้อมูล</h2>
+          <button class="btn btn-primary" onclick="openMasterDataEditor()">+ เพิ่มรายการ</button>
+          <button class="btn btn-soft" onclick="refreshCurrentMasterDataPro()">Refresh</button>
+        </div>
+        <div id="masterDataProRoot" class="table-scroll"></div>
+      </div>
+
+      <div id="masterDataEditor" class="card master-editor hidden">
+        <h2 id="masterEditorTitle">เพิ่ม/แก้ไข</h2>
+        <input type="hidden" id="mdpEditingId">
+        <div class="form-grid">
+          <div><label>ID / Code</label><input id="mdpCode" placeholder="เช่น agent_a หรือ boat_1"></div>
+          <div><label>ชื่อ</label><input id="mdpName" placeholder="ชื่อที่แสดงในระบบ"></div>
+          <div><label>ราคา Default</label><input id="mdpPrice" type="number" value="0"></div>
+          <div><label>Sort Order</label><input id="mdpSort" type="number" value="0"></div>
+          <div class="full"><label>หมายเหตุ</label><input id="mdpDescription"></div>
+          <div><label>Active</label><select id="mdpActive"><option value="true">ใช้งาน</option><option value="false">ปิดใช้งาน</option></select></div>
+        </div>
+        <button class="btn btn-primary mt" onclick="saveMasterDataProItem()">Save</button>
+        <button class="btn btn-soft mt" onclick="closeMasterDataEditor()">Cancel</button>
+      </div>
+    </section>
+
+
+    <section id="userManagementPage" class="page">
+      <h1>User Management</h1>
+
+      <div class="card">
+        <div class="master-toolbar">
+          <h2>Users</h2>
+          <button class="btn btn-primary" onclick="openUserEditor()">+ เพิ่ม User</button>
+          <button class="btn btn-soft" onclick="loadUsers()">Refresh</button>
+        </div>
+        <div id="userListRoot" class="table-scroll"></div>
+      </div>
+
+      <div id="userEditor" class="card master-editor hidden">
+        <h2 id="userEditorTitle">เพิ่ม/แก้ไข User</h2>
+        <input type="hidden" id="userEditingId">
+        <div class="form-grid">
+          <div><label>Username</label><input id="userUsername" placeholder="เช่น counter2"></div>
+          <div><label>Display Name</label><input id="userDisplayName" placeholder="ชื่อพนักงาน"></div>
+          <div><label>Role</label><select id="userRole"></select></div>
+          <div><label>Active</label><select id="userActive"><option value="true">ใช้งาน</option><option value="false">ปิดใช้งาน</option></select></div>
+        </div>
+        <button class="btn btn-primary mt" onclick="saveUser()">Save User</button>
+        <button class="btn btn-soft mt" onclick="closeUserEditor()">Cancel</button>
+        <p class="muted">หมายเหตุ: ตอนนี้ password demo ใช้ค่าเดียวจาก backend .env: DEMO_PASSWORD</p>
+      </div>
+    </section>
+
+    <section id="permissionMatrixPage" class="page">
+      <h1>Permission Matrix</h1>
+
+      <div class="card">
+        <p class="muted">กำหนดสิทธิ์แต่ละ Role จาก Database จริง</p>
+        <button class="btn btn-primary" onclick="loadPermissionMatrixPro()">Load Permissions</button>
+        <button class="btn btn-soft" onclick="savePermissionMatrixPro()">Save Permissions</button>
+      </div>
+
+      <div class="card">
+        <div id="permissionMatrixProRoot" class="table-scroll"></div>
+      </div>
+    </section>
+
   </main>
 </div>
 

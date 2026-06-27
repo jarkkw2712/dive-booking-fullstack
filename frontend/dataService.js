@@ -76,5 +76,64 @@ const DataService = {
       method: "PUT",
       body: JSON.stringify(masterData)
     });
+  },
+  async getCompanyProfile() {
+    return await apiFetch("/company-profile");
+  },
+
+  async saveCompanyProfile(profile) {
+    return await apiFetch("/company-profile", {
+      method: "PUT",
+      body: JSON.stringify(profile)
+    });
+  },
+  async listMasterDataPro(category) {
+    return await apiFetch(`/master-data-pro/${encodeURIComponent(category)}`);
+  },
+
+  async saveMasterDataProItem(category, item) {
+    return await apiFetch(`/master-data-pro/${encodeURIComponent(category)}`, {
+      method: "POST",
+      body: JSON.stringify(item)
+    });
+  },
+
+  async updateMasterDataProItem(category, id, item) {
+    return await apiFetch(`/master-data-pro/${encodeURIComponent(category)}/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: JSON.stringify(item)
+    });
+  },
+  async listUsers() {
+    return await apiFetch("/users");
+  },
+
+  async saveUser(user) {
+    return await apiFetch("/users", {
+      method: "POST",
+      body: JSON.stringify(user)
+    });
+  },
+
+  async updateUser(userId, user) {
+    return await apiFetch(`/users/${encodeURIComponent(userId)}`, {
+      method: "PUT",
+      body: JSON.stringify(user)
+    });
+  },
+
+  async listRoles() {
+    return await apiFetch("/roles");
+  },
+
+  async getPermissionMatrix() {
+    return await apiFetch("/permissions/matrix");
+  },
+
+  async savePermissionMatrix(matrix) {
+    return await apiFetch("/permissions/matrix", {
+      method: "PUT",
+      body: JSON.stringify({ matrix })
+    });
   }
 };

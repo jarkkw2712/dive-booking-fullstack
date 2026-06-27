@@ -75,3 +75,91 @@ insert into role_permissions(role_id, permission_key, allowed) values
 ('management','viewAudit',true),
 ('management','viewMoney',true)
 on conflict(role_id, permission_key) do update set allowed=excluded.allowed;
+
+
+insert into company_profile (
+  profile_id, company_name, tax_id, address, phone, email, website,
+  line_oa, facebook, logo_url, bank_name, bank_account, bank_account_name, promptpay
+) values (
+  'default', 'Dive Tour Company', '-', 'Phuket, Thailand', '081-000-0000', '', '',
+  '', '', '', '', '', '', ''
+)
+on conflict (profile_id) do nothing;
+
+
+insert into master_agents (agent_id, agent_name, description, sort_order) values
+('direct', 'Direct Customer', 'ลูกค้าตรง', 1),
+('facebook', 'Facebook', 'ลูกค้าจาก Facebook', 2),
+('executive', 'Executive Special', 'ราคาพิเศษผู้บริหาร', 3)
+on conflict (agent_id) do update set agent_name=excluded.agent_name, description=excluded.description, sort_order=excluded.sort_order;
+
+insert into master_boats (boat_id, boat_name, description, sort_order) values
+('boat_1', 'Boat 1', '', 1),
+('boat_2', 'Boat 2', '', 2)
+on conflict (boat_id) do update set boat_name=excluded.boat_name, description=excluded.description, sort_order=excluded.sort_order;
+
+insert into master_islands (island_id, island_name, description, sort_order) values
+('unspecified', 'ไม่ระบุ', '', 1),
+('mai_ngam', 'อ่าวไม้งาม', '', 2),
+('chong_khad', 'อ่าวช่องขาด', '', 3)
+on conflict (island_id) do update set island_name=excluded.island_name, description=excluded.description, sort_order=excluded.sort_order;
+
+insert into master_price_reasons (reason_id, reason_name, description, sort_order) values
+('default', 'ราคา Default', '', 1),
+('executive', 'ผู้บริหารอนุมัติ', '', 2),
+('agent_contract', 'ราคา Agent Contract', '', 3),
+('other', 'อื่นๆ', '', 99)
+on conflict (reason_id) do update set reason_name=excluded.reason_name, description=excluded.description, sort_order=excluded.sort_order;
+
+insert into master_payment_methods (method_id, method_name, description, sort_order) values
+('cash', 'เงินสด', '', 1),
+('bank_transfer', 'โอนผ่านธนาคาร', '', 2)
+on conflict (method_id) do update set method_name=excluded.method_name, description=excluded.description, sort_order=excluded.sort_order;
+
+insert into master_statuses (status_id, status_name, description, sort_order) values
+('pending', 'pending', 'รอคอนเฟิร์ม', 1),
+('confirmed', 'confirmed', 'ยืนยันแล้ว', 2),
+('checked-in', 'checked-in', 'เช็คอินแล้ว', 3),
+('completed', 'completed', 'จบงานแล้ว', 4),
+('cancelled', 'cancelled', 'ยกเลิก', 5)
+on conflict (status_id) do update set status_name=excluded.status_name, description=excluded.description, sort_order=excluded.sort_order;
+
+
+-- Sprint 1.5 roles
+insert into app_roles (role_id, role_name) values
+('finance', 'Finance'),
+('ceo', 'CEO')
+on conflict (role_id) do update set role_name=excluded.role_name;
+
+-- Sprint 1.5 manageUsers permission and expanded role permissions
+insert into role_permissions (role_id, permission_key, allowed) values
+('admin', 'manageUsers', true),
+('finance', 'createBooking', false),
+('finance', 'editBooking', false),
+('finance', 'cancelBooking', false),
+('finance', 'editMasterData', false),
+('finance', 'editPermissions', false),
+('finance', 'systemAdmin', false),
+('finance', 'addIslandAddOn', false),
+('finance', 'printReceipt', true),
+('finance', 'printCounterReport', true),
+('finance', 'printBoatReport', false),
+('finance', 'printDailyReport', true),
+('finance', 'viewAudit', true),
+('finance', 'viewMoney', true),
+('finance', 'manageUsers', false),
+('ceo', 'createBooking', false),
+('ceo', 'editBooking', false),
+('ceo', 'cancelBooking', false),
+('ceo', 'editMasterData', false),
+('ceo', 'editPermissions', false),
+('ceo', 'systemAdmin', false),
+('ceo', 'addIslandAddOn', false),
+('ceo', 'printReceipt', false),
+('ceo', 'printCounterReport', true),
+('ceo', 'printBoatReport', true),
+('ceo', 'printDailyReport', true),
+('ceo', 'viewAudit', true),
+('ceo', 'viewMoney', true),
+('ceo', 'manageUsers', false)
+on conflict (role_id, permission_key) do update set allowed=excluded.allowed, updated_at=now();
