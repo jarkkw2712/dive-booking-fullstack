@@ -1,0 +1,24 @@
+-- =========================================================
+-- Supabase Auth Setup Helper
+-- =========================================================
+-- After creating users in Supabase Auth, link them to app_users.
+--
+-- Example:
+-- update app_users
+-- set auth_user_id = 'AUTH_USER_UUID_FROM_SUPABASE'
+-- where username = 'admin@example.com';
+--
+-- Recommended production usernames should be emails:
+-- admin@yourcompany.com
+-- counter@yourcompany.com
+-- island@yourcompany.com
+-- boat@yourcompany.com
+-- manager@yourcompany.com
+--
+-- You can also update prototype usernames to emails:
+--
+-- update app_users set username = 'admin@yourcompany.com' where username = 'admin';
+-- update app_users set username = 'counter@yourcompany.com' where username = 'counter';
+-- update app_users set username = 'island@yourcompany.com' where username = 'island';
+-- update app_users set username = 'boat@yourcompany.com' where username = 'boat';
+-- update app_users set username = 'manager@yourcompany.com' where username = 'manager';

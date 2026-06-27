@@ -1,6 +1,7 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import { supabaseAdmin } from "../services/supabase.js";
+import { requireAuth } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -42,5 +43,7 @@ router.post("/login", async (req,res)=>{
   const token = jwt.sign(payload, process.env.JWT_SECRET || "dev-secret", { expiresIn:"12h" });
   res.json({token, user: payload});
 });
+
+router.get("/me", requireAuth, (req, res) => res.json({ user: req.user }));
 
 export default router;

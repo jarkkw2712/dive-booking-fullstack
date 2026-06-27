@@ -1,22 +1,26 @@
-# Dive Booking Fullstack V1 Setup
+# Dive Booking Fullstack V2 Latest Setup
 
-## Architecture
+เวอร์ชันนี้ใช้ UI/Feature ล่าสุดจาก prototype แต่เปลี่ยน data layer เป็น:
 
-Frontend → Backend API → Supabase PostgreSQL
+```text
+Frontend ล่าสุด → Backend API → Supabase PostgreSQL
+```
 
-Browser no longer writes database directly.
+## 1) Supabase
 
-## Step 1: Supabase
+เข้า Supabase → SQL Editor แล้วรันเรียงตามนี้:
 
-In Supabase SQL Editor run:
+```text
+database/schema.sql
+database/seed.sql
+database/rpc.sql
+```
 
-1. `database/schema.sql`
-2. `database/seed.sql`
-3. `database/rpc.sql`
+ถ้าเคยรันแล้ว รันซ้ำได้
 
-## Step 2: Backend
+## 2) Backend
 
-Open terminal:
+เปิด terminal:
 
 ```bash
 cd backend
@@ -24,38 +28,44 @@ npm install
 copy .env.example .env
 ```
 
-Edit `.env`:
+แก้ `.env`:
 
 ```env
-SUPABASE_URL=https://xxxx.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-JWT_SECRET=any-long-random-text
+PORT=3000
+FRONTEND_ORIGIN=http://127.0.0.1:5500
+JWT_SECRET=ใส่ข้อความยาวๆ อะไรก็ได้
 DEMO_PASSWORD=1234
+
+SUPABASE_URL=https://iythuzkmjjshwciooaum.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=เอา service_role key จาก Supabase มาใส่
 ```
 
-Important: service_role key must stay only in backend `.env`.
+สำคัญ:
+- `SUPABASE_URL` ห้ามมี `/rest/v1`
+- `SERVICE_ROLE_KEY` อยู่เฉพาะ backend `.env`
+- ห้ามใส่ service_role key ใน frontend
 
-Run:
+รัน backend:
 
 ```bash
 npm run dev
 ```
 
-Backend should run at:
+เช็ก:
 
 ```text
-http://dive-booking-api.onrender.com
+http://localhost:3000/api/health
 ```
 
-Test:
+## 3) Frontend
+
+เปิด:
 
 ```text
-http://dive-booking-api.onrender.com/api/health
+frontend/index.html
 ```
 
-## Step 3: Frontend
-
-Open `frontend/index.html` with Live Server.
+ด้วย Live Server
 
 Login:
 
@@ -63,27 +73,24 @@ Login:
 admin / 1234
 ```
 
-Then create booking.
+## 4) Test
 
-## Step 4: Check Supabase
+1. สร้าง Booking
+2. กด Save
+3. ไป Supabase Table Editor
+4. ดูตาราง:
+   - bookings
+   - passengers
+   - booking_programs
+   - booking_addons
+   - audit_logs
 
-Open Table Editor:
+## 5) ถ้าเจอ CORS
 
-- bookings
-- passengers
-- booking_programs
-- booking_addons
-- audit_logs
+ดู `.env`:
 
-You should see rows after saving.
+```env
+FRONTEND_ORIGIN=http://127.0.0.1:5500
+```
 
-## Notes
-
-This is still a development version, but the architecture is now correct for real business use.
-
-Next phases:
-- Real Supabase Auth or password hashes
-- PDF receipt generation
-- LINE daily scheduler
-- Bank payment API
-- Deployment to Render/Railway/Vercel
+ถ้า Live Server เป็น port อื่น เช่น 5501 ให้แก้ให้ตรง

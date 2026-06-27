@@ -1,5 +1,5 @@
-# Dive Booking Fullstack V1
+# Dive Booking Fullstack V2 Latest
 
-Frontend → Backend API → Supabase PostgreSQL
+UI ล่าสุด + Backend API + Supabase
 
 อ่าน `docs/SETUP_STEP_BY_STEP.md`

@@ -9,6 +9,8 @@ import bookingRoutes from "./routes/bookings.js";
 import masterRoutes from "./routes/masterData.js";
 import reportRoutes from "./routes/reports.js";
 import lineRoutes from "./routes/line.js";
+import permissionRoutes from "./routes/permissions.js";
+import auditRoutes from "./routes/auditLogs.js";
 
 dotenv.config();
 const app = express();
@@ -24,6 +26,8 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api/master-data", masterRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/line", lineRoutes);
+app.use("/api/permissions", permissionRoutes);
+app.use("/api/audit-logs", auditRoutes);
 
 const port = process.env.PORT || 3000;
 app.listen(port, ()=>console.log(`Dive Booking API running on http://localhost:${port}`));
