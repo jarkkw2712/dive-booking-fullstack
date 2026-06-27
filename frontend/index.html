@@ -38,6 +38,7 @@
 <div class="layout">
   <aside class="sidebar">
     <h2>Dive Admin V2</h2>
+    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰ เมนู</button>
     <div id="userBox" class="user-box"></div>
     <div id="roleHint" class="role-hint"></div>
     <button class="logout-btn" onclick="logout()">Logout</button>
@@ -331,5 +332,11 @@
 <script src="report.js"></script>
 <script src="system.js"></script>
 <script src="migrationTool.js"></script>
+<script>
+function toggleMobileMenu(){
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar) sidebar.classList.toggle('mobile-open');
+}
+</script>
 </body>
 </html>

@@ -94,3 +94,76 @@ body.locked .layout{display:none}
 .data-table th,.data-table td{border:1px solid #dbe8ee;padding:8px;vertical-align:top}
 .data-table th{background:#f4f8fb;position:sticky;top:0}
 .code-cell{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;max-width:360px}
+
+
+/* ===== Mobile menu fix ===== */
+.mobile-menu-toggle{
+  display:none;
+}
+
+@media(max-width:850px){
+  .layout{
+    grid-template-columns:1fr!important;
+  }
+
+  .sidebar{
+    position:sticky!important;
+    top:0!important;
+    z-index:999!important;
+    padding:10px 12px!important;
+    max-height:58px!important;
+    overflow:hidden!important;
+    border-radius:0 0 18px 18px!important;
+    box-shadow:0 8px 24px rgba(0,0,0,.18)!important;
+  }
+
+  .sidebar.mobile-open{
+    max-height:80vh!important;
+    overflow:auto!important;
+  }
+
+  .sidebar h2{
+    display:inline-block!important;
+    margin:0 8px 0 0!important;
+    vertical-align:middle!important;
+    font-size:18px!important;
+  }
+
+  .mobile-menu-toggle{
+    display:inline-block!important;
+    width:auto!important;
+    margin:0!important;
+    padding:8px 12px!important;
+    border-radius:999px!important;
+    background:#0b5c73!important;
+    color:#fff!important;
+  }
+
+  .sidebar:not(.mobile-open) .user-box,
+  .sidebar:not(.mobile-open) .role-hint,
+  .sidebar:not(.mobile-open) button:not(.mobile-menu-toggle),
+  .sidebar:not(.mobile-open) label,
+  .sidebar:not(.mobile-open) select{
+    display:none!important;
+  }
+
+  .content{
+    padding:12px!important;
+  }
+
+  .card{
+    border-radius:14px!important;
+  }
+
+  .booking-workspace{
+    grid-template-columns:1fr!important;
+  }
+
+  .form-grid{
+    grid-template-columns:1fr!important;
+  }
+
+  .grid{
+    grid-template-columns:1fr!important;
+  }
+}
