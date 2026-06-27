@@ -24,20 +24,45 @@ function getCurrentUser() {
   return JSON.parse(localStorage.getItem("current_user") || "null");
 }
 
+function getCurrentRole() {
+  return getCurrentUser()?.role || "guest";
+}
+
+function roleName() {
+  return rolePermissionsFor(getCurrentRole())?.label || getCurrentRole();
+}
+
 async function login() {
   const username = document.getElementById("loginUsername").value.trim();
   const password = document.getElementById("loginPassword").value;
   const error = document.getElementById("loginError");
 
   try {
+    if (error) {
+      error.innerText = "";
+      error.style.display = "none";
+    }
+
     const user = await AuthService.login(username, password);
     writeAuthAudit("LOGIN", `${user.displayName} login`);
-    await loadRolePermissionsFromDataService();
+
+    if (typeof loadRolePermissionsFromDataService === "function") {
+      await loadRolePermissionsFromDataService();
+    }
+
     applyAuthUI();
     applyRoleUI();
+
+    if (typeof loadBookingCache === "function") {
+      await loadBookingCache();
+    }
   } catch (err) {
-    error.innerText = err.message || "Login ไม่สำเร็จ";
-    error.style.display = "block";
+    if (error) {
+      error.innerText = err.message || "Login ไม่สำเร็จ";
+      error.style.display = "block";
+    } else {
+      alert(err.message || "Login ไม่สำเร็จ");
+    }
   }
 }
 
@@ -84,6 +109,39 @@ function writeAuthAudit(action, detail) {
   });
   localStorage.setItem("audit_logs", JSON.stringify(logs));
 }
+
+async function initializeApp() {
+  try {
+    const user = await AuthService.getSessionUser();
+    if (user && typeof loadRolePermissionsFromDataService === "function") {
+      await loadRolePermissionsFromDataService();
+    }
+  } catch (error) {
+    console.warn("Session restore failed", error);
+  }
+
+  generatePassengers();
+  toggleReturnDate();
+  applyAuthUI();
+  applyRoleUI();
+  updateSaveMode();
+
+  if (typeof loadBookingCache === "function") {
+    loadBookingCache();
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 const DEFAULT_ROLE_PERMISSIONS = {
@@ -234,70 +292,15 @@ function rolePermissionsFor(role) {
   return getRolePermissions()[role] || getRolePermissions().guest;
 }
 
-function getCurrentUser() {
-  return JSON.parse(localStorage.getItem("current_user") || "null");
-}
 
-async function login() {
-  const username = document.getElementById("loginUsername").value.trim();
-  const password = document.getElementById("loginPassword").value;
-  const error = document.getElementById("loginError");
 
-  try {
-    const user = await AuthService.login(username, password);
-    writeAuthAudit("LOGIN", `${user.displayName} login`);
-    await loadRolePermissionsFromDataService();
-    applyAuthUI();
-    applyRoleUI();
-  } catch (err) {
-    error.innerText = err.message || "Login ไม่สำเร็จ";
-    error.style.display = "block";
-  }
-}
 
-async function logout() {
-  const user = getCurrentUser();
-  if (user) writeAuthAudit("LOGOUT", `${user.displayName} logout`);
-  await AuthService.logout();
-  applyAuthUI();
-}
 
-function applyAuthUI() {
-  const user = getCurrentUser();
-  const loginScreen = document.getElementById("loginScreen");
-  const userBox = document.getElementById("userBox");
 
-  if (!user) {
-    document.body.classList.add("locked");
-    if (loginScreen) loginScreen.style.display = "flex";
-    if (userBox) userBox.innerHTML = "";
-    return;
-  }
 
-  document.body.classList.remove("locked");
-  if (loginScreen) loginScreen.style.display = "none";
-  if (userBox) {
-    userBox.innerHTML = `
-      <strong>${user.displayName}</strong><br>
-      Username: ${user.username}<br>
-      Role: ${rolePermissionsFor(user.role)?.label || user.role}
-    `;
-  }
-}
 
-function writeAuthAudit(action, detail) {
-  const logs = JSON.parse(localStorage.getItem("audit_logs") || "[]");
-  logs.push({
-    id: "AUDIT" + Date.now(),
-    bookingCode: "SYSTEM",
-    action,
-    detail,
-    changedByRole: getCurrentUser()?.role || "-",
-    changedByRoleName: getCurrentUser()?.displayName || "-",
-    changedAt: new Date().toISOString()
-  });
-  localStorage.setItem("audit_logs", JSON.stringify(logs));
-}
+
+
 
 
 const ROLE_PERMISSIONS = {
@@ -387,9 +390,7 @@ const ROLE_PERMISSIONS = {
   }
 };
 
-function getCurrentRole() {
-  return getCurrentUser()?.role || "guest";
-}
+
 
 function can(action) {
   const role = getCurrentRole();
@@ -408,9 +409,7 @@ function setCurrentRole(role) {
   alert("Role ถูกกำหนดจากบัญชี Login เท่านั้น ไม่สามารถเปลี่ยนเองได้");
 }
 
-function roleName() {
-  return rolePermissionsFor(getCurrentRole())?.label || getCurrentRole();
-}
+
 
 function applyRoleUI() {
   const role = getCurrentRole();
@@ -1529,26 +1528,5 @@ function resetPermissions() {
   alert("Reset สิทธิ์แล้ว");
   applyRoleUI();
 }
-
-
-
-async function initializeApp() {
-  try {
-    const user = await AuthService.getSessionUser();
-    if (user) {
-      await loadRolePermissionsFromDataService();
-    }
-  } catch (error) {
-    console.warn("Session restore failed", error);
-  }
-
-  generatePassengers();
-  toggleReturnDate();
-  applyAuthUI();
-  applyRoleUI();
-  updateSaveMode();
-  loadBookingCache();
-}
-
 
 initializeApp();
