@@ -28,12 +28,179 @@ function editSelectedBooking(){if(!selectedBooking)return;loadBookingToForm(sele
 function loadBookingToForm(b){editingCode=b.bookingCode;["tripType","travelDate","returnDate","leaderTitle","leaderFirstName","leaderLastName","phone","source","agentName","status","paymentMethod","bookingNote"].forEach(id=>{const el=document.getElementById(id);if(el)el.value=b[id]||""});passengers=b.passengers||[];document.getElementById("paxCount").value=passengers.length||1;toggleReturnDate();renderPassengers();refreshSummary();document.getElementById("saveNewBtn").classList.add("hidden");document.getElementById("saveEditBtn").classList.remove("hidden");}
 async function loadTimeline(){if(!selectedBooking)return;const logs=await API.timeline(selectedBooking.bookingCode);document.getElementById("timelineRoot").innerHTML=logs.map(x=>`<div class="service"><b>${x.action}</b><br>${x.detail||""}<br><span class="muted">${x.changed_at||""}</span></div>`).join("")||"ไม่มี timeline";}
 async function loadDashboard(){try{bookings=await API.bookings();const today=new Date().toISOString().slice(0,10);const rows=bookings.filter(b=>b.travelDate===today);document.getElementById("kpiBookings").innerText=rows.length;document.getElementById("kpiPax").innerText=rows.reduce((s,b)=>s+(b.passengers?.length||0),0);document.getElementById("kpiRevenue").innerText=money(rows.reduce((s,b)=>s+Number(b.totalAmount||0),0));document.getElementById("kpiCheckin").innerText=rows.filter(b=>b.status==="checked-in").length;document.getElementById("dashboardBookings").innerHTML=rows.map(b=>`<div class="line"><span>${b.bookingCode} ${b.leaderFirstName}</span><b>${money(b.totalAmount)}</b></div>`).join("")||"ไม่มี booking วันนี้";}catch(e){}}
-async function generatePrintCenterReport(){const date=val("pcDate"),type=val("pcType");if(!date)return alert("เลือกวันที่");const r=await API.report(date,type);document.getElementById("printCenterOutput").innerHTML=`<h2>${r.title||type} - ${date}</h2>${table(r.rows||[])}`;}
+async function generatePrintCenterReport(){
+  const date=val("pcDate"), type=val("pcType");
+  if(!date)return alert("เลือกวันที่");
+  const r=await API.report(date,type);
+  const rows=r.rows||[];
+  const totalRevenue=rows.reduce((s,x)=>s+Number(x.totalAmount||x.revenue||0),0);
+  const totalPax=rows.reduce((s,x)=>s+Number(x.pax||x.passengers||0),0);
+  document.getElementById("printCenterOutput").innerHTML=`
+    <div class="document-actions">
+      <button class="btn primary" onclick="window.print()">Print / Save PDF</button>
+    </div>
+    <div class="report-paper">
+      <div class="report-header">
+        <div>
+          <h1>${(r.title||type||"Report").toUpperCase()}</h1>
+          <div>Date: ${date}</div>
+        </div>
+        <div>${getCompanySettings().company_name||"Dive Tour Company"}</div>
+      </div>
+      <div class="report-kpis">
+        <div class="report-kpi"><span>Rows</span><b>${rows.length}</b></div>
+        <div class="report-kpi"><span>Pax</span><b>${money(totalPax)}</b></div>
+        <div class="report-kpi"><span>Revenue</span><b>${money(totalRevenue)}</b></div>
+        <div class="report-kpi"><span>Generated</span><b>${new Date().toLocaleTimeString("th-TH")}</b></div>
+      </div>
+      ${table(rows)}
+    </div>
+  `;
+}
 function table(rows){if(!rows.length)return"ไม่มีข้อมูล";const keys=Object.keys(rows[0]);return`<table class="data-table"><thead><tr>${keys.map(k=>`<th>${k}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${keys.map(k=>`<td>${r[k]??""}</td>`).join("")}</tr>`).join("")}</tbody></table>`}
 function getCompanySettings(){return JSON.parse(localStorage.getItem("company_profile")||"null")||{company_name:"Dive Tour Company",phone:"",address:"",tax_id:""}}
-function renderReceipt(b,type="RECEIPT"){const c=getCompanySettings();return`<div class="receipt-paper"><div class="receipt-header"><div><h2>${c.company_name||""}</h2><div>${c.address||""}</div><div>${c.phone||""}</div></div><div><h1>${type}</h1><div>${b.bookingCode||""}</div></div></div><h3>${b.leaderFirstName||""} ${b.leaderLastName||""}</h3><table class="receipt-table"><tbody>${(b.passengers||[]).map(p=>`<tr><td>${p.firstName} ${p.lastName} - ${p.program?.name||""}</td><td>${money(personTotal(p))}</td></tr>`).join("")}</tbody></table><h2>Total ${money(b.totalAmount)} บาท</h2>${type==="RECEIPT"?'<div class="paid-stamp">PAID</div>':""}</div>`}
-function printSelectedReceipt(type="RECEIPT"){if(!selectedBooking)return alert("เลือก booking ก่อน");const w=window.open("","_blank");w.document.write(`<html><head><link rel="stylesheet" href="css/style.css"></head><body>${renderReceipt(selectedBooking,type)}<script>window.print()<\/script></body></html>`);w.document.close();}
-function printCurrentReceipt(){const b=buildBooking();const w=window.open("","_blank");w.document.write(`<html><head><link rel="stylesheet" href="css/style.css"></head><body>${renderReceipt(b,"RECEIPT")}<script>window.print()<\/script></body></html>`);w.document.close();}
+function receiptItems(b){
+  const items=[];
+  (b.passengers||[]).forEach((p,idx)=>{
+    if(p.program){
+      const qty=Number(p.program.qty||1), price=Number(p.program.price||0);
+      items.push({
+        name:`${idx+1}. ${[p.title,p.firstName,p.lastName].filter(Boolean).join(" ")} - ${p.program.name||""}`,
+        detail:`Program`,
+        qty,
+        unit:price,
+        total:qty*price
+      });
+    }
+    (p.preAddOns||[]).filter(a=>a.selected).forEach(a=>{
+      const qty=Number(a.qty||1), price=Number(a.price||0);
+      items.push({name:`Pre Add-on: ${a.name}`,detail:"",qty,unit:price,total:qty*price});
+    });
+    (p.islandAddOns||[]).forEach(a=>{
+      const qty=Number(a.qty||1), price=Number(a.price||0);
+      items.push({name:`Island Add-on: ${a.name}`,detail:a.paymentMethod||"",qty,unit:price,total:qty*price});
+    });
+  });
+  return items;
+}
+
+function renderReceipt(b,type="RECEIPT"){
+  const c=getCompanySettings();
+  const items=receiptItems(b);
+  const subtotal=items.reduce((s,x)=>s+Number(x.total||0),0);
+  const total=Number(b.totalAmount||subtotal||0);
+  const logo=c.logo_url||c.logoUrl
+    ? `<img class="document-logo" src="${c.logo_url||c.logoUrl}" onerror="this.style.display='none'">`
+    : `<div class="document-logo-placeholder"></div>`;
+
+  return `
+    <div class="document-actions">
+      <button class="btn primary" onclick="window.print()">Print / Save PDF</button>
+      <button class="btn soft" onclick="window.close()">Close</button>
+    </div>
+
+    <div class="document-page">
+      <div class="document-header">
+        <div class="document-company">
+          ${logo}
+          <div>
+            <h2>${c.company_name||"Dive Tour Company"}</h2>
+            <div>${c.address||""}</div>
+            <div>Tel: ${c.phone||"-"}</div>
+            <div>Tax ID: ${c.tax_id||"-"}</div>
+          </div>
+        </div>
+        <div class="document-title">
+          <h1>${type}</h1>
+          <div>No: ${b.receiptNo||"RC-"+(b.bookingCode||"DRAFT")}</div>
+          <div>Booking: ${b.bookingCode||"DRAFT"}</div>
+          <div>Date: ${new Date().toISOString().slice(0,10)}</div>
+        </div>
+      </div>
+
+      <div class="document-meta">
+        <div class="document-box">
+          <strong>Customer</strong><br>
+          ${[b.leaderTitle,b.leaderFirstName,b.leaderLastName].filter(Boolean).join(" ")||"-"}<br>
+          Phone: ${b.phone||"-"}<br>
+          Source: ${b.source||"-"}<br>
+          Agent: ${b.agentName||"-"}
+        </div>
+        <div class="document-box">
+          <strong>Trip Detail</strong><br>
+          Travel Date: ${b.travelDate||"-"}<br>
+          Return Date: ${b.returnDate||"-"}<br>
+          Status: ${b.status||"-"}<br>
+          Payment: ${b.paymentMethod||"-"}
+        </div>
+      </div>
+
+      <table class="document-table">
+        <thead>
+          <tr>
+            <th>รายการ</th>
+            <th style="width:80px">Qty</th>
+            <th style="width:120px">Unit</th>
+            <th style="width:130px">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(x=>`
+            <tr>
+              <td>${x.name}${x.detail?`<br><span class="muted">${x.detail}</span>`:""}</td>
+              <td class="num">${x.qty}</td>
+              <td class="num">${money(x.unit)}</td>
+              <td class="num">${money(x.total)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+
+      <div class="document-total">
+        <div class="document-total-row"><span>Subtotal</span><b>${money(subtotal)}</b></div>
+        <div class="document-total-row grand"><span>Total</span><b>${money(total)} บาท</b></div>
+      </div>
+
+      <div class="document-note">
+        <strong>Payment Info:</strong>
+        ${[c.bank_name,c.bank_account,c.bank_account_name,c.promptpay?`PromptPay: ${c.promptpay}`:""].filter(Boolean).join(" | ")||"-"}
+        ${b.bookingNote?`<br><strong>Note:</strong> ${b.bookingNote}`:""}
+      </div>
+
+      ${type==="RECEIPT"?`<div class="paid-stamp">PAID</div>`:""}
+
+      <div class="document-footer">
+        <div><div class="signature-line">ผู้รับเงิน / Staff</div></div>
+        <div><div class="signature-line">ลูกค้า / Customer</div></div>
+      </div>
+    </div>
+  `;
+}
+
+function openPrintDoc(html,title="Document"){
+  const w=window.open("","_blank");
+  w.document.write(`
+    <html>
+      <head>
+        <title>${title}</title>
+        <link rel="stylesheet" href="css/style.css">
+      </head>
+      <body class="print-only-body">${html}</body>
+    </html>
+  `);
+  w.document.close();
+}
+
+function printSelectedReceipt(type="RECEIPT"){
+  if(!selectedBooking)return alert("เลือก booking ก่อน");
+  openPrintDoc(renderReceipt(selectedBooking,type),`${type} ${selectedBooking.bookingCode}`);
+}
+
+function printCurrentReceipt(){
+  const b=buildBooking();
+  openPrintDoc(renderReceipt(b,"RECEIPT"),`RECEIPT ${b.bookingCode||"DRAFT"}`);
+}
+
 async function loadCompanyProfileToForm(){const p=await API.company();localStorage.setItem("company_profile",JSON.stringify(p));const map={csCompanyName:p.company_name,csTaxId:p.tax_id,csAddress:p.address,csPhone:p.phone,csEmail:p.email,csWebsite:p.website,csLineOa:p.line_oa,csFacebook:p.facebook,csLogoUrl:p.logo_url,csSignatureUrl:p.signature_url,csStampUrl:p.stamp_url,csBankName:p.bank_name,csBankAccount:p.bank_account,csBankAccountName:p.bank_account_name,csPromptPay:p.promptpay,csPromptPayQrUrl:p.promptpay_qr_url};Object.entries(map).forEach(([id,v])=>{const e=document.getElementById(id);if(e)e.value=v||""})}
 function companyPayload(){return{company_name:val("csCompanyName"),tax_id:val("csTaxId"),address:val("csAddress"),phone:val("csPhone"),email:val("csEmail"),website:val("csWebsite"),line_oa:val("csLineOa"),facebook:val("csFacebook"),logo_url:val("csLogoUrl"),signature_url:val("csSignatureUrl"),stamp_url:val("csStampUrl"),bank_name:val("csBankName"),bank_account:val("csBankAccount"),bank_account_name:val("csBankAccountName"),promptpay:val("csPromptPay"),promptpay_qr_url:val("csPromptPayQrUrl")}}
 async function saveCompanyProfile(){const p=companyPayload();const r=await API.saveCompany(p);localStorage.setItem("company_profile",JSON.stringify(r.profile||p));alert("บันทึก Company Profile แล้ว")}
