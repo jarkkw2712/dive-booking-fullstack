@@ -1,336 +1,153 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dive Booking V2</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dive Booking V4 Enterprise</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
 <div id="loginScreen" class="login-screen">
   <div class="login-card">
-    <h1>Dive Admin Login</h1>
-    <p class="muted">กรุณา login ก่อนใช้งานระบบ</p>
-
+    <h1>Dive Booking V4</h1>
+    <p>Enterprise Admin</p>
     <label>Username</label>
-    <input id="loginUsername" placeholder="เช่น admin">
-
+    <input id="loginUsername" value="admin">
     <label>Password</label>
-    <input id="loginPassword" type="password" placeholder="password">
-
-    <button class="btn btn-primary btn-full" onclick="login()">Login</button>
-
-    <div class="login-hint">
-      <strong>บัญชีทดสอบ</strong><br>
-      admin / 1234<br>
-      counter / 1234<br>
-      island / 1234<br>
-      boat / 1234<br>
-      manager / 1234
-    </div>
-
-    <div id="loginError" class="warning"></div>
+    <input id="loginPassword" type="password" value="1234">
+    <button class="btn primary full-btn" onclick="login()">Login</button>
+    <div id="loginError" class="error"></div>
   </div>
 </div>
 
-
-<div class="layout">
+<div class="app-shell">
   <aside class="sidebar">
-    <h2>Dive Admin V2</h2>
-    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰ เมนู</button>
+    <div class="brand-row">
+      <h2>Dive Admin V4</h2>
+      <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+    </div>
     <div id="userBox" class="user-box"></div>
-    <div id="roleHint" class="role-hint"></div>
-    <button class="logout-btn" onclick="logout()">Logout</button>
+
+    <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button onclick="showPage('bookingPage')">+ เพิ่ม Booking</button>
-    <button onclick="showPage('managePage')">จัดการ Booking</button>
-    <button onclick="showPage('printPage')">พิมพ์เอกสาร / Report</button>
-    <button onclick="showPage('settingPage')">ตั้งค่า Master Data</button>
-    <button onclick="showPage('permissionPage')">กำหนดสิทธิ์</button>
-    <button onclick="showPage('systemPage')">System Admin</button>
+    <button onclick="showPage('bookingListPage')">Booking List</button>
+    <button onclick="showPage('printCenterPage')">Print Center</button>
+    <button onclick="showPage('companyPage')">Company Profile</button>
+    <button onclick="showPage('masterDataPage')">Master Data</button>
+    <button onclick="showPage('userPage')">User Management</button>
+    <button onclick="showPage('permissionPage')">Permission Matrix</button>
+    <button onclick="logout()" class="danger">Logout</button>
   </aside>
 
   <main class="content">
-    <section id="bookingPage" class="page active">
-      <h1>เพิ่ม / แก้ไข Booking</h1>
+    <section id="dashboardPage" class="page active">
+      <h1>Dashboard</h1>
+      <div class="kpi-grid">
+        <div class="kpi"><span>Bookings Today</span><b id="kpiBookings">0</b></div>
+        <div class="kpi"><span>Pax Today</span><b id="kpiPax">0</b></div>
+        <div class="kpi"><span>Revenue Today</span><b id="kpiRevenue">0</b></div>
+        <div class="kpi"><span>Checked-in</span><b id="kpiCheckin">0</b></div>
+      </div>
+      <div class="card">
+        <h2>Today Booking</h2>
+        <div id="dashboardBookings"></div>
+      </div>
+    </section>
 
-      <div class="grid">
+    <section id="bookingPage" class="page">
+      <h1>เพิ่ม / แก้ไข Booking</h1>
+      <div class="booking-grid">
         <div>
           <div class="card">
             <h2>ข้อมูล Booking หลัก</h2>
-
             <div class="form-grid">
-              <div>
-                <label>ประเภทการเดินทาง</label>
-                <select id="tripType" onchange="toggleReturnDate()">
-                  <option value="one_way">ครั้งเดียว</option>
-                  <option value="round_trip">Round Trip</option>
-                </select>
-              </div>
-
-              <div>
-                <label>วันเดินทางไป</label>
-                <input id="travelDate" type="date" onchange="refreshSummary()" />
-              </div>
-
-              <div>
-                <label>วันเดินทางกลับ</label>
-                <input id="returnDate" type="date" disabled onchange="refreshSummary()" />
-              </div>
-
-              <div>
-                <label>คำนำหน้าหัวหน้าทริป</label>
-                <select id="leaderTitle" onchange="syncLeader(); refreshSummary()">
-                  <option value="">ไม่ระบุ</option>
-                  <option>นาย</option>
-                  <option>นาง</option>
-                  <option>นางสาว</option>
-                  <option>เด็กชาย</option>
-                  <option>เด็กหญิง</option>
-                  <option>อื่นๆ</option>
-                </select>
-              </div>
-
-              <div>
-                <label>ชื่อหัวหน้าทริป</label>
-                <input id="leaderFirstName" oninput="syncLeader(); refreshSummary()" />
-              </div>
-
-              <div>
-                <label>นามสกุลหัวหน้าทริป</label>
-                <input id="leaderLastName" oninput="syncLeader(); refreshSummary()" />
-              </div>
-
-              <div>
-                <label>เบอร์โทร</label>
-                <input id="phone" oninput="syncLeader(); refreshSummary()" />
-              </div>
-
-              <div>
-                <label>จำนวนผู้เดินทาง</label>
-                <input id="paxCount" type="number" min="1" value="1" />
-              </div>
-
-              <div>
-                <label>ช่องทางลูกค้า</label>
-                <select id="source" onchange="refreshSummary()">
-                  <option>ลูกค้าเก่า</option>
-                  <option>ไทยเที่ยวไทย</option>
-                  <option>Agent</option>
-                  <option>ผู้บริหาร</option>
-                  <option>Walk-in</option>
-                  <option>Facebook</option>
-                </select>
-              </div>
-
-              <div>
-                <label>Agent / ผู้แนะนำ</label>
-                <input id="agentName" />
-              </div>
-
-              <div>
-                <label>สถานะ</label>
-                <select id="status" onchange="refreshSummary()">
-                  <option>pending</option>
-                  <option selected>confirmed</option>
-                  <option>checked-in</option>
-                  <option>completed</option>
-                  <option>cancelled</option>
-                </select>
-              </div>
-
-              <div class="full">
-                <label>หมายเหตุ Booking</label>
-                <textarea id="bookingNote"></textarea>
-              </div>
+              <div><label>ประเภทการเดินทาง</label><select id="tripType" onchange="toggleReturnDate()"><option value="one_way">ครั้งเดียว</option><option value="round_trip">Round Trip</option></select></div>
+              <div><label>วันเดินทางไป</label><input id="travelDate" type="date"></div>
+              <div><label>วันเดินทางกลับ</label><input id="returnDate" type="date" disabled></div>
+              <div><label>คำนำหน้า</label><select id="leaderTitle"><option></option><option>นาย</option><option>นาง</option><option>นางสาว</option><option>เด็กชาย</option><option>เด็กหญิง</option></select></div>
+              <div><label>ชื่อหัวหน้าทริป</label><input id="leaderFirstName"></div>
+              <div><label>นามสกุลหัวหน้าทริป</label><input id="leaderLastName"></div>
+              <div><label>เบอร์โทร</label><input id="phone"></div>
+              <div><label>จำนวนผู้เดินทาง</label><input id="paxCount" type="number" min="1" value="1"></div>
+              <div><label>ช่องทางลูกค้า</label><select id="source"><option>ลูกค้าเก่า</option><option>Facebook</option><option>ไทยเที่ยวไทย</option><option>Agent</option><option>ผู้บริหาร</option><option>Walk-in</option></select></div>
+              <div><label>Agent / ผู้แนะนำ</label><input id="agentName"></div>
+              <div><label>สถานะ</label><select id="status"><option>pending</option><option selected>confirmed</option><option>checked-in</option><option>completed</option><option>cancelled</option></select></div>
+              <div><label>ชำระเงิน</label><select id="paymentMethod"><option>เงินสด</option><option>โอนผ่านธนาคาร</option></select></div>
+              <div class="full"><label>หมายเหตุ Booking</label><textarea id="bookingNote"></textarea></div>
             </div>
-
-            <button class="btn btn-primary mt" onclick="syncPassengerCount()">ปรับจำนวนผู้เดินทาง</button>
+            <button class="btn primary" onclick="syncPassengerCount()">ปรับจำนวนผู้เดินทาง</button>
           </div>
 
           <div class="card">
             <h2>Smart Paste รายชื่อผู้เดินทาง</h2>
             <p class="muted">Format: 1. นาย สมชาย ใจดี</p>
-            <textarea id="passengerText" placeholder="1. นาย สมชาย ใจดี&#10;2. นางสาว สมศรี สดใส"></textarea>
-            <button class="btn btn-primary btn-full" onclick="parsePassengerText()">สร้างผู้เดินทางจากข้อความ</button>
-            <div id="parseWarning" class="warning"></div>
-            <div id="parseSuccess" class="success"></div>
+            <textarea id="passengerText">1. นาย สมชาย ใจดี
+2. นางสาว สมศรี สดใส</textarea>
+            <button class="btn soft" onclick="parsePassengerText()">สร้างจากข้อความ</button>
           </div>
 
           <div class="card">
-            <h2>ข้อมูลผู้เดินทางรายบุคคล</h2>
+            <h2>ผู้เดินทาง</h2>
             <div id="passengerList"></div>
           </div>
         </div>
 
-        <div class="card summary">
+        <div class="card sticky">
           <h2>สรุป Booking</h2>
-          <div class="summary-row"><span>Booking</span><strong id="sumCode">DRAFT</strong></div>
-          <div class="summary-row"><span>สถานะ</span><strong id="sumStatus">-</strong></div>
-          <div class="summary-row"><span>หัวหน้าทริป</span><strong id="sumName">-</strong></div>
-          <div class="summary-row"><span>วันเดินทาง</span><strong id="sumDate">-</strong></div>
-          <div class="summary-row"><span>จำนวนคน</span><strong id="sumPax">1</strong></div>
-          <div class="summary-row"><span>ช่องทาง</span><strong id="sumSource">-</strong></div>
-
-          <div id="summaryPeople"></div>
-          <div class="total">รวม <span id="grandTotal">0</span> บาท</div>
-
-          <label class="mt">ช่องทางชำระเงิน</label>
-          <select id="paymentMethod">
-            <option>เงินสด</option>
-            <option>โอนผ่านธนาคาร</option>
-          </select>
-
-          <button id="saveNewBtn" class="btn btn-primary btn-full" onclick="saveBooking()">บันทึก Booking ใหม่</button>
-          <button id="saveEditBtn" class="btn btn-primary btn-full" onclick="updateExistingBooking()" style="display:none;">บันทึกการแก้ไข</button>
-          <button id="cancelBookingBtn" class="btn btn-danger btn-full" onclick="cancelCurrentBooking()" style="display:none;">ยกเลิก Booking</button>
-          <button class="btn btn-soft btn-full" onclick="startNewBooking()">+ เริ่ม Booking ใหม่</button>
-
-          <hr />
-
-          <button class="btn btn-soft btn-full" onclick="printCurrentReceipt()">พิมพ์ใบเสร็จ</button>
-          <button class="btn btn-soft btn-full" onclick="printCurrentCounterReport()">พิมพ์ Counter Report</button>
-          <button class="btn btn-warning btn-full" onclick="printCurrentBoatReport()">พิมพ์ Boat Report</button>
+          <div id="summary"></div>
+          <h2>รวม <span id="grandTotal">0</span> บาท</h2>
+          <button id="saveNewBtn" class="btn primary full-btn" onclick="saveBooking()">บันทึก Booking ใหม่</button>
+          <button id="saveEditBtn" class="btn primary full-btn hidden" onclick="updateBooking()">บันทึกการแก้ไข</button>
+          <button class="btn soft full-btn" onclick="startNewBooking()">+ เริ่ม Booking ใหม่</button>
+          <button class="btn soft full-btn" onclick="printCurrentReceipt()">พิมพ์ใบเสร็จ</button>
+          <button class="btn danger full-btn" onclick="cancelBooking()">ยกเลิก Booking</button>
         </div>
       </div>
     </section>
 
-    <section id="managePage" class="page">
-      <h1>จัดการ Booking</h1>
-      <div class="card">
-        <div class="filter-bar">
-          <div>
-            <label>เลือกวันเดินทางไป</label>
-            <input id="manageDateFilter" type="date" onchange="renderManageBookings()" />
+    <section id="bookingListPage" class="page">
+      <h1>Booking List</h1>
+      <div class="workspace">
+        <div class="card">
+          <h2>ค้นหา</h2>
+          <div class="form-grid one">
+            <div><label>วันที่</label><input id="blDate" type="date" onchange="loadBookingList()"></div>
+            <div><label>Status</label><select id="blStatus" onchange="loadBookingList()"><option value="">ทั้งหมด</option><option>pending</option><option>confirmed</option><option>checked-in</option><option>completed</option><option>cancelled</option></select></div>
+            <div><label>Search</label><input id="blSearch" oninput="loadBookingList()" placeholder="ชื่อ / เบอร์ / Booking"></div>
           </div>
-          <button class="btn btn-soft" onclick="clearManageDate()">ล้างวันที่</button>
+          <div id="bookingList"></div>
         </div>
-        <div id="manageBookingList"></div>
-      </div>
-    </section>
-
-    <section id="printPage" class="page">
-      <h1>พิมพ์เอกสาร / Daily Report</h1>
-      <div class="card">
-        <div class="filter-bar">
-          <div>
-            <label>เลือกวันเดินทางไป</label>
-            <input id="printDateFilter" type="date" onchange="renderPrintPage()" />
+        <div class="card">
+          <h2>Booking Detail</h2>
+          <div id="bookingDetail">เลือก Booking ทางซ้าย</div>
+          <div class="btn-row">
+            <button class="btn primary" onclick="editSelectedBooking()">Edit</button>
+            <button class="btn soft" onclick="printSelectedReceipt('RECEIPT')">Receipt</button>
+            <button class="btn soft" onclick="printSelectedReceipt('VOUCHER')">Voucher</button>
+            <button class="btn soft" onclick="printSelectedReceipt('INVOICE')">Invoice</button>
+            <button class="btn soft" onclick="loadTimeline()">Timeline</button>
           </div>
-          <button class="btn btn-soft" onclick="renderPrintPage()">ค้นหา</button>
-        </div>
-
-        <h2>พิมพ์ราย Booking</h2>
-        <div id="printBookingList"></div>
-
-        <hr />
-
-        <h2>Daily Report รวมทุก Booking</h2>
-        <div class="three-grid">
-          <button class="btn btn-soft" onclick="printDailyCounterReport()">Daily Counter Report</button>
-          <button class="btn btn-warning" onclick="printDailyBoatReport()">Daily Boat Report</button>
-          <button class="btn btn-soft" onclick="printDailyDriverReport()">Daily Driver Report</button>
-          <button class="btn btn-soft" onclick="printDailyInsuranceReport()">Daily Insurance Report</button>
-          <button class="btn btn-primary" onclick="printDailyManagementReport()">Daily Management Report</button>
+          <div id="timelineRoot"></div>
         </div>
       </div>
     </section>
 
-    <section id="settingPage" class="page">
-      <h1>ตั้งค่า Master Data</h1>
+    <section id="printCenterPage" class="page">
+      <h1>Print Center</h1>
       <div class="card">
-        <p class="muted">แก้ราคา default ได้โดยไม่ต้องแก้โค้ด</p>
-        <div id="masterDataForm"></div>
-        <button class="btn btn-primary mt" onclick="saveMasterDataFromForm()">บันทึก Master Data</button>
-        <button class="btn btn-soft mt" onclick="resetMasterData()">Reset ค่าเริ่มต้น</button>
-      </div>
-    </section>
-
-    <section id="permissionPage" class="page">
-      <h1>กำหนดสิทธิ์ Role</h1>
-      <div class="card">
-        <p class="muted">Admin สามารถกำหนดได้ว่าแต่ละ Role ทำอะไรได้บ้าง</p>
-        <div id="permissionMatrix"></div>
-        <button class="btn btn-primary mt" onclick="savePermissionsFromForm()">บันทึกสิทธิ์</button>
-        <button class="btn btn-soft mt" onclick="resetPermissions()">Reset สิทธิ์เริ่มต้น</button>
-      </div>
-    </section>
-
-
-    <section id="systemPage" class="page">
-      <h1>System Admin / Data Center</h1>
-
-      <div class="card">
-        <h2>Backup / Restore</h2>
-        <p class="muted">ใช้สำหรับทดสอบ prototype ก่อนย้ายไป database จริง</p>
-        <div class="three-grid">
-          <button class="btn btn-primary" onclick="exportBackup()">Export Backup JSON</button>
-          <button class="btn btn-soft" onclick="document.getElementById('importBackupFile').click()">Import Backup JSON</button>
-          <button class="btn btn-soft" onclick="renderDataTables()">Refresh Data Tables</button>
-          <button class="btn btn-warning" onclick="testSupabaseConnection()">Test Supabase Connection</button>
-        </div>
-        <input id="importBackupFile" type="file" accept=".json" style="display:none" onchange="importBackup(event)">
-      </div>
-
-      <div class="card">
-        <h2>Reset Data</h2>
-        <p class="muted">ล้างเฉพาะส่วนที่ต้องการ</p>
-        <div class="three-grid">
-          <button class="btn btn-danger" onclick="resetStorageKey('bookings')">Reset Bookings</button>
-          <button class="btn btn-danger" onclick="resetStorageKey('audit_logs')">Reset Audit Logs</button>
-          <button class="btn btn-warning" onclick="resetStorageKey('master_data')">Reset Master Data</button>
-          <button class="btn btn-warning" onclick="resetStorageKey('role_permissions')">Reset Permissions</button>
-          <button class="btn btn-soft" onclick="resetStorageKey('current_user')">Logout / Clear Session</button>
-          <button class="btn btn-danger" onclick="factoryReset()">Factory Reset ทั้งหมด</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>Data Tables</h2>
-        <div class="three-grid">
-          <button class="btn btn-soft" onclick="showDataTable('bookings')">Bookings</button>
-          <button class="btn btn-soft" onclick="showDataTable('passengers')">Passengers</button>
-          <button class="btn btn-soft" onclick="showDataTable('addons')">Add-ons</button>
-          <button class="btn btn-soft" onclick="showDataTable('audit_logs')">Audit Logs</button>
-          <button class="btn btn-soft" onclick="showDataTable('master_data')">Master Data</button>
-          <button class="btn btn-soft" onclick="showDataTable('role_permissions')">Permissions</button>
-        </div>
-        <div id="dataTableInfo" class="muted mt"></div>
-        <div id="dataTableRoot" class="table-scroll"></div>
-      </div>
-    </section>
-
-
-    <section id="receiptTemplatePage" class="page">
-      <h1>Receipt / Document Template</h1>
-      <div class="card">
-        <h2>Company Info</h2>
-        <p class="muted">ตั้งค่าโลโก้และข้อมูลบริษัทสำหรับใบเสร็จ/เอกสารพิมพ์</p>
         <div class="form-grid">
-          <div><label>ชื่อบริษัท</label><input id="companyName" value="Dive Tour Company"></div>
-          <div><label>เบอร์โทร</label><input id="companyPhone" value="081-000-0000"></div>
-          <div class="full"><label>ที่อยู่</label><input id="companyAddress" value="Phuket, Thailand"></div>
-          <div><label>Tax ID</label><input id="companyTaxId" value="-"></div>
-          <div><label>PromptPay / Bank</label><input id="companyPaymentInfo" value="PromptPay: 000-000-0000"></div>
-          <div class="full"><label>Logo URL</label><input id="companyLogoUrl" placeholder="https://.../logo.png หรือ assets/logo.png"></div>
+          <div><label>วันที่</label><input id="pcDate" type="date"></div>
+          <div><label>Report</label><select id="pcType"><option value="counter">Counter Report</option><option value="boat">Boat Report</option><option value="island">Island Report</option><option value="insurance">Insurance Report</option><option value="driver">Driver Report</option><option value="management">Management Report</option></select></div>
         </div>
-        <button class="btn btn-primary mt" onclick="saveCompanySettings()">Save Template Setting</button>
-        <button class="btn btn-soft mt" onclick="previewReceiptTemplate()">Preview Receipt</button>
+        <button class="btn primary" onclick="generatePrintCenterReport()">Generate</button>
+        <button class="btn soft" onclick="window.print()">Print / Save PDF</button>
       </div>
-      <div class="card">
-        <h2>Preview</h2>
-        <div id="receiptPreviewRoot"></div>
-      </div>
+      <div id="printCenterOutput" class="card print-doc"></div>
     </section>
 
-
-    <section id="companySettingPage" class="page">
-      <h1>Company Setting</h1>
-
+    <section id="companyPage" class="page">
+      <h1>Company Profile</h1>
       <div class="card">
-        <h2>ข้อมูลบริษัท</h2>
-        <p class="muted">ข้อมูลนี้จะถูกใช้ร่วมกันใน Receipt / Voucher / Invoice / Report ทั้งหมด</p>
-
         <div class="form-grid">
           <div><label>ชื่อบริษัท</label><input id="csCompanyName"></div>
           <div><label>Tax ID</label><input id="csTaxId"></div>
@@ -340,170 +157,92 @@
           <div><label>Website</label><input id="csWebsite"></div>
           <div><label>LINE OA</label><input id="csLineOa"></div>
           <div><label>Facebook</label><input id="csFacebook"></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>โลโก้ / เอกสาร</h2>
-        <div class="form-grid">
-          <div class="full"><label>Logo URL</label><input id="csLogoUrl" placeholder="https://.../logo.png หรือ assets/logo.png"></div>
-          <div class="full"><label>Signature URL</label><input id="csSignatureUrl" placeholder="https://.../signature.png"></div>
-          <div class="full"><label>ตราประทับ / Stamp URL</label><input id="csStampUrl" placeholder="https://.../stamp.png"></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>บัญชี / PromptPay</h2>
-        <div class="form-grid">
-          <div><label>ชื่อธนาคาร</label><input id="csBankName"></div>
-          <div><label>เลขบัญชี</label><input id="csBankAccount"></div>
-          <div><label>ชื่อบัญชี</label><input id="csBankAccountName"></div>
+          <div class="full"><label>Logo URL</label><input id="csLogoUrl"></div>
+          <div class="full"><label>Signature URL</label><input id="csSignatureUrl"></div>
+          <div class="full"><label>Stamp URL</label><input id="csStampUrl"></div>
+          <div><label>Bank Name</label><input id="csBankName"></div>
+          <div><label>Bank Account</label><input id="csBankAccount"></div>
+          <div><label>Bank Account Name</label><input id="csBankAccountName"></div>
           <div><label>PromptPay</label><input id="csPromptPay"></div>
-          <div class="full"><label>PromptPay QR URL</label><input id="csPromptPayQrUrl" placeholder="https://.../promptpay-qr.png"></div>
+          <div class="full"><label>PromptPay QR URL</label><input id="csPromptPayQrUrl"></div>
         </div>
+        <button class="btn primary" onclick="saveCompanyProfile()">Save Company Profile</button>
+        <button class="btn soft" onclick="loadCompanyProfileToForm()">Reload</button>
+        <button class="btn soft" onclick="previewCompanyReceipt()">Preview Receipt</button>
       </div>
-
-      <div class="card">
-        <button class="btn btn-primary" onclick="saveCompanyProfile()">Save Company Profile</button>
-        <button class="btn btn-soft" onclick="loadCompanyProfileToForm()">Reload</button>
-        <button class="btn btn-soft" onclick="previewCompanyReceipt()">Preview Receipt</button>
-        <div id="companySettingStatus" class="muted mt"></div>
-      </div>
-
-      <div class="card">
-        <h2>Preview</h2>
-        <div id="companyReceiptPreview"></div>
-      </div>
+      <div class="card"><div id="companyReceiptPreview"></div></div>
     </section>
 
-
-    <section id="masterDataProPage" class="page">
-      <h1>Master Data Pro</h1>
-
+    <section id="masterDataPage" class="page">
+      <h1>Master Data</h1>
       <div class="card">
-        <h2>จัดการข้อมูลหลังบ้าน</h2>
-        <p class="muted">ข้อมูลนี้จะถูกใช้ใน Booking, Report, Receipt และระบบสิทธิ์</p>
-        <div class="three-grid">
-          <button class="btn btn-soft" onclick="loadMasterDataPro('programs')">Programs</button>
-          <button class="btn btn-soft" onclick="loadMasterDataPro('addons')">Add-ons</button>
-          <button class="btn btn-soft" onclick="loadMasterDataPro('agents')">Agents</button>
-          <button class="btn btn-soft" onclick="loadMasterDataPro('boats')">Boats</button>
-          <button class="btn btn-soft" onclick="loadMasterDataPro('islands')">Islands</button>
-          <button class="btn btn-soft" onclick="loadMasterDataPro('price_reasons')">Price Reasons</button>
-          <button class="btn btn-soft" onclick="loadMasterDataPro('payment_methods')">Payment Methods</button>
-          <button class="btn btn-soft" onclick="loadMasterDataPro('statuses')">Statuses</button>
+        <div class="master-tabs">
+          <button class="btn soft" onclick="loadMasterDataPro('programs')">Programs</button>
+          <button class="btn soft" onclick="loadMasterDataPro('addons')">Add-ons</button>
+          <button class="btn soft" onclick="loadMasterDataPro('agents')">Agents</button>
+          <button class="btn soft" onclick="loadMasterDataPro('boats')">Boats</button>
+          <button class="btn soft" onclick="loadMasterDataPro('islands')">Islands</button>
+          <button class="btn soft" onclick="loadMasterDataPro('price_reasons')">Price Reasons</button>
+          <button class="btn soft" onclick="loadMasterDataPro('payment_methods')">Payment Methods</button>
+          <button class="btn soft" onclick="loadMasterDataPro('statuses')">Statuses</button>
         </div>
       </div>
-
       <div class="card">
         <div class="master-toolbar">
           <h2 id="mdpTitle">เลือกหมวดข้อมูล</h2>
-          <button class="btn btn-primary" onclick="openMasterDataEditor()">+ เพิ่มรายการ</button>
-          <button class="btn btn-soft" onclick="refreshCurrentMasterDataPro()">Refresh</button>
+          <button class="btn primary" onclick="openMasterDataEditor()">+ เพิ่มรายการ</button>
         </div>
         <div id="masterDataProRoot" class="table-scroll"></div>
       </div>
-
-      <div id="masterDataEditor" class="card master-editor hidden">
-        <h2 id="masterEditorTitle">เพิ่ม/แก้ไข</h2>
+      <div id="masterDataEditor" class="card hidden">
+        <h2>เพิ่ม/แก้ไข</h2>
         <input type="hidden" id="mdpEditingId">
         <div class="form-grid">
-          <div><label>ID / Code</label><input id="mdpCode" placeholder="เช่น agent_a หรือ boat_1"></div>
-          <div><label>ชื่อ</label><input id="mdpName" placeholder="ชื่อที่แสดงในระบบ"></div>
+          <div><label>ID / Code</label><input id="mdpCode"></div>
+          <div><label>ชื่อ</label><input id="mdpName"></div>
           <div><label>ราคา Default</label><input id="mdpPrice" type="number" value="0"></div>
-          <div><label>Sort Order</label><input id="mdpSort" type="number" value="0"></div>
-          <div class="full"><label>หมายเหตุ</label><input id="mdpDescription"></div>
+          <div><label>Sort</label><input id="mdpSort" type="number" value="0"></div>
+          <div class="full"><label>Description</label><input id="mdpDescription"></div>
           <div><label>Active</label><select id="mdpActive"><option value="true">ใช้งาน</option><option value="false">ปิดใช้งาน</option></select></div>
         </div>
-        <button class="btn btn-primary mt" onclick="saveMasterDataProItem()">Save</button>
-        <button class="btn btn-soft mt" onclick="closeMasterDataEditor()">Cancel</button>
+        <button class="btn primary" onclick="saveMasterDataProItem()">Save</button>
+        <button class="btn soft" onclick="closeMasterDataEditor()">Cancel</button>
       </div>
     </section>
 
-
-    <section id="userManagementPage" class="page">
+    <section id="userPage" class="page">
       <h1>User Management</h1>
-
       <div class="card">
-        <div class="master-toolbar">
-          <h2>Users</h2>
-          <button class="btn btn-primary" onclick="openUserEditor()">+ เพิ่ม User</button>
-          <button class="btn btn-soft" onclick="loadUsers()">Refresh</button>
-        </div>
+        <button class="btn primary" onclick="openUserEditor()">+ เพิ่ม User</button>
+        <button class="btn soft" onclick="loadUsers()">Refresh</button>
         <div id="userListRoot" class="table-scroll"></div>
       </div>
-
-      <div id="userEditor" class="card master-editor hidden">
-        <h2 id="userEditorTitle">เพิ่ม/แก้ไข User</h2>
+      <div id="userEditor" class="card hidden">
+        <h2>User</h2>
         <input type="hidden" id="userEditingId">
         <div class="form-grid">
-          <div><label>Username</label><input id="userUsername" placeholder="เช่น counter2"></div>
-          <div><label>Display Name</label><input id="userDisplayName" placeholder="ชื่อพนักงาน"></div>
+          <div><label>Username</label><input id="userUsername"></div>
+          <div><label>Display Name</label><input id="userDisplayName"></div>
           <div><label>Role</label><select id="userRole"></select></div>
           <div><label>Active</label><select id="userActive"><option value="true">ใช้งาน</option><option value="false">ปิดใช้งาน</option></select></div>
         </div>
-        <button class="btn btn-primary mt" onclick="saveUser()">Save User</button>
-        <button class="btn btn-soft mt" onclick="closeUserEditor()">Cancel</button>
-        <p class="muted">หมายเหตุ: ตอนนี้ password demo ใช้ค่าเดียวจาก backend .env: DEMO_PASSWORD</p>
+        <button class="btn primary" onclick="saveUser()">Save</button>
+        <button class="btn soft" onclick="closeUserEditor()">Cancel</button>
       </div>
     </section>
 
-    <section id="permissionMatrixPage" class="page">
+    <section id="permissionPage" class="page">
       <h1>Permission Matrix</h1>
-
       <div class="card">
-        <p class="muted">กำหนดสิทธิ์แต่ละ Role จาก Database จริง</p>
-        <button class="btn btn-primary" onclick="loadPermissionMatrixPro()">Load Permissions</button>
-        <button class="btn btn-soft" onclick="savePermissionMatrixPro()">Save Permissions</button>
+        <button class="btn primary" onclick="loadPermissionMatrix()">Load Permissions</button>
+        <button class="btn soft" onclick="savePermissionMatrix()">Save Permissions</button>
       </div>
-
-      <div class="card">
-        <div id="permissionMatrixProRoot" class="table-scroll"></div>
-      </div>
+      <div class="card table-scroll" id="permissionMatrixRoot"></div>
     </section>
-
   </main>
 </div>
 
-<div id="islandPanel" class="modal hidden">
-  <div class="modal-box">
-    <h2>ซื้อเพิ่มบนเกาะ</h2>
-    <p id="islandPanelPassenger"></p>
-    <div id="islandAddOnForm"></div>
-    <label>ช่องทางชำระเงิน</label>
-    <select id="islandPaymentMethod">
-      <option>เงินสด</option>
-      <option>โอนผ่านธนาคาร</option>
-    </select>
-    <label>ผู้รับเงิน</label>
-    <input id="islandReceivedBy" />
-    <button class="btn btn-primary btn-full" onclick="saveIslandAddOns()">บันทึกซื้อเพิ่มบนเกาะ</button>
-    <button class="btn btn-soft btn-full" onclick="closeIslandPanel()">ปิด</button>
-  </div>
-</div>
-
-<div class="print-doc" id="receiptDoc"></div>
-<div class="print-doc" id="counterReportDoc"></div>
-<div class="print-doc" id="boatReportDoc"></div>
-<div class="print-doc" id="dailyReportDoc"></div>
-
-<script src="dataService.js"></script>
-<script src="authService.js"></script>
-<script src="masterdata.js"></script>
-<script src="booking.js"></script>
-<script src="report.js"></script>
-<script src="system.js"></script>
-<script src="migrationTool.js"></script>
-<script>
-function toggleMobileMenu(){
-  const sidebar = document.querySelector('.sidebar');
-  if (sidebar) sidebar.classList.toggle('mobile-open');
-}
-</script>
-<script src="sprint1.js"></script>
-<script src="receipt-reports.js"></script>
-<script src="company-setting.js"></script>
-<script src="master-data-pro.js"></script>
-<script src="user-permission.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

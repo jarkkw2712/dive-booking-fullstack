@@ -1,230 +1,42 @@
-
 create extension if not exists "pgcrypto";
+create table if not exists app_roles(role_id text primary key,role_name text not null);
+create table if not exists app_users(user_id uuid primary key default gen_random_uuid(),username text unique not null,display_name text not null,role_id text references app_roles(role_id),active_flag boolean default true,created_at timestamptz default now());
+create table if not exists role_permissions(role_id text references app_roles(role_id),permission_key text not null,allowed boolean default false,updated_at timestamptz default now(),primary key(role_id,permission_key));
+create table if not exists master_programs(program_id text primary key,program_name text not null,default_price numeric default 0,active_flag boolean default true,sort_order int default 0,description text);
+create table if not exists master_addons(addon_id text primary key,addon_name text not null,default_price numeric default 0,active_flag boolean default true,sort_order int default 0,description text);
+create table if not exists master_agents(agent_id text primary key,agent_name text not null,description text,active_flag boolean default true,sort_order int default 0);
+create table if not exists master_boats(boat_id text primary key,boat_name text not null,description text,active_flag boolean default true,sort_order int default 0);
+create table if not exists master_islands(island_id text primary key,island_name text not null,description text,active_flag boolean default true,sort_order int default 0);
+create table if not exists master_price_reasons(reason_id text primary key,reason_name text not null,description text,active_flag boolean default true,sort_order int default 0);
+create table if not exists master_payment_methods(method_id text primary key,method_name text not null,description text,active_flag boolean default true,sort_order int default 0);
+create table if not exists master_statuses(status_id text primary key,status_name text not null,description text,active_flag boolean default true,sort_order int default 0);
+create table if not exists company_profile(profile_id text primary key default 'default',company_name text,tax_id text,address text,phone text,email text,website text,line_oa text,facebook text,logo_url text,signature_url text,stamp_url text,bank_name text,bank_account text,bank_account_name text,promptpay text,promptpay_qr_url text,created_at timestamptz default now(),updated_at timestamptz default now());
+create table if not exists bookings(booking_id uuid primary key default gen_random_uuid(),booking_code text unique not null,receipt_no text,trip_type text,travel_date date not null,return_date date,leader_title text,leader_first_name text,leader_last_name text,phone text,source text,agent_name text,status text,payment_method text,booking_note text,total_amount numeric default 0,program_revenue numeric default 0,pre_addon_revenue numeric default 0,island_addon_revenue numeric default 0,cancel_reason text,cancelled_at timestamptz,created_at timestamptz default now(),updated_at timestamptz default now());
+create table if not exists passengers(passenger_id uuid primary key default gen_random_uuid(),booking_id uuid references bookings(booking_id) on delete cascade,passenger_no int,is_leader boolean,title text,first_name text,last_name text,age int,phone text,island text,food_allergy text,medical_note text);
+create table if not exists booking_programs(booking_program_id uuid primary key default gen_random_uuid(),passenger_id uuid references passengers(passenger_id) on delete cascade,program_id text references master_programs(program_id),qty int,unit_price numeric,default_price numeric,price_reason text);
+create table if not exists booking_addons(addon_row_id uuid primary key default gen_random_uuid(),passenger_id uuid references passengers(passenger_id) on delete cascade,addon_source text,addon_id text references master_addons(addon_id),addon_name_snapshot text,qty int,unit_price numeric,default_price numeric,payment_method text,received_by text,created_at timestamptz default now());
+create table if not exists audit_logs(audit_id uuid primary key default gen_random_uuid(),booking_code text,action text,detail text,after_json jsonb,changed_by text,changed_at timestamptz default now());
 
-create table if not exists app_roles (
-  role_id text primary key,
-  role_name text not null
-);
+create or replace function list_bookings_json() returns jsonb language plpgsql security definer as $$
+declare result jsonb;
+begin
+select coalesce(jsonb_agg(obj order by obj->>'travelDate' desc),'[]'::jsonb) into result from (
+select jsonb_build_object('bookingCode',b.booking_code,'tripType',b.trip_type,'travelDate',b.travel_date::text,'returnDate',coalesce(b.return_date::text,''),'leaderTitle',coalesce(b.leader_title,''),'leaderFirstName',coalesce(b.leader_first_name,''),'leaderLastName',coalesce(b.leader_last_name,''),'phone',coalesce(b.phone,''),'source',coalesce(b.source,''),'agentName',coalesce(b.agent_name,''),'status',coalesce(b.status,''),'paymentMethod',coalesce(b.payment_method,''),'bookingNote',coalesce(b.booking_note,''),'totalAmount',b.total_amount,'programRevenue',b.program_revenue,'preAddOnRevenue',b.pre_addon_revenue,'islandAddOnRevenue',b.island_addon_revenue,'passengers',(select coalesce(jsonb_agg(jsonb_build_object('title',coalesce(p.title,''),'firstName',p.first_name,'lastName',p.last_name,'age',coalesce(p.age::text,''),'phone',coalesce(p.phone,''),'island',coalesce(p.island,''),'isLeader',p.is_leader,'program',(select jsonb_build_object('programId',bp.program_id,'name',mp.program_name,'qty',bp.qty,'price',bp.unit_price,'defaultPrice',bp.default_price) from booking_programs bp join master_programs mp on mp.program_id=bp.program_id where bp.passenger_id=p.passenger_id limit 1),'preAddOns',(select coalesce(jsonb_agg(jsonb_build_object('id',ba.addon_id,'name',ma.addon_name,'selected',true,'qty',ba.qty,'price',ba.unit_price,'defaultPrice',ba.default_price)),'[]'::jsonb) from booking_addons ba join master_addons ma on ma.addon_id=ba.addon_id where ba.passenger_id=p.passenger_id and ba.addon_source='pre'),'islandAddOns',(select coalesce(jsonb_agg(jsonb_build_object('id',ba.addon_id,'name',ba.addon_name_snapshot,'qty',ba.qty,'price',ba.unit_price,'defaultPrice',ba.default_price,'paymentMethod',coalesce(ba.payment_method,''),'receivedBy',coalesce(ba.received_by,''))),'[]'::jsonb) from booking_addons ba where ba.passenger_id=p.passenger_id and ba.addon_source='island')) order by p.passenger_no),'[]'::jsonb) from passengers p where p.booking_id=b.booking_id)) obj from bookings b) x;
+return result;
+end $$;
 
-create table if not exists app_users (
-  user_id uuid primary key default gen_random_uuid(),
-  username text unique not null,
-  display_name text not null,
-  role_id text not null references app_roles(role_id),
-  active_flag boolean default true,
-  created_at timestamptz default now()
-);
+create or replace function upsert_booking_from_json(p_booking jsonb) returns jsonb language plpgsql security definer as $$
+declare bid uuid; code text; ps jsonb; pid uuid; pr jsonb; ad jsonb; no int:=0;
+begin
+code:=coalesce(nullif(p_booking->>'bookingCode',''),'BK'||extract(epoch from now())::bigint::text);
+insert into bookings(booking_code,trip_type,travel_date,return_date,leader_title,leader_first_name,leader_last_name,phone,source,agent_name,status,payment_method,booking_note,total_amount,program_revenue,pre_addon_revenue,island_addon_revenue)
+values(code,p_booking->>'tripType',(p_booking->>'travelDate')::date,nullif(p_booking->>'returnDate','')::date,p_booking->>'leaderTitle',p_booking->>'leaderFirstName',p_booking->>'leaderLastName',p_booking->>'phone',p_booking->>'source',p_booking->>'agentName',p_booking->>'status',p_booking->>'paymentMethod',p_booking->>'bookingNote',coalesce((p_booking->>'totalAmount')::numeric,0),coalesce((p_booking->>'programRevenue')::numeric,0),coalesce((p_booking->>'preAddOnRevenue')::numeric,0),coalesce((p_booking->>'islandAddOnRevenue')::numeric,0))
+on conflict(booking_code) do update set trip_type=excluded.trip_type,travel_date=excluded.travel_date,return_date=excluded.return_date,leader_title=excluded.leader_title,leader_first_name=excluded.leader_first_name,leader_last_name=excluded.leader_last_name,phone=excluded.phone,source=excluded.source,agent_name=excluded.agent_name,status=excluded.status,payment_method=excluded.payment_method,booking_note=excluded.booking_note,total_amount=excluded.total_amount,program_revenue=excluded.program_revenue,pre_addon_revenue=excluded.pre_addon_revenue,island_addon_revenue=excluded.island_addon_revenue,updated_at=now() returning booking_id into bid;
+delete from booking_addons where passenger_id in (select passenger_id from passengers where booking_id=bid); delete from booking_programs where passenger_id in (select passenger_id from passengers where booking_id=bid); delete from passengers where booking_id=bid;
+for ps in select * from jsonb_array_elements(coalesce(p_booking->'passengers','[]'::jsonb)) loop no:=no+1; insert into passengers(booking_id,passenger_no,is_leader,title,first_name,last_name,age,phone,island) values(bid,no,coalesce((ps->>'isLeader')::boolean,false),ps->>'title',ps->>'firstName',ps->>'lastName',nullif(ps->>'age','')::int,ps->>'phone',ps->>'island') returning passenger_id into pid; pr:=ps->'program'; insert into booking_programs(passenger_id,program_id,qty,unit_price,default_price,price_reason) values(pid,coalesce(pr->>'programId','boat_ticket'),coalesce((pr->>'qty')::int,1),coalesce((pr->>'price')::numeric,0),coalesce((pr->>'defaultPrice')::numeric,0),pr->>'priceReason'); for ad in select * from jsonb_array_elements(coalesce(ps->'preAddOns','[]'::jsonb)) loop if coalesce((ad->>'selected')::boolean,false) then insert into booking_addons(passenger_id,addon_source,addon_id,addon_name_snapshot,qty,unit_price,default_price) values(pid,'pre',coalesce(ad->>'id','other'),coalesce(ad->>'name','อื่นๆ'),coalesce((ad->>'qty')::int,1),coalesce((ad->>'price')::numeric,0),coalesce((ad->>'defaultPrice')::numeric,0)); end if; end loop; for ad in select * from jsonb_array_elements(coalesce(ps->'islandAddOns','[]'::jsonb)) loop insert into booking_addons(passenger_id,addon_source,addon_id,addon_name_snapshot,qty,unit_price,default_price,payment_method,received_by) values(pid,'island',coalesce(ad->>'id','other'),coalesce(ad->>'name','อื่นๆ'),coalesce((ad->>'qty')::int,1),coalesce((ad->>'price')::numeric,0),coalesce((ad->>'defaultPrice')::numeric,0),ad->>'paymentMethod',ad->>'receivedBy'); end loop; end loop;
+insert into audit_logs(booking_code,action,detail,after_json) values(code,'UPSERT_BOOKING','Saved booking',p_booking);
+return jsonb_build_object('success',true,'bookingCode',code);
+end $$;
 
-create table if not exists role_permissions (
-  role_id text references app_roles(role_id),
-  permission_key text not null,
-  allowed boolean default false,
-  primary key(role_id, permission_key)
-);
-
-create table if not exists master_programs (
-  program_id text primary key,
-  program_name text not null,
-  default_price numeric(12,2) default 0,
-  active_flag boolean default true,
-  sort_order int default 0
-);
-
-create table if not exists master_addons (
-  addon_id text primary key,
-  addon_name text not null,
-  default_price numeric(12,2) default 0,
-  active_flag boolean default true,
-  sort_order int default 0
-);
-
-create table if not exists bookings (
-  booking_id uuid primary key default gen_random_uuid(),
-  booking_code text unique not null,
-  trip_type text not null,
-  travel_date date not null,
-  return_date date,
-  leader_title text,
-  leader_first_name text not null,
-  leader_last_name text not null,
-  phone text,
-  source text,
-  agent_name text,
-  status text default 'pending',
-  payment_method text,
-  booking_note text,
-  total_amount numeric(12,2) default 0,
-  program_revenue numeric(12,2) default 0,
-  pre_addon_revenue numeric(12,2) default 0,
-  island_addon_revenue numeric(12,2) default 0,
-  cancel_reason text,
-  cancelled_at timestamptz,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-
-create table if not exists passengers (
-  passenger_id uuid primary key default gen_random_uuid(),
-  booking_id uuid references bookings(booking_id) on delete cascade,
-  passenger_no int not null,
-  is_leader boolean default false,
-  title text,
-  first_name text not null,
-  last_name text not null,
-  age int,
-  phone text,
-  island text,
-  food_allergy text,
-  medical_note text
-);
-
-create table if not exists booking_programs (
-  booking_program_id uuid primary key default gen_random_uuid(),
-  passenger_id uuid references passengers(passenger_id) on delete cascade,
-  program_id text references master_programs(program_id),
-  qty int default 1,
-  unit_price numeric(12,2) default 0,
-  default_price numeric(12,2) default 0,
-  price_reason text,
-  price_reason_other text
-);
-
-create table if not exists booking_addons (
-  addon_row_id uuid primary key default gen_random_uuid(),
-  passenger_id uuid references passengers(passenger_id) on delete cascade,
-  addon_source text not null,
-  addon_id text references master_addons(addon_id),
-  addon_name_snapshot text not null,
-  qty int default 1,
-  unit_price numeric(12,2) default 0,
-  default_price numeric(12,2) default 0,
-  price_reason text,
-  price_reason_other text,
-  payment_method text,
-  received_by text,
-  created_at timestamptz default now()
-);
-
-create table if not exists audit_logs (
-  audit_id uuid primary key default gen_random_uuid(),
-  booking_code text,
-  action text not null,
-  detail text,
-  after_json jsonb,
-  changed_by text,
-  changed_at timestamptz default now()
-);
-
-create or replace view v_booking_summary as
-select
-  b.booking_code,
-  b.travel_date,
-  b.status,
-  concat_ws(' ', b.leader_title, b.leader_first_name, b.leader_last_name) as leader_name,
-  count(p.passenger_id) as passenger_count,
-  b.program_revenue,
-  b.pre_addon_revenue,
-  b.island_addon_revenue,
-  b.total_amount
-from bookings b
-left join passengers p on p.booking_id=b.booking_id
-group by b.booking_id;
-
-create or replace view v_daily_management_report as
-select
-  travel_date,
-  count(*) as booking_count,
-  sum(passenger_count) as passenger_count,
-  sum(program_revenue) as program_revenue,
-  sum(pre_addon_revenue) as pre_addon_revenue,
-  sum(island_addon_revenue) as island_addon_revenue,
-  sum(total_amount) as total_revenue
-from v_booking_summary
-where status='checked-in'
-group by travel_date;
-
-
--- Sprint 1.3 Company Profile / System Setting
-create table if not exists company_profile (
-  profile_id text primary key default 'default',
-  company_name text,
-  tax_id text,
-  address text,
-  phone text,
-  email text,
-  website text,
-  line_oa text,
-  facebook text,
-  logo_url text,
-  signature_url text,
-  stamp_url text,
-  bank_name text,
-  bank_account text,
-  bank_account_name text,
-  promptpay text,
-  promptpay_qr_url text,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-
-
--- Sprint 1.4 Master Data Pro
-create table if not exists master_agents (
-  agent_id text primary key,
-  agent_name text not null,
-  description text,
-  active_flag boolean default true,
-  sort_order int default 0,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-
-create table if not exists master_boats (
-  boat_id text primary key,
-  boat_name text not null,
-  description text,
-  active_flag boolean default true,
-  sort_order int default 0,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-
-create table if not exists master_islands (
-  island_id text primary key,
-  island_name text not null,
-  description text,
-  active_flag boolean default true,
-  sort_order int default 0,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-
-create table if not exists master_price_reasons (
-  reason_id text primary key,
-  reason_name text not null,
-  description text,
-  active_flag boolean default true,
-  sort_order int default 0,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-
-create table if not exists master_payment_methods (
-  method_id text primary key,
-  method_name text not null,
-  description text,
-  active_flag boolean default true,
-  sort_order int default 0,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-
-create table if not exists master_statuses (
-  status_id text primary key,
-  status_name text not null,
-  description text,
-  active_flag boolean default true,
-  sort_order int default 0,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
+create or replace function cancel_booking_by_code(p_booking_code text,p_reason text) returns jsonb language plpgsql security definer as $$
+begin update bookings set status='cancelled',cancel_reason=p_reason,cancelled_at=now(),updated_at=now() where booking_code=p_booking_code; insert into audit_logs(booking_code,action,detail) values(p_booking_code,'CANCEL_BOOKING',p_reason); return jsonb_build_object('success',true,'bookingCode',p_booking_code); end $$;

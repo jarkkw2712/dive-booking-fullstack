@@ -1,5 +1,3 @@
-# Dive Booking Fullstack V2 Latest
+# Dive Booking V4 Enterprise
 
-UI ล่าสุด + Backend API + Supabase
-
-อ่าน `docs/SETUP_STEP_BY_STEP.md`
+Clean rebuild: frontend / backend / database.

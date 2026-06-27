@@ -1,0 +1,33 @@
+*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{margin:0;background:#eef4f8;color:#123}
+.app-shell{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+.sidebar{background:#173f52;color:#fff;padding:18px;position:sticky;top:0;height:100vh;overflow:auto}
+.brand-row{display:flex;align-items:center;justify-content:space-between}
+.sidebar h2{margin:0 0 16px}
+.sidebar button{width:100%;padding:12px;border:0;border-radius:12px;background:#31667d;color:white;font-weight:800;margin:6px 0;cursor:pointer}
+.sidebar button:hover{filter:brightness(1.08)}
+.sidebar .danger,.danger{background:#a83222!important;color:#fff!important}
+.mobile-menu-toggle{display:none!important}
+.user-box{background:#31667d;border-radius:14px;padding:12px;margin-bottom:12px;font-size:13px}
+.content{padding:24px;max-width:1400px}
+.page{display:none}.page.active{display:block}
+.card{background:#fff;border-radius:18px;padding:18px;margin-bottom:16px;box-shadow:0 8px 26px rgba(0,0,0,.05)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.form-grid.one{grid-template-columns:1fr}.full{grid-column:1/-1}
+label{display:block;font-weight:800;font-size:13px;margin-bottom:5px}
+input,select,textarea{width:100%;padding:12px;border:1px solid #d6e3ea;border-radius:12px;background:#fff;font-size:15px}
+textarea{min-height:80px}
+.btn{border:0;border-radius:12px;padding:11px 14px;font-weight:900;cursor:pointer;margin:6px 4px 6px 0}
+.primary{background:#2f7db6;color:white}.soft{background:#e8f1f6;color:#123}.full-btn{width:100%}
+.hidden{display:none!important}.muted{color:#6b7c86;font-size:13px}
+.booking-grid{display:grid;grid-template-columns:1.35fr .75fr;gap:18px}.sticky{position:sticky;top:16px}
+.passenger-card,.booking-item{border:1px solid #dbe8ee;border-radius:16px;padding:14px;margin:10px 0;background:#fbfdff}
+.service{border:1px solid #e0ebf0;border-radius:14px;padding:12px;margin-top:10px;background:#fff}
+.line{display:flex;justify-content:space-between;border-bottom:1px dashed #dbe8ee;padding:8px 0;gap:8px}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.kpi{background:#fff;border-radius:18px;padding:18px;box-shadow:0 8px 26px rgba(0,0,0,.05)}.kpi span{color:#6b7c86}.kpi b{display:block;font-size:28px;margin-top:8px}
+.workspace{display:grid;grid-template-columns:420px 1fr;gap:16px}.booking-item{cursor:pointer}.booking-item.active{border-color:#2f7db6;background:#eff8ff}
+.status-badge{display:inline-block;border-radius:999px;padding:5px 10px;font-weight:900;font-size:12px}.status-pending{background:#fff3cd;color:#805500}.status-confirmed{background:#e2f5ff;color:#00709e}.status-checked-in{background:#eafaf0;color:#14733b}.status-completed{background:#eeeeff;color:#3730a3}.status-cancelled{background:#ffecec;color:#b42318}
+.table-scroll{overflow:auto}.data-table,.master-data-table,.permission-matrix{width:100%;border-collapse:collapse;font-size:13px}.data-table th,.data-table td,.master-data-table th,.master-data-table td,.permission-matrix th,.permission-matrix td{border:1px solid #dbe8ee;padding:9px;text-align:left}.data-table th,.master-data-table th,.permission-matrix th{background:#f4f8fb}
+.receipt-paper{background:white;color:#111;width:210mm;max-width:100%;min-height:297mm;margin:auto;padding:18mm;border:1px solid #e5e7eb}.receipt-header{display:flex;justify-content:space-between;border-bottom:3px solid #173f52;padding-bottom:14px}.receipt-logo{width:72px;height:72px;object-fit:contain}.receipt-table{width:100%;border-collapse:collapse}.receipt-table th,.receipt-table td{border-bottom:1px solid #e5e7eb;padding:9px}.paid-stamp{display:inline-block;border:3px solid #b42318;color:#b42318;padding:8px 18px;font-size:24px;font-weight:900;transform:rotate(-8deg)}
+.login-screen{position:fixed;inset:0;background:#173f52;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}.login-card{background:white;border-radius:20px;padding:24px;width:420px;max-width:100%}.error{color:#b42318;margin-top:8px}
+@media(max-width:850px){.app-shell{grid-template-columns:1fr}.sidebar{height:auto;max-height:62px;overflow:hidden;z-index:999;border-radius:0 0 18px 18px}.sidebar.mobile-open{max-height:80vh;overflow:auto}.mobile-menu-toggle{display:inline-block!important;width:auto!important}.sidebar:not(.mobile-open) .user-box,.sidebar:not(.mobile-open) button:not(.mobile-menu-toggle){display:none!important}.content{padding:12px}.form-grid,.booking-grid,.workspace,.kpi-grid{grid-template-columns:1fr}.sticky{position:static}.receipt-paper{width:100%;min-height:auto;padding:14px}}
+@media print{.sidebar,.mobile-menu-toggle,.login-screen,.doc-toolbar,.btn{display:none!important}.content{padding:0}.card{box-shadow:none}}
