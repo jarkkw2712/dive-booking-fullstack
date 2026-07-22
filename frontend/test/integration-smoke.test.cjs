@@ -13,6 +13,9 @@ test("Booking List, Print Center and Financial markup is connected",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   for(const id of ["bookingListPage","bookingList","bookingDetail","timelineRoot","blDate","blStatus","blSearch","printCenterPage","pcDate","pcType","printCenterOutput","financialPage","financialWorkspace"])assert.match(html,new RegExp(`id=["']${id}["']`));
 });
+test("login, forgot, reset and forced password-change markup is connected",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8");for(const id of ["loginPassword","forgotPasswordModal","forgotEmail","resetPasswordModal","resetPassword","changePasswordModal","currentPassword","newPassword","userEmail","userTemporaryPassword"])assert.match(html,new RegExp(`id=["']${id}["']`));assert.equal(html.includes('id="loginPassword" type="password" value="1234"'),false);
+});
 test("active HTML does not contain known Thai mojibake markers",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   for(const marker of ["เน€เธ","โฐ","เธเธฑ"])assert.equal(html.includes(marker),false);

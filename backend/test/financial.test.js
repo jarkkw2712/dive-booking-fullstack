@@ -4,6 +4,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { validateInvoice, validatePayment, validateRefund, calculateFinancialTotals } from "../src/validators/financialValidator.js";
 import { requirePermission } from "../src/middleware/auth.js";
+import { requireAuth } from "../src/middleware/auth.js";
+import jwt from "jsonwebtoken";
+import { hashPassword,verifyPassword,validatePasswordPolicy,createPasswordResetToken,hashResetToken } from "../src/services/passwordService.js";
 
 test("invoice accepts numeric money and immutable snapshot fields",()=>{
   const input={items:[{itemName:"One Day Trip",qty:2,unitPrice:2500}]};
@@ -40,4 +43,25 @@ test("transactional functions reject over-allocation and generate numbers server
   assert.match(migration,/Allocation exceeds invoice outstanding amount/);
   assert.match(migration,/next_financial_document_no/);
   assert.doesNotMatch(migration,/Date\.now/);
+});
+test("per-user passwords use salted scrypt hashes",async()=>{
+  const hash1=await hashPassword("Sabina!Secure2026"),hash2=await hashPassword("Sabina!Secure2026");
+  assert.notEqual(hash1,hash2);assert.equal(await verifyPassword("Sabina!Secure2026",hash1),true);assert.equal(await verifyPassword("wrong-password",hash1),false);assert.equal(hash1.includes("Sabina!Secure2026"),false);
+});
+test("password policy rejects weak employee passwords",()=>{
+  assert.throws(()=>validatePasswordPolicy("password123"),/12 characters/);
+  assert.throws(()=>validatePasswordPolicy("alllowercasepassword"),/at least 3/);
+});
+test("password reset stores only a deterministic token hash",()=>{
+  const {token,tokenHash}=createPasswordResetToken();assert.equal(tokenHash,hashResetToken(token));assert.equal(tokenHash.includes(token),false);
+});
+test("authentication migration adds expiring one-time reset tokens",()=>{
+  const migration=fs.readFileSync(path.resolve("../database/migrations/20260722_006_per_user_authentication.sql"),"utf8");assert.match(migration,/password_reset_tokens/);assert.match(migration,/expires_at>now\(\)/);assert.match(migration,/used_at is null/);assert.match(migration,/consume_password_reset/);
+});
+test("forced-change token cannot access business routes",()=>{
+  const original=process.env.JWT_SECRET;process.env.JWT_SECRET="unit-test-jwt-secret";
+  const token=jwt.sign({userId:"user-1",mustChangePassword:true},process.env.JWT_SECRET);
+  let status=0,payload,nextCalled=false;requireAuth({headers:{authorization:`Bearer ${token}`},originalUrl:"/api/bookings"},{status(code){status=code;return this},json(value){payload=value}},()=>{nextCalled=true});
+  assert.equal(nextCalled,false);assert.equal(status,403);assert.match(payload.error,/Password change required/);
+  if(original===undefined)delete process.env.JWT_SECRET;else process.env.JWT_SECRET=original;
 });

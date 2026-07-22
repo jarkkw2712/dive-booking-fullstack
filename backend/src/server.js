@@ -17,6 +17,7 @@ import financialRoutes from "./routes/financial.js";
 import permissionRoutes from "./routes/permissions.js";
 dotenv.config();
 const app=express();
+app.set("trust proxy",1);
 app.use(helmet({contentSecurityPolicy:false}));
 const allowedOrigins=(process.env.FRONTEND_ORIGIN||"").split(",").map(x=>x.trim()).filter(Boolean);
 if(process.env.NODE_ENV==="production"&&!allowedOrigins.length)throw new Error("FRONTEND_ORIGIN is required in production");

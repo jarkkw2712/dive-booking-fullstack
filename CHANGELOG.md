@@ -10,4 +10,5 @@
 - Added invoices, immutable invoice item snapshots, payments, allocations, receipts, refunds, financial events, server-side numbering, and outstanding reporting.
 - Added backend financial permissions, validation, rate limiting, audit events, Financial frontend workspace, and smoke tests.
 - Removed example secrets and insecure production authentication fallbacks.
+- Added per-user salted password hashes, forced temporary-password changes, lockout, authentication audit, and expiring one-time password-reset emails over SMTP.
 
