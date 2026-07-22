@@ -9,7 +9,8 @@ async function permissionsFor(role){const {data,error}=await supabaseAdmin.from(
 router.post("/login",rateLimit({windowMs:60_000,max:10}),async(req,res)=>{
   try{
     const {username,password}=req.body||{};
-    if(process.env.PILOT_AUTH_MODE!=="shared_password"||!process.env.DEMO_PASSWORD||!process.env.JWT_SECRET)return res.status(503).json({error:"Pilot authentication environment is not configured"});
+    const pilotAuthMode=process.env.PILOT_AUTH_MODE||"shared_password";
+    if(pilotAuthMode!=="shared_password"||!process.env.DEMO_PASSWORD||!process.env.JWT_SECRET)return res.status(503).json({error:"Pilot authentication environment is not configured"});
     const {data:user,error}=await supabaseAdmin.from("app_users").select("user_id,username,display_name,role_id,active_flag").eq("username",username).maybeSingle();
     if(error)return res.status(500).json({error:error.message});
     if(!user||!user.active_flag)return res.status(401).json({error:"User inactive/not found"});
