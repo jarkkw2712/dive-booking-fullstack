@@ -23,7 +23,7 @@ if(process.env.NODE_ENV==="production"&&!allowedOrigins.length)throw new Error("
 app.use(cors({origin(origin,callback){if(!origin||!allowedOrigins.length||allowedOrigins.includes(origin))return callback(null,true);callback(new Error("Origin not allowed by CORS"));},credentials:true}));
 app.use(express.json({limit:"10mb"}));
 app.use(morgan("dev"));
-app.get("/api/health",(req,res)=>res.json({ok:true,service:"dive-booking-v4-api",time:new Date().toISOString()}));
+app.get("/api/health",(req,res)=>res.json({ok:true,service:"sabina-tour-booking-api",time:new Date().toISOString()}));
 app.use("/api/auth",authRoutes);
 app.use("/api/bookings",bookingRoutes);
 app.use("/api/master-data",masterRoutes);
@@ -37,5 +37,5 @@ app.use("/api/audit-logs",auditRoutes);
 app.use("/api/line",lineRoutes);
 app.use("/api/financial",financialRoutes);
 const port=process.env.PORT||3000;
-export const server=app.listen(port,()=>console.log(`Dive Booking V4 API on ${port}`));
+export const server=app.listen(port,()=>console.log(`Sabina Tour Booking API on ${port}`));
 export default app;

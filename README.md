@@ -1,4 +1,4 @@
-# Dive Booking ERP
+# Sabina Tour Booking
 
 Internal ERP using a vanilla JavaScript frontend, an Express API, and Supabase PostgreSQL.
 
