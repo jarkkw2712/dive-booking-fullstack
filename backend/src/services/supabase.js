@@ -1,2 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-export const supabaseAdmin=createClient(process.env.SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false}});
+const url=process.env.SUPABASE_URL;
+const serviceRoleKey=process.env.SUPABASE_SERVICE_ROLE_KEY;
+if(!url||!serviceRoleKey)throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required on the backend");
+export const supabaseAdmin=createClient(url,serviceRoleKey,{auth:{persistSession:false}});

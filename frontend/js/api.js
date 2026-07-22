@@ -32,5 +32,13 @@ const API={
   updateUser:(id,u)=>apiFetch(`/users/${encodeURIComponent(id)}`,{method:"PUT",body:JSON.stringify(u)}),
   roles:()=>apiFetch("/roles"),
   perms:()=>apiFetch("/permissions/matrix"),
-  savePerms:m=>apiFetch("/permissions/matrix",{method:"PUT",body:JSON.stringify({matrix:m})})
+  savePerms:m=>apiFetch("/permissions/matrix",{method:"PUT",body:JSON.stringify({matrix:m})}),
+  financial:code=>apiFetch(`/financial/bookings/${encodeURIComponent(code)}`),
+  createInvoice:(code,data)=>apiFetch(`/financial/bookings/${encodeURIComponent(code)}/invoices`,{method:"POST",body:JSON.stringify(data)}),
+  createPayment:(code,data)=>apiFetch(`/financial/bookings/${encodeURIComponent(code)}/payments`,{method:"POST",body:JSON.stringify(data)}),
+  paymentAction:(id,action,data={})=>apiFetch(`/financial/payments/${encodeURIComponent(id)}/${action}`,{method:"POST",body:JSON.stringify(data)}),
+  issueReceipt:(id,data)=>apiFetch(`/financial/payments/${encodeURIComponent(id)}/receipts`,{method:"POST",body:JSON.stringify(data)}),
+  createRefund:(code,data)=>apiFetch(`/financial/bookings/${encodeURIComponent(code)}/refunds`,{method:"POST",body:JSON.stringify(data)}),
+  refundAction:(id,action)=>apiFetch(`/financial/refunds/${encodeURIComponent(id)}/${action}`,{method:"POST",body:"{}"}),
+  financialReport:(type,date)=>apiFetch(`/financial/reports/${encodeURIComponent(type)}?date=${encodeURIComponent(date||"")}`)
 };

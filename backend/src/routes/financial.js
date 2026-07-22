@@ -1,0 +1,24 @@
+import express from "express";
+import { requireAuth, requirePermission } from "../middleware/auth.js";
+import { rateLimit } from "../middleware/rateLimit.js";
+import { financialController as c } from "../controllers/financialController.js";
+
+const router=express.Router();
+router.use(requireAuth, rateLimit({ windowMs:60_000,max:90 }));
+router.get("/bookings/:code",requirePermission("viewFinancial"),c.bundle);
+router.get("/bookings/:code/summary",requirePermission("viewFinancial"),c.summary);
+router.get("/bookings/:code/timeline",requirePermission("viewFinancial"),c.timeline);
+router.post("/bookings/:code/invoices",requirePermission("createInvoice"),c.createInvoice);
+router.post("/invoices/:id/void",requirePermission("voidInvoice"),c.voidInvoice);
+router.post("/bookings/:code/payments",requirePermission("receivePayment"),c.createPayment);
+router.post("/payments/:id/verify",requirePermission("verifyPayment"),c.verifyPayment);
+router.post("/payments/:id/reject",requirePermission("verifyPayment"),c.rejectPayment);
+router.post("/payments/:id/reverse",requirePermission("reversePayment"),c.reversePayment);
+router.post("/payments/:id/receipts",requirePermission("issueReceipt"),c.issueReceipt);
+router.post("/receipts/:id/void",requirePermission("voidReceipt"),c.voidReceipt);
+router.post("/bookings/:code/refunds",requirePermission("createRefund"),c.createRefund);
+router.post("/refunds/:id/approve",requirePermission("approveRefund"),c.approveRefund);
+router.post("/refunds/:id/reject",requirePermission("approveRefund"),c.rejectRefund);
+router.post("/refunds/:id/mark-paid",requirePermission("markRefundPaid"),c.payRefund);
+router.get("/reports/:type",requirePermission("exportFinancialReport"),c.report);
+export default router;

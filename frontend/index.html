@@ -29,13 +29,14 @@
     <div id="userBox" class="user-box"></div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
-    <button onclick="showPage('bookingPage')">+ เพิ่ม Booking</button>
+    <button data-permission="createBooking" onclick="showPage('bookingPage')">+ เพิ่ม Booking</button>
     <button onclick="showPage('bookingListPage')">Booking List</button>
-    <button onclick="showPage('printCenterPage')">Print Center</button>
-    <button onclick="showPage('companyPage')">Company Profile</button>
-    <button onclick="showPage('masterDataPage')">Master Data</button>
-    <button onclick="showPage('userPage')">User Management</button>
-    <button onclick="showPage('permissionPage')">Permission Matrix</button>
+    <button data-permission="printDailyReport" onclick="showPage('printCenterPage')">Print Center</button>
+    <button data-permission="viewFinancial" onclick="showPage('financialPage')">Financial</button>
+    <button data-permission="editMasterData" onclick="showPage('companyPage')">Company Profile</button>
+    <button data-permission="editMasterData" onclick="showPage('masterDataPage')">Master Data</button>
+    <button data-permission="manageUsers" onclick="showPage('userPage')">User Management</button>
+    <button data-permission="editPermissions" onclick="showPage('permissionPage')">Permission Matrix</button>
     <button onclick="logout()" class="danger">Logout</button>
   </aside>
 
@@ -132,7 +133,7 @@
       </div>
     </section>
 
-    <section id="printCenterPage" class="page">
+    <section id="printCenterPage" class="page" data-permission="printDailyReport">
       <h1>Print Center</h1>
       <div class="card">
         <div class="form-grid">
@@ -145,7 +146,7 @@
       <div id="printCenterOutput" class="card print-doc"></div>
     </section>
 
-    <section id="companyPage" class="page">
+    <section id="companyPage" class="page" data-permission="editMasterData">
       <h1>Company Profile</h1>
       <div class="card">
         <div class="form-grid">
@@ -173,7 +174,7 @@
       <div class="card"><div id="companyReceiptPreview"></div></div>
     </section>
 
-    <section id="masterDataPage" class="page">
+    <section id="masterDataPage" class="page" data-permission="editMasterData">
       <h1>Master Data</h1>
       <div class="card">
         <div class="master-tabs">
@@ -210,7 +211,7 @@
       </div>
     </section>
 
-    <section id="userPage" class="page">
+    <section id="userPage" class="page" data-permission="manageUsers">
       <h1>User Management</h1>
       <div class="card">
         <button class="btn primary" onclick="openUserEditor()">+ เพิ่ม User</button>
@@ -231,7 +232,7 @@
       </div>
     </section>
 
-    <section id="permissionPage" class="page">
+    <section id="permissionPage" class="page" data-permission="editPermissions">
       <h1>Permission Matrix</h1>
       <div class="card">
         <button class="btn primary" onclick="loadPermissionMatrix()">Load Permissions</button>
@@ -239,10 +240,24 @@
       </div>
       <div class="card table-scroll" id="permissionMatrixRoot"></div>
     </section>
+
+    <section id="financialPage" class="page" data-permission="viewFinancial">
+      <h1>Financial</h1>
+      <div class="card">
+        <div class="form-grid">
+          <div><label>Booking Code</label><input id="financialBookingCode" placeholder="เช่น BK..."></div>
+        </div>
+        <button class="btn primary" onclick="loadFinancialBooking()">ค้นหา</button>
+      </div>
+      <div id="financialSummary" class="kpi-grid"></div>
+      <div id="financialWorkspace" class="card">เลือก Booking เพื่อดูข้อมูลการเงิน</div>
+    </section>
   </main>
 </div>
 
 <script src="js/api.js"></script>
+<script src="js/smartPaste.js"></script>
 <script src="js/app.js"></script>
+<script src="js/financial.js"></script>
 </body>
 </html>

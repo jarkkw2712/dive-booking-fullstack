@@ -1,0 +1,33 @@
+warning: in the working copy of 'README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/.env.example', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/package.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/middleware/auth.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/routes/auth.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/routes/bookings.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/routes/reports.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/server.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/services/supabase.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'database/schema.sql', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/css/style.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/dataService.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/index.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/js/api.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/js/app.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/masterdata.js', LF will be replaced by CRLF the next time Git touches it
+ README.md                        |  8 [32m++++[m[31m--[m
+ backend/.env.example             |  7 [32m+++[m[31m--[m
+ backend/package.json             |  6 [32m++[m[31m--[m
+ backend/src/middleware/auth.js   | 17 [32m++++++++++[m[31m--[m
+ backend/src/routes/auth.js       | 24 [32m++++++++++++++[m[31m--[m
+ backend/src/routes/bookings.js   | 29 [32m+++++++++++++++++[m[31m---[m
+ backend/src/routes/reports.js    |  2 [32m+[m[31m-[m
+ backend/src/server.js            | 13 [32m+++++++[m[31m--[m
+ backend/src/services/supabase.js |  5 [32m+++[m[31m-[m
+ database/schema.sql              | 10 [32m+++[m[31m----[m
+ frontend/css/style.css           |  4 [32m+++[m
+ frontend/dataService.js          | 15 [32m++++++++++[m
+ frontend/index.html              | 39 [32m++++++++++++++++++[m[31m--------[m
+ frontend/js/api.js               | 10 [32m++++++[m[31m-[m
+ frontend/js/app.js               | 17 [32m++++++++[m[31m----[m
+ frontend/masterdata.js           | 59 [31m----------------------------------------[m
+ 16 files changed, 162 insertions(+), 103 deletions(-)

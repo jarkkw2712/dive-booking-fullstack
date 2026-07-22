@@ -40,6 +40,10 @@ textarea{min-height:80px}
   padding:24px;
   color:#111827;
 }
+
+.permission-hidden{display:none!important}
+.financial-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+#financialWorkspace h2{margin-top:24px}
 .document-actions{
   max-width:210mm;
   margin:0 auto 14px;

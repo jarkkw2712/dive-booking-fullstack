@@ -52,6 +52,21 @@ const DataService = {
     });
   },
 
+  async checkDuplicateBooking(booking) {
+    return await apiFetch("/bookings/check-duplicate", {
+      method: "POST",
+      body: JSON.stringify(booking)
+    });
+  },
+
+  async getBookingTimeline(bookingCode) {
+    return await apiFetch(`/bookings/${encodeURIComponent(bookingCode)}/timeline`);
+  },
+
+  async getPrintCenterReport(date, reportType) {
+    return await apiFetch(`/reports/print-center?date=${encodeURIComponent(date)}&type=${encodeURIComponent(reportType)}`);
+  },
+
   async listAuditLogs() {
     return await apiFetch("/audit-logs");
   },
