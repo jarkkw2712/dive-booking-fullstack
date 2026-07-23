@@ -4,6 +4,27 @@ const personName=person=>[person.title,person.firstName,person.lastName].filter(
 const leaderName=booking=>[booking.leaderTitle,booking.leaderFirstName,booking.leaderLastName].filter(Boolean).join(" ");
 const isoDate=(date,offset=0)=>{const value=new Date(`${date}T00:00:00Z`);value.setUTCDate(value.getUTCDate()+offset);return value.toISOString().slice(0,10)};
 const money=value=>Number(value||0);
+const accommodationLabel={none:"ไม่นอน",park_house:"บ้านพักอุทยาน",park_tent:"เต็นท์อุทยาน"};
+
+function equipmentSummary(entries){
+  const totals=new Map();
+  for(const {booking} of entries)for(const person of passengersOf(booking))for(const addon of person.preAddOns||[]){
+    if(addon.selected===false)continue;
+    const key=addon.id||addon.name||"other",current=totals.get(key)||{code:key,name:addon.name||key,qty:0};
+    current.qty+=Number(addon.qty||1);totals.set(key,current);
+  }
+  return [...totals.values()].sort((a,b)=>a.name.localeCompare(b.name,"th"));
+}
+
+function accommodationSummary(entries){
+  const people=entries.flatMap(({booking})=>passengersOf(booking));
+  return{
+    parkHouse:people.filter(person=>person.parkAccommodationType==="park_house").length,
+    parkTent:people.filter(person=>person.parkAccommodationType==="park_tent").length,
+    none:people.filter(person=>!person.parkAccommodationType||person.parkAccommodationType==="none").length,
+    note:"ข้อมูลที่พักของอุทยาน ไม่รวมในรายได้บริษัท"
+  };
+}
 
 function movements(bookings,date){
   return bookings.filter(activeBooking).flatMap(booking=>{
@@ -23,6 +44,9 @@ function passengerRows(entries,{includeHealth=false}={}){
     phone:person.phone||booking.phone||"",
     program:person.program?.name||"",
     island:person.island||"",
+    accommodation:accommodationLabel[person.parkAccommodationType||"none"]||person.parkAccommodationType,
+    accommodationBookedBy:person.parkAccommodationType&&person.parkAccommodationType!=="none"?(person.parkAccommodationBookedBy==="customer"?"ลูกค้าจองเอง":person.parkAccommodationBookedBy==="park"?"อุทยานจัดให้":"ไม่ระบุ"):"",
+    accommodationReference:person.parkAccommodationReference||"",
     ...(includeHealth?{foodAllergy:person.foodAllergy||"",medicalNote:person.medicalNote||""}:{}),
     status:booking.status
   })));
@@ -37,6 +61,8 @@ function managementReport(bookings,financialRows,date){
   const rows=Array.from({length:7},(_,offset)=>{
     const day=isoDate(date,offset);
     const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===day);
+    const dailyArrivals=daily.map(booking=>({booking,direction:"ลงเกาะ",movement:"arrival"}));
+    const lodging=accommodationSummary(dailyArrivals);
     const expectedRevenue=daily.reduce((sum,booking)=>sum+money(booking.totalAmount),0);
     const actualReceived=daily.reduce((sum,booking)=>sum+money(finances.get(booking.bookingCode)?.net_cash_received),0);
     return{
@@ -46,6 +72,9 @@ function managementReport(bookings,financialRows,date){
       pending:daily.filter(booking=>booking.status==="pending").length,
       confirmed:daily.filter(booking=>booking.status==="confirmed").length,
       checkedIn:daily.filter(booking=>booking.status==="checked-in").length,
+      parkHouse:lodging.parkHouse,
+      parkTent:lodging.parkTent,
+      equipmentUnits:equipmentSummary(dailyArrivals).reduce((sum,item)=>sum+item.qty,0),
       expectedRevenue,
       actualReceived,
       outstanding:Math.max(expectedRevenue-actualReceived,0)
@@ -66,7 +95,9 @@ function managementReport(bookings,financialRows,date){
       outstanding:today.outstanding,
       sevenDayExpected:rows.reduce((sum,row)=>sum+row.expectedRevenue,0)
     },
-    range:{from:date,to:isoDate(date,6)}
+    range:{from:date,to:isoDate(date,6)},
+    equipment:equipmentSummary(movements(bookings,date).filter(row=>row.movement==="arrival")),
+    accommodation:accommodationSummary(movements(bookings,date).filter(row=>row.movement==="arrival"))
   };
 }
 
@@ -103,7 +134,9 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],date,type})
     rows=entries.map(({booking,direction})=>({
       direction,bookingCode:booking.bookingCode,leader:leaderName(booking),phone:booking.phone||"",
       pax:passengersOf(booking).length,program:[...new Set(passengersOf(booking).map(person=>person.program?.name).filter(Boolean))].join(", "),
-      island:[...new Set(passengersOf(booking).map(person=>person.island).filter(Boolean))].join(", "),note:booking.bookingNote||""
+      island:[...new Set(passengersOf(booking).map(person=>person.island).filter(Boolean))].join(", "),
+      accommodation:`บ้าน ${passengersOf(booking).filter(person=>person.parkAccommodationType==="park_house").length} / เต็นท์ ${passengersOf(booking).filter(person=>person.parkAccommodationType==="park_tent").length}`,
+      note:booking.bookingNote||""
     }));
   }else{
     throw new Error("Invalid report type");
@@ -113,7 +146,7 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],date,type})
   const reportBookings=type==="counter"?active.filter(booking=>booking.travelDate===date):[...uniqueBookings.values()];
   const reportPax=["counter","driver"].includes(type)?reportBookings.reduce((sum,booking)=>sum+passengersOf(booking).length,0):rows.length;
   return{
-    date,type,title,purpose,rows,
+    date,type,title,purpose,rows,equipment:equipmentSummary(arrivals),accommodation:accommodationSummary(arrivals),
     summary:{
       bookings:reportBookings.length,
       pax:reportPax,

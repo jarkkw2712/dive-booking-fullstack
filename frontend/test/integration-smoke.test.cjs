@@ -48,6 +48,14 @@ test("print center exposes role-specific reports and seven-day management output
   const css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
   assert.match(css,/@page report\{size:A4 landscape/);
   assert.match(css,/#printCenterPage>h1/);
+  assert.match(app,/ยอดอุปกรณ์ที่ต้องเบิก/);
+  assert.match(app,/ที่พักอุทยาน \(ไม่รวมรายได้บริษัท\)/);
+});
+test("passenger editor records non-revenue park accommodation",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  for(const field of ["parkAccommodationType","parkAccommodationBookedBy","parkAccommodationReference","parkAccommodationNote"])assert.match(app,new RegExp(field));
+  assert.match(app,/บ้านพักอุทยาน/);
+  assert.match(app,/เต็นท์อุทยาน/);
 });
 test("active HTML does not contain known Thai mojibake markers",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
