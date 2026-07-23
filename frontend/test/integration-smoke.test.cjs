@@ -20,6 +20,16 @@ test("self-service password recovery API is disabled",()=>{
   const auth=fs.readFileSync(path.join(root,"..","backend","src","routes","auth.js"),"utf8");
   assert.match(auth,/router\.all\(\["\/forgot-password","\/reset-password"\]/);
 });
+test("inactivity logout and global mutation progress are connected",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
+  const api=fs.readFileSync(path.join(root,"js","api.js"),"utf8");
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  assert.match(html,/id=["']globalSavingIndicator["']/);
+  assert.match(api,/setMutationPending\(true\)/);
+  assert.match(api,/finally/);
+  assert.match(app,/INACTIVITY_LIMIT_MS=15\*60\*1000/);
+  assert.match(app,/startInactivityMonitor\(\)/);
+});
 test("active HTML does not contain known Thai mojibake markers",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   for(const marker of ["เน€เธ","โฐ","เธเธฑ"])assert.equal(html.includes(marker),false);

@@ -1,14 +1,25 @@
 const API_BASE = "https://dive-booking-api.onrender.com/api";
 
 function token(){return localStorage.getItem("token")||""}
+let pendingMutations=0;
+function setMutationPending(pending){
+  pendingMutations=Math.max(0,pendingMutations+(pending?1:-1));
+  document.getElementById("globalSavingIndicator")?.classList.toggle("hidden",pendingMutations===0);
+}
 async function apiFetch(path, options={}){
   const headers=options.headers||{};
+  const isMutation=(options.method||"GET").toUpperCase()!=="GET";
   headers["Content-Type"]="application/json";
   if(token()) headers.Authorization=`Bearer ${token()}`;
-  const res=await fetch(API_BASE+path,{...options,headers});
-  const data=await res.json().catch(()=>({}));
-  if(!res.ok) throw new Error(data.error||res.statusText);
-  return data;
+  if(isMutation)setMutationPending(true);
+  try{
+    const res=await fetch(API_BASE+path,{...options,headers});
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.error||res.statusText);
+    return data;
+  }finally{
+    if(isMutation)setMutationPending(false);
+  }
 }
 
 const API={

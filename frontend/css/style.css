@@ -267,3 +267,27 @@ textarea{min-height:80px}
     border:0;
   }
 }
+.saving-indicator{
+  position:fixed;
+  inset:0;
+  z-index:10000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  background:rgba(15,23,42,.42);
+  color:#fff;
+  font-size:18px;
+  font-weight:700;
+  backdrop-filter:blur(2px);
+}
+.saving-indicator.hidden{display:none}
+.saving-spinner{
+  width:24px;
+  height:24px;
+  border:3px solid rgba(255,255,255,.45);
+  border-top-color:#fff;
+  border-radius:50%;
+  animation:saving-spin .8s linear infinite;
+}
+@keyframes saving-spin{to{transform:rotate(360deg)}}
