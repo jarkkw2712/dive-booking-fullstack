@@ -31,6 +31,7 @@ Configure these environment variables in Render:
 - `SUPABASE_SERVICE_ROLE_KEY`: Render secret only
 - Optional LINE variables
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` for password-reset email
+- `RESEND_API_KEY`, `EMAIL_FROM`: preferred HTTPS email provider. When `RESEND_API_KEY` exists the backend uses Resend; otherwise it falls back to the SMTP variables above. `EMAIL_FROM` must be a sender/domain verified in Resend.
 
 Redeploy the backend and verify `GET /api/health`. Never place `SUPABASE_SERVICE_ROLE_KEY` in Vercel or frontend files.
 

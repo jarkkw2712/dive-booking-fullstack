@@ -7,6 +7,7 @@ import { requirePermission } from "../src/middleware/auth.js";
 import { requireAuth } from "../src/middleware/auth.js";
 import jwt from "jsonwebtoken";
 import { hashPassword,verifyPassword,validatePasswordPolicy,createPasswordResetToken,hashResetToken } from "../src/services/passwordService.js";
+import { configuredEmailProvider } from "../src/services/emailService.js";
 
 test("invoice accepts numeric money and immutable snapshot fields",()=>{
   const input={items:[{itemName:"One Day Trip",qty:2,unitPrice:2500}]};
@@ -64,4 +65,8 @@ test("forced-change token cannot access business routes",()=>{
   let status=0,payload,nextCalled=false;requireAuth({headers:{authorization:`Bearer ${token}`},originalUrl:"/api/bookings"},{status(code){status=code;return this},json(value){payload=value}},()=>{nextCalled=true});
   assert.equal(nextCalled,false);assert.equal(status,403);assert.match(payload.error,/Password change required/);
   if(original===undefined)delete process.env.JWT_SECRET;else process.env.JWT_SECRET=original;
+});
+test("Resend is primary and SMTP remains the no-key fallback",()=>{
+  assert.equal(configuredEmailProvider({RESEND_API_KEY:"re_test"}),"resend");
+  assert.equal(configuredEmailProvider({}),"smtp");
 });

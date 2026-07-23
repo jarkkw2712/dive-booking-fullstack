@@ -11,4 +11,5 @@
 - Added backend financial permissions, validation, rate limiting, audit events, Financial frontend workspace, and smoke tests.
 - Removed example secrets and insecure production authentication fallbacks.
 - Added per-user salted password hashes, forced temporary-password changes, lockout, authentication audit, and expiring one-time password-reset emails over SMTP.
+- Added Resend HTTPS email delivery as the primary password-reset provider while preserving SMTP as the automatic no-key fallback.
 

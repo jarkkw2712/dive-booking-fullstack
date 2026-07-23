@@ -48,7 +48,7 @@ router.post("/forgot-password",recoveryLimiter,async(req,res)=>{
     if(error)throw error;
     res.status(202).json(generic);
     void sendPasswordResetEmail({email:user.email,displayName:user.display_name,token})
-      .then(()=>audit(req,{user,action:"PASSWORD_RESET_REQUEST",success:true,detail:"Email queued"}))
+      .then(result=>audit(req,{user,action:"PASSWORD_RESET_REQUEST",success:true,detail:`Email queued via ${result.provider}`}))
       .catch(async error=>{await supabaseAdmin.from("password_reset_tokens").update({used_at:new Date().toISOString()}).eq("reset_token_id",created.reset_token_id);await audit(req,{user,action:"PASSWORD_RESET_REQUEST",success:false,detail:"Email delivery failed"});console.error("Password reset email failed",error.message)});
   }catch(error){console.error("Forgot password failed",error);res.status(202).json(generic)}
 });
