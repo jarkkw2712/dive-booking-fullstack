@@ -22,6 +22,8 @@ function accommodationSummary(entries){
     parkHouse:people.filter(person=>person.parkAccommodationType==="park_house").length,
     parkTent:people.filter(person=>person.parkAccommodationType==="park_tent").length,
     none:people.filter(person=>!person.parkAccommodationType||person.parkAccommodationType==="none").length,
+    customerSelfBooked:people.filter(person=>person.parkAccommodationArrangement==="customer_self_booked").length,
+    tentCreditDue:people.reduce((sum,person)=>sum+Number(person.tentCreditAmount||0),0),
     note:"ข้อมูลที่พักของอุทยาน ไม่รวมในรายได้บริษัท"
   };
 }
@@ -47,6 +49,8 @@ function passengerRows(entries,{includeHealth=false}={}){
     accommodation:accommodationLabel[person.parkAccommodationType||"none"]||person.parkAccommodationType,
     accommodationBookedBy:person.parkAccommodationType&&person.parkAccommodationType!=="none"?(person.parkAccommodationBookedBy==="customer"?"ลูกค้าจองเอง":person.parkAccommodationBookedBy==="park"?"อุทยานจัดให้":"ไม่ระบุ"):"",
     accommodationReference:person.parkAccommodationReference||"",
+    accommodationArrangement:person.parkAccommodationArrangement==="customer_self_booked"?"ลูกค้าจองเอง":person.parkAccommodationArrangement==="included_tent"?"เต็นท์รวมในโปรแกรม":person.parkAccommodationArrangement==="not_required"?"ไม่ค้างคืน":"ยังไม่ทราบ",
+    tentCreditAmount:Number(person.tentCreditAmount||0),
     ...(includeHealth?{foodAllergy:person.foodAllergy||"",medicalNote:person.medicalNote||""}:{}),
     status:booking.status
   })));
@@ -75,6 +79,7 @@ function managementReport(bookings,financialRows,date){
       parkHouse:lodging.parkHouse,
       parkTent:lodging.parkTent,
       equipmentUnits:equipmentSummary(dailyArrivals).reduce((sum,item)=>sum+item.qty,0),
+      tentCreditDue:lodging.tentCreditDue,
       expectedRevenue,
       actualReceived,
       outstanding:Math.max(expectedRevenue-actualReceived,0)
@@ -93,7 +98,8 @@ function managementReport(bookings,financialRows,date){
       expectedRevenue:today.expectedRevenue,
       actualReceived:today.actualReceived,
       outstanding:today.outstanding,
-      sevenDayExpected:rows.reduce((sum,row)=>sum+row.expectedRevenue,0)
+      sevenDayExpected:rows.reduce((sum,row)=>sum+row.expectedRevenue,0),
+      sevenDayTentCredit:rows.reduce((sum,row)=>sum+row.tentCreditDue,0)
     },
     range:{from:date,to:isoDate(date,6)},
     equipment:equipmentSummary(movements(bookings,date).filter(row=>row.movement==="arrival")),

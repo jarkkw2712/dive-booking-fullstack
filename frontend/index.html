@@ -82,7 +82,7 @@
             <div class="form-grid">
               <div><label>ประเภทการเดินทาง</label><select id="tripType" onchange="toggleReturnDate()"><option value="one_way">ครั้งเดียว</option><option value="round_trip">Round Trip</option></select></div>
               <div><label>วันเดินทางไป</label><input id="travelDate" type="date"></div>
-              <div><label>วันเดินทางกลับ</label><input id="returnDate" type="date" disabled></div>
+              <div><label>วันเดินทางกลับ (ประมาณการและแก้ภายหลังได้)</label><input id="returnDate" type="date" disabled></div>
               <div><label>คำนำหน้า</label><select id="leaderTitle"><option></option><option>นาย</option><option>นาง</option><option>นางสาว</option><option>เด็กชาย</option><option>เด็กหญิง</option></select></div>
               <div><label>ชื่อหัวหน้าทริป</label><input id="leaderFirstName"></div>
               <div><label>นามสกุลหัวหน้าทริป</label><input id="leaderLastName"></div>
@@ -220,6 +220,8 @@
           <div><label>ID / Code</label><input id="mdpCode"></div>
           <div><label>ชื่อ</label><input id="mdpName"></div>
           <div><label>ราคา Default</label><input id="mdpPrice" type="number" value="0"></div>
+          <div id="mdpAccommodationPolicyField"><label>นโยบายที่พัก</label><select id="mdpAccommodationPolicy"><option value="none">ไม่ค้างคืน</option><option value="required">ต้องระบุที่พัก</option><option value="optional">ยังไม่ทราบ/แก้ภายหลังได้</option></select></div>
+          <div id="mdpTentCreditField"><label>เครดิตคืนค่าเต็นท์/คน</label><input id="mdpTentCredit" type="number" min="0" step="0.01" value="0"></div>
           <div><label>Sort</label><input id="mdpSort" type="number" value="0"></div>
           <div class="full"><label>Description</label><input id="mdpDescription"></div>
           <div><label>Active</label><select id="mdpActive"><option value="true">ใช้งาน</option><option value="false">ปิดใช้งาน</option></select></div>

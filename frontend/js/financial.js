@@ -13,9 +13,10 @@ async function loadFinancialBooking(){
 }
 function renderFinancial(){
   const d=financialData||{},s=d.summary||{};
+  const booking=(bookings||[]).find(x=>x.bookingCode===financialBookingCode)||selectedBooking,tentCreditTotal=(booking?.passengers||[]).reduce((sum,person)=>sum+Number(person.tentCreditAmount||0),0),tentRefundDue=Math.min(tentCreditTotal,Math.max(Number(s.netCashReceived||0)-Number(booking?.totalAmount||0),0));
   document.getElementById("financialSummary").innerHTML=[
     ["Invoice Total",s.invoicedAmount],["Paid",s.verifiedPaidAmount],["Outstanding",s.outstandingAmount],
-    ["Refund",s.refundedAmount],["Net Received",s.netCashReceived]
+    ["Refund",s.refundedAmount],["Net Received",s.netCashReceived],["Tent Credit Due",tentRefundDue]
   ].map(([name,value])=>`<div class="kpi"><span>${name}</span><b>${money(value)}</b></div>`).join("");
   const action=(permission,html)=>hasPermission(permission)?html:"";
   document.getElementById("financialWorkspace").innerHTML=`
@@ -23,6 +24,7 @@ function renderFinancial(){
       ${action("createInvoice",'<button class="btn primary" onclick="createInitialInvoice()">Generate Initial Invoice</button>')}
       ${action("receivePayment",'<button class="btn primary" onclick="receiveFinancialPayment()">Receive Payment</button>')}
       ${action("createRefund",'<button class="btn soft" onclick="requestFinancialRefund()">Create Refund</button>')}
+      ${action("createRefund",tentRefundDue>0?`<button class="btn soft" onclick="requestTentCreditRefund(${tentRefundDue})">คืนค่าเต็นท์ ${money(tentRefundDue)} บาท</button>`:"")}
     </div>
     <h2>Invoices</h2>${financialTable((d.invoices||[]).map(x=>({no:x.invoice_no,type:x.invoice_type,total:x.grand_total,status:x.status,date:x.issue_date})))}
     <h2>Payments</h2>${financialTable((d.payments||[]).map(x=>({no:x.payment_no,amount:x.amount,method:x.method_snapshot,status:x.status,actions:paymentActions(x)})),true)}
@@ -42,11 +44,12 @@ function refundActions(refund){return[
 ].join(" ")}
 async function createInitialInvoice(){
   const booking=(bookings||[]).find(x=>x.bookingCode===financialBookingCode)||selectedBooking;if(!booking)return alert("กรุณาเปิด Booking List ก่อนสร้าง Invoice");
-  const items=[];(booking.passengers||[]).forEach(person=>{const name=[person.title,person.firstName,person.lastName].filter(Boolean).join(" ");if(person.program)items.push({sourceType:"program",passengerName:name,itemCode:person.program.programId,itemName:person.program.name,qty:Number(person.program.qty||1),unitPrice:Number(person.program.price||0)});(person.preAddOns||[]).filter(x=>x.selected).forEach(x=>items.push({sourceType:"pre_addon",passengerName:name,itemCode:x.id,itemName:x.name,qty:Number(x.qty||1),unitPrice:Number(x.price||0)}));(person.islandAddOns||[]).forEach(x=>items.push({sourceType:"island_addon",passengerName:name,itemCode:x.id,itemName:x.name,qty:Number(x.qty||1),unitPrice:Number(x.price||0)}));});
+  const items=[];(booking.passengers||[]).forEach(person=>{const name=[person.title,person.firstName,person.lastName].filter(Boolean).join(" ");if(person.program)items.push({sourceType:"program",passengerName:name,itemCode:person.program.programId,itemName:person.program.name,qty:Number(person.program.qty||1),unitPrice:Number(person.program.price||0),discountAmount:Number(person.tentCreditAmount||0),description:person.tentCreditAmount?`เครดิตคืนค่าเต็นท์ ${Number(person.tentCreditAmount).toLocaleString("th-TH")} บาท`:""});(person.preAddOns||[]).filter(x=>x.selected).forEach(x=>items.push({sourceType:"pre_addon",passengerName:name,itemCode:x.id,itemName:x.name,qty:Number(x.qty||1),unitPrice:Number(x.price||0)}));(person.islandAddOns||[]).forEach(x=>items.push({sourceType:"island_addon",passengerName:name,itemCode:x.id,itemName:x.name,qty:Number(x.qty||1),unitPrice:Number(x.price||0)}));});
   if(!confirm(`สร้าง Invoice จากรายการปัจจุบัน ${items.length} รายการ?`))return;await API.createInvoice(financialBookingCode,{invoiceType:"initial",items,idempotencyKey:financialIdempotency("invoice")});await loadFinancialBooking();
 }
 async function receiveFinancialPayment(){const amount=Number(prompt("จำนวนเงินที่รับ",financialData?.summary?.outstandingAmount||0));if(!amount)return;const method=prompt("วิธีชำระ: cash หรือ bank_transfer","cash");if(!method)return;const referenceNo=method==="bank_transfer"?prompt("เลขอ้างอิงธนาคาร")||"":"";let remaining=amount;const allocations=[];for(const invoice of (financialData.invoices||[]).filter(x=>["issued","partially_paid"].includes(x.status))){const allocated=(financialData.allocations||[]).filter(x=>x.invoice_id===invoice.invoice_id).reduce((sum,x)=>sum+Number(x.amount||0),0),available=Math.max(Number(invoice.grand_total||0)-allocated,0),part=Math.min(remaining,available);if(part>0)allocations.push({invoiceId:invoice.invoice_id,amount:part});remaining-=part;if(remaining<=0)break;}await API.createPayment(financialBookingCode,{amount,methodId:method,methodSnapshot:method,referenceNo,allocations,idempotencyKey:financialIdempotency("payment")});await loadFinancialBooking();}
 async function financialPaymentAction(id,action){const reason=action==="reverse"?prompt("เหตุผลการ Reverse"):"";if(action==="reverse"&&!reason)return;await API.paymentAction(id,action,{reason});await loadFinancialBooking();}
 async function issueFinancialReceipt(id){await API.issueReceipt(id,{documentSnapshot:{bookingCode:financialBookingCode,issuedFrom:"Financial page"},idempotencyKey:financialIdempotency("receipt")});await loadFinancialBooking();}
 async function requestFinancialRefund(){const amount=Number(prompt("จำนวนเงินคืน"));if(!amount)return;const reason=prompt("เหตุผลคืนเงิน");if(!reason)return;const method=prompt("วิธีคืนเงิน","bank_transfer");if(!method)return;await API.createRefund(financialBookingCode,{amount,reason,method,idempotencyKey:financialIdempotency("refund")});await loadFinancialBooking();}
+async function requestTentCreditRefund(amount){if(!amount||!confirm(`สร้างคำขอคืนค่าเต็นท์ ${money(amount)} บาท?`))return;const method=prompt("วิธีคืนเงิน","bank_transfer");if(!method)return;await API.createRefund(financialBookingCode,{amount,reason:"คืนค่าเต็นท์ เนื่องจากลูกค้าจองที่พักเอง",method,idempotencyKey:financialIdempotency("tent-credit-refund")});await loadFinancialBooking()}
 async function financialRefundAction(id,action){await API.refundAction(id,action);await loadFinancialBooking();}

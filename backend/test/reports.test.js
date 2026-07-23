@@ -55,3 +55,14 @@ test("park accommodation migration is idempotent and does not add accommodation 
   assert.match(sql,/create or replace function upsert_booking_from_json/);
   assert.doesNotMatch(sql,/accommodation_revenue|park_accommodation_price/i);
 });
+
+test("program accommodation policy migration supports editable boat dates and auditable tent credits",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260723_008_program_accommodation_policy.sql"),"utf8");
+  assert.match(sql,/add column if not exists accommodation_policy/);
+  assert.match(sql,/add column if not exists self_booked_tent_credit numeric/);
+  assert.match(sql,/program_id='one_day'/);
+  assert.match(sql,/program_id='boat_ticket'/);
+  assert.match(sql,/upsert_booking_with_accommodation/);
+  assert.match(sql,/list_bookings_json_v2/);
+  assert.doesNotMatch(sql,/delete from (payments|refunds|financial_events)/i);
+});

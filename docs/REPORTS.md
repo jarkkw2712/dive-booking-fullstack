@@ -21,6 +21,13 @@ Accommodation is recorded per passenger as no overnight stay, national-park hous
 
 National-park accommodation is informational only and is never included in Sabina revenue, invoices, expected revenue, or outstanding calculations. Customers normally reserve and pay the park directly.
 
+Program rules:
+
+- One Day Trip automatically uses no overnight stay.
+- Overnight programs require either the included park tent or customer-arranged accommodation.
+- Boat Ticket starts as unknown/undecided. Outbound and approximate return dates can be recorded and edited later if the passenger changes plans on the island.
+- When an overnight-program customer arranges accommodation independently, the configured per-person tent credit reduces the booking and invoice. If payment was already received, Financial shows the remaining refund due and creates a normal auditable refund request.
+
 ## Revenue definitions
 
 - `รายได้คาดการณ์` is the booking total for non-cancelled bookings travelling on that date.

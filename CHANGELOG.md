@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-23 - Program accommodation rules
+
+- One Day Trip now defaults to no overnight stay.
+- Overnight programs require an accommodation decision.
+- Boat Ticket allows approximate outbound/return dates and an undecided stay that can be edited later.
+- Program Master Data controls the self-booked tent credit per passenger.
+- Customer-arranged accommodation reduces booking and invoice totals through a snapshotted discount; overpayments use the existing auditable refund workflow.
+- Operations and management reports include park stays, tent credits, and equipment issue totals.
+
 ## Unreleased — Stabilization and Financial Foundation
 
 - Repaired Thai text encoding in the active HTML and the legacy master-data module.
