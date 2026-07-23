@@ -13,6 +13,10 @@ async function audit(req,{user,username,email,action,success,detail}){try{await 
 const loginLimiter=rateLimit({windowMs:15*60_000,max:30});
 const recoveryLimiter=rateLimit({windowMs:15*60_000,max:5});
 
+// Password recovery is intentionally disabled for this closed back-office system.
+// Administrators reset staff passwords from User Management instead.
+router.all(["/forgot-password","/reset-password"],(_req,res)=>res.status(404).json({error:"Password recovery is disabled. Contact an administrator."}));
+
 router.post("/login",loginLimiter,async(req,res)=>{
   try{
     const {username,password}=req.body||{};

@@ -16,30 +16,7 @@
     <label>Password</label>
     <input id="loginPassword" type="password" autocomplete="current-password">
     <button class="btn primary full-btn" onclick="login()">Login</button>
-    <button class="btn soft full-btn" type="button" onclick="showForgotPassword()">ลืมรหัสผ่าน</button>
     <div id="loginError" class="error"></div>
-  </div>
-</div>
-
-<div id="forgotPasswordModal" class="login-screen hidden">
-  <div class="login-card">
-    <h1>ลืมรหัสผ่าน</h1>
-    <p>กรอกอีเมลที่ Admin บันทึกไว้ในบัญชี</p>
-    <label>Email</label><input id="forgotEmail" type="email" autocomplete="email">
-    <button class="btn primary full-btn" onclick="requestPasswordReset()">ส่งลิงก์ตั้งรหัสผ่าน</button>
-    <button class="btn soft full-btn" onclick="closeAuthModals()">กลับหน้า Login</button>
-    <div id="forgotMessage"></div>
-  </div>
-</div>
-
-<div id="resetPasswordModal" class="login-screen hidden">
-  <div class="login-card">
-    <h1>ตั้งรหัสผ่านใหม่</h1>
-    <p>อย่างน้อย 12 ตัว และมีตัวพิมพ์เล็ก/ใหญ่ ตัวเลข หรือสัญลักษณ์อย่างน้อย 3 ประเภท</p>
-    <label>รหัสผ่านใหม่</label><input id="resetPassword" type="password" autocomplete="new-password">
-    <label>ยืนยันรหัสผ่าน</label><input id="resetPasswordConfirm" type="password" autocomplete="new-password">
-    <button class="btn primary full-btn" onclick="submitPasswordReset()">บันทึกรหัสผ่านใหม่</button>
-    <div id="resetMessage"></div>
   </div>
 </div>
 

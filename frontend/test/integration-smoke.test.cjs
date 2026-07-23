@@ -13,8 +13,12 @@ test("Booking List, Print Center and Financial markup is connected",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   for(const id of ["bookingListPage","bookingList","bookingDetail","timelineRoot","blDate","blStatus","blSearch","printCenterPage","pcDate","pcType","printCenterOutput","financialPage","financialWorkspace"])assert.match(html,new RegExp(`id=["']${id}["']`));
 });
-test("login, forgot, reset and forced password-change markup is connected",()=>{
-  const html=fs.readFileSync(path.join(root,"index.html"),"utf8");for(const id of ["loginPassword","forgotPasswordModal","forgotEmail","resetPasswordModal","resetPassword","changePasswordModal","currentPassword","newPassword","userEmail","userTemporaryPassword"])assert.match(html,new RegExp(`id=["']${id}["']`));assert.equal(html.includes('id="loginPassword" type="password" value="1234"'),false);
+test("login and forced password-change markup is connected without self-service recovery",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8");for(const id of ["loginPassword","changePasswordModal","currentPassword","newPassword","userEmail","userTemporaryPassword"])assert.match(html,new RegExp(`id=["']${id}["']`));for(const id of ["forgotPasswordModal","forgotEmail","resetPasswordModal","resetPassword"])assert.doesNotMatch(html,new RegExp(`id=["']${id}["']`));assert.equal(html.includes('id="loginPassword" type="password" value="1234"'),false);
+});
+test("self-service password recovery API is disabled",()=>{
+  const auth=fs.readFileSync(path.join(root,"..","backend","src","routes","auth.js"),"utf8");
+  assert.match(auth,/router\.all\(\["\/forgot-password","\/reset-password"\]/);
 });
 test("active HTML does not contain known Thai mojibake markers",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
