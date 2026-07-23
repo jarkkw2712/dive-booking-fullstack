@@ -46,9 +46,10 @@ router.post("/forgot-password",recoveryLimiter,async(req,res)=>{
     const {token,tokenHash}=createPasswordResetToken(),expiresAt=new Date(Date.now()+30*60_000).toISOString();
     const {data:created,error}=await supabaseAdmin.from("password_reset_tokens").insert({user_id:user.user_id,token_hash:tokenHash,expires_at:expiresAt,requested_ip:req.ip,requested_user_agent:String(req.headers["user-agent"]||"").slice(0,500)}).select("reset_token_id").single();
     if(error)throw error;
-    try{await sendPasswordResetEmail({email:user.email,displayName:user.display_name,token});await audit(req,{user,action:"PASSWORD_RESET_REQUEST",success:true,detail:"Email queued"})}
-    catch(error){await supabaseAdmin.from("password_reset_tokens").update({used_at:new Date().toISOString()}).eq("reset_token_id",created.reset_token_id);await audit(req,{user,action:"PASSWORD_RESET_REQUEST",success:false,detail:"Email delivery failed"});console.error("Password reset email failed",error.message)}
     res.status(202).json(generic);
+    void sendPasswordResetEmail({email:user.email,displayName:user.display_name,token})
+      .then(()=>audit(req,{user,action:"PASSWORD_RESET_REQUEST",success:true,detail:"Email queued"}))
+      .catch(async error=>{await supabaseAdmin.from("password_reset_tokens").update({used_at:new Date().toISOString()}).eq("reset_token_id",created.reset_token_id);await audit(req,{user,action:"PASSWORD_RESET_REQUEST",success:false,detail:"Email delivery failed"});console.error("Password reset email failed",error.message)});
   }catch(error){console.error("Forgot password failed",error);res.status(202).json(generic)}
 });
 

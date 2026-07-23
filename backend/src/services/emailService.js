@@ -5,7 +5,15 @@ function getTransporter(){
   if(transporter)return transporter;
   const host=process.env.SMTP_HOST,port=Number(process.env.SMTP_PORT||587),user=process.env.SMTP_USER,pass=process.env.SMTP_PASSWORD;
   if(!host||!user||!pass||!process.env.SMTP_FROM)throw new Error("SMTP is not configured");
-  transporter=nodemailer.createTransport({host,port,secure:process.env.SMTP_SECURE==="true"||port===465,pool:true,auth:{user,pass}});
+  transporter=nodemailer.createTransport({
+    host,port,
+    secure:process.env.SMTP_SECURE==="true"||port===465,
+    pool:true,
+    connectionTimeout:10_000,
+    greetingTimeout:10_000,
+    socketTimeout:20_000,
+    auth:{user,pass}
+  });
   return transporter;
 }
 
