@@ -30,6 +30,13 @@ test("inactivity logout and global mutation progress are connected",()=>{
   assert.match(app,/INACTIVITY_LIMIT_MS=15\*60\*1000/);
   assert.match(app,/startInactivityMonitor\(\)/);
 });
+test("master data exposes existing prices and edit actions",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  assert.match(app,/masterDataConfig=/);
+  assert.match(app,/ราคา Default/);
+  assert.match(app,/function editMasterDataProItem/);
+  assert.match(app,/API\.updateMdp\(mdCat,editingId,item\)/);
+});
 test("active HTML does not contain known Thai mojibake markers",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   for(const marker of ["เน€เธ","โฐ","เธเธฑ"])assert.equal(html.includes(marker),false);
