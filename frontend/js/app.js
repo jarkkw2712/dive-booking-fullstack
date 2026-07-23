@@ -5,14 +5,15 @@ function recordActivity(){if(!localStorage.getItem("token"))return;const now=Dat
 function startInactivityMonitor(){for(const eventName of ["pointerdown","pointermove","keydown","touchstart","scroll"])window.addEventListener(eventName,recordActivity,{passive:true});setInterval(()=>{if(!localStorage.getItem("token"))return;const last=Number(localStorage.getItem(ACTIVITY_KEY)||0);if(last&&Date.now()-last>=INACTIVITY_LIMIT_MS)logout("ออกจากระบบอัตโนมัติ เนื่องจากไม่มีการใช้งานเป็นเวลา 15 นาที")},15000)}
 function money(n){return Number(n||0).toLocaleString("th-TH")}
 function hasPermission(key){return currentUser?.role==="admin"||currentUser?.permissions?.[key]===true}
-function showPage(id){const page=document.getElementById(id);if(!page||page.dataset.permission&&!hasPermission(page.dataset.permission))return alert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));page.classList.add("active");document.querySelector(".sidebar")?.classList.remove("mobile-open");if(id==="dashboardPage")loadDashboard();if(id==="bookingListPage")loadBookingList();if(id==="companyPage")loadCompanyProfileToForm();if(id==="masterDataPage")loadMasterDataPro("programs");if(id==="userPage")loadUsers();if(id==="permissionPage")loadPermissionMatrix();if(id==="financialPage"&&typeof loadFinancialPage==="function")loadFinancialPage();}
+function hasAnyPermission(list){return currentUser?.role==="admin"||String(list||"").split(",").some(key=>hasPermission(key.trim()))}
+function showPage(id){const page=document.getElementById(id);if(!page||page.dataset.permission&&!hasPermission(page.dataset.permission)||page?.dataset.anyPermission&&!hasAnyPermission(page.dataset.anyPermission))return alert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));page.classList.add("active");document.querySelector(".sidebar")?.classList.remove("mobile-open");if(id==="dashboardPage")loadDashboard();if(id==="bookingListPage")loadBookingList();if(id==="companyPage")loadCompanyProfileToForm();if(id==="masterDataPage")loadMasterDataPro("programs");if(id==="userPage")loadUsers();if(id==="permissionPage")loadPermissionMatrix();if(id==="printCenterPage")configureReportOptions();if(id==="financialPage"&&typeof loadFinancialPage==="function")loadFinancialPage();}
 function toggleMobileMenu(){document.querySelector(".sidebar")?.classList.toggle("mobile-open")}
 async function login(){try{const u=document.getElementById("loginUsername").value.trim(),p=document.getElementById("loginPassword").value;const r=await API.login(u,p);localStorage.setItem("token",r.token);localStorage.setItem("user",JSON.stringify(r.user));localStorage.setItem(ACTIVITY_KEY,String(Date.now()));currentUser=r.user;applyAuth();if(r.user.mustChangePassword){showChangePassword(true,p);return}await initData();}catch(e){document.getElementById("loginError").innerText=e.message}}
 function logout(reason=""){localStorage.clear();if(reason)alert(reason);location.reload()}
 function closeAuthModals(){document.getElementById("changePasswordModal")?.classList.add("hidden");if(!currentUser)document.getElementById("loginScreen").style.display="flex"}
 function showChangePassword(required=false,current=""){document.getElementById("changePasswordModal").classList.remove("hidden");document.getElementById("changePasswordCancel").classList.toggle("hidden",required);document.getElementById("changePasswordHint").innerText=required?"กรุณาตั้งรหัสผ่านเฉพาะของคุณก่อนใช้งานระบบ":"เปลี่ยนรหัสผ่านของบัญชีปัจจุบัน";document.getElementById("currentPassword").value=current}
 async function submitPasswordChange(){const currentPassword=val("currentPassword"),newPassword=val("newPassword"),confirmPassword=val("newPasswordConfirm"),root=document.getElementById("changePasswordMessage");if(newPassword!==confirmPassword){root.innerText="รหัสผ่านใหม่ไม่ตรงกัน";return}try{await API.changePassword(currentPassword,newPassword);localStorage.clear();alert("เปลี่ยนรหัสผ่านแล้ว กรุณาเข้าสู่ระบบใหม่");location.href=location.pathname}catch(error){root.innerText=error.message}}
-function applyAuth(){currentUser=JSON.parse(localStorage.getItem("user")||"null");document.getElementById("loginScreen").style.display=currentUser?"none":"flex";document.getElementById("userBox").innerHTML=currentUser?`<b>${escapeHtml(currentUser.displayName)}</b><br>Username: ${escapeHtml(currentUser.username)}<br>Role: ${escapeHtml(currentUser.role)}`:"";document.querySelectorAll("[data-permission]").forEach(el=>el.classList.toggle("permission-hidden",!hasPermission(el.dataset.permission)));}
+function applyAuth(){currentUser=JSON.parse(localStorage.getItem("user")||"null");document.getElementById("loginScreen").style.display=currentUser?"none":"flex";document.getElementById("userBox").innerHTML=currentUser?`<b>${escapeHtml(currentUser.displayName)}</b><br>Username: ${escapeHtml(currentUser.username)}<br>Role: ${escapeHtml(currentUser.role)}`:"";document.querySelectorAll("[data-permission]").forEach(el=>el.classList.toggle("permission-hidden",!hasPermission(el.dataset.permission)));document.querySelectorAll("[data-any-permission]").forEach(el=>el.classList.toggle("permission-hidden",!hasAnyPermission(el.dataset.anyPermission)));}
 async function initData(){await loadMaster();startNewBooking();loadDashboard();}
 async function loadMaster(){master=await API.master();}
 function toggleReturnDate(){const r=document.getElementById("tripType").value==="round_trip";document.getElementById("returnDate").disabled=!r;if(!r)document.getElementById("returnDate").value=""}
@@ -42,32 +43,38 @@ async function loadDashboard(){try{bookings=await API.bookings();const today=new
 async function generatePrintCenterReport(){
   const date=val("pcDate"), type=val("pcType");
   if(!date)return alert("เลือกวันที่");
-  const r=await API.report(date,type);
-  const rows=r.rows||[];
-  const totalRevenue=rows.reduce((s,x)=>s+Number(x.totalAmount||x.revenue||0),0);
-  const totalPax=rows.reduce((s,x)=>s+Number(x.pax||x.passengers||0),0);
-  document.getElementById("printCenterOutput").innerHTML=`
-    <div class="document-actions">
-      <button class="btn primary" onclick="window.print()">Print / Save PDF</button>
-    </div>
-    <div class="report-paper">
-      <div class="report-header">
-        <div>
-          <h1>${(r.title||type||"Report").toUpperCase()}</h1>
-          <div>Date: ${date}</div>
+  try{
+    const r=await API.report(date,type),summary=r.summary||{};
+    const kpis=type==="management"?[
+      ["Booking วันนี้",summary.bookings],["จำนวนคนวันนี้",summary.pax],["ลงเกาะ",summary.arrivals],["ขึ้นจากเกาะ",summary.departures],
+      ["รายได้คาดการณ์วันนี้",money(summary.expectedRevenue)],["รับเงินจริงวันนี้",money(summary.actualReceived)],["ค้างรับวันนี้",money(summary.outstanding)],["คาดการณ์รวม 7 วัน",money(summary.sevenDayExpected)]
+    ]:[
+      ["Bookings",summary.bookings],["จำนวนคน/รายการ",summary.pax],["ลงเกาะ",summary.arrivals],["ขึ้นจากเกาะ",summary.departures],["รายได้คาดการณ์",money(summary.expectedRevenue)]
+    ];
+    document.getElementById("printCenterOutput").innerHTML=`
+      <div class="document-actions">
+        <button class="btn primary" onclick="window.print()">Print / Save PDF</button>
+      </div>
+      <div class="report-paper">
+        <div class="report-header">
+          <div>
+            <h1>${escapeHtml(r.title||type||"Report")}</h1>
+            <div>${escapeHtml(r.purpose||"")}</div>
+            <div>Date: ${escapeHtml(date)}${r.range?` — ${escapeHtml(r.range.to)}`:""}</div>
+          </div>
+          <div>${escapeHtml(getCompanySettings().company_name||"Sabina Tour Booking")}</div>
         </div>
-        <div>${getCompanySettings().company_name||"Dive Tour Company"}</div>
+        <div class="report-kpis">${kpis.map(([label,value])=>`<div class="report-kpi"><span>${escapeHtml(label)}</span><b>${escapeHtml(value??0)}</b></div>`).join("")}</div>
+        ${reportTable(r.rows||[])}
+        <div class="muted">Generated: ${new Date().toLocaleString("th-TH")}</div>
       </div>
-      <div class="report-kpis">
-        <div class="report-kpi"><span>Rows</span><b>${rows.length}</b></div>
-        <div class="report-kpi"><span>Pax</span><b>${money(totalPax)}</b></div>
-        <div class="report-kpi"><span>Revenue</span><b>${money(totalRevenue)}</b></div>
-        <div class="report-kpi"><span>Generated</span><b>${new Date().toLocaleTimeString("th-TH")}</b></div>
-      </div>
-      ${table(rows)}
-    </div>
-  `;
+    `;
+  }catch(error){document.getElementById("printCenterOutput").innerHTML=`<div class="error">${escapeHtml(error.message||"สร้างรายงานไม่สำเร็จ")}</div>`}
 }
+function configureReportOptions(){const select=document.getElementById("pcType");[...select.options].forEach(option=>{option.hidden=!hasAnyPermission(option.dataset.anyPermission);option.disabled=option.hidden});if(select.selectedOptions[0]?.disabled)select.value=[...select.options].find(option=>!option.disabled)?.value||""}
+const reportColumnLabels={date:"วันที่",direction:"ทิศทาง",bookingCode:"Booking",leader:"หัวหน้ากลุ่ม",passenger:"ชื่อผู้โดยสาร",age:"อายุ",phone:"โทรศัพท์",pax:"จำนวนคน",program:"โปรแกรม",island:"เกาะ",foodAllergy:"แพ้อาหาร",medicalNote:"ข้อมูลสุขภาพ",status:"สถานะ",paymentMethod:"ช่องทางชำระ",totalAmount:"ยอดจอง",agent:"ช่องทาง/Agent",note:"หมายเหตุ",bookings:"Bookings",pending:"รอยืนยัน",confirmed:"ยืนยันแล้ว",checkedIn:"Check-in",expectedRevenue:"รายได้คาดการณ์",actualReceived:"รับเงินจริง",outstanding:"ค้างรับ"};
+const reportMoneyColumns=new Set(["totalAmount","expectedRevenue","actualReceived","outstanding"]);
+function reportTable(rows){if(!rows.length)return"<p>ไม่มีข้อมูลสำหรับวันที่เลือก</p>";const keys=Object.keys(rows[0]);return`<div class="table-scroll"><table class="data-table"><thead><tr>${keys.map(key=>`<th>${escapeHtml(reportColumnLabels[key]||key)}</th>`).join("")}</tr></thead><tbody>${rows.map(row=>`<tr>${keys.map(key=>`<td>${escapeHtml(reportMoneyColumns.has(key)?money(row[key]):row[key]??"")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`}
 function table(rows){if(!rows.length)return"ไม่มีข้อมูล";const keys=Object.keys(rows[0]);return`<table class="data-table"><thead><tr>${keys.map(k=>`<th>${k}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${keys.map(k=>`<td>${r[k]??""}</td>`).join("")}</tr>`).join("")}</tbody></table>`}
 function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]))}
 function getCompanySettings(){return JSON.parse(localStorage.getItem("company_profile")||"null")||{company_name:"Dive Tour Company",phone:"",address:"",tax_id:""}}

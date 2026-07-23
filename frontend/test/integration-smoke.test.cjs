@@ -37,6 +37,15 @@ test("master data exposes existing prices and edit actions",()=>{
   assert.match(app,/function editMasterDataProItem/);
   assert.match(app,/API\.updateMdp\(mdCat,editingId,item\)/);
 });
+test("print center exposes role-specific reports and seven-day management output",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  for(const type of ["counter","boat","island","insurance","driver","management"])assert.match(html,new RegExp(`value=["']${type}["']`));
+  assert.match(html,/ผู้ลงเกาะ\/ขึ้นจากเกาะ/);
+  assert.match(html,/สรุปวันนี้และ 7 วัน/);
+  assert.match(app,/คาดการณ์รวม 7 วัน/);
+  assert.match(app,/function configureReportOptions/);
+});
 test("active HTML does not contain known Thai mojibake markers",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   for(const marker of ["เน€เธ","โฐ","เธเธฑ"])assert.equal(html.includes(marker),false);

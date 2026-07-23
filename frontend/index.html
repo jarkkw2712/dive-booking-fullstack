@@ -48,7 +48,7 @@
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="showPage('bookingPage')">+ เพิ่ม Booking</button>
     <button onclick="showPage('bookingListPage')">Booking List</button>
-    <button data-permission="printDailyReport" onclick="showPage('printCenterPage')">Print Center</button>
+    <button data-any-permission="printCounterReport,printBoatReport,printDailyReport,addIslandAddOn" onclick="showPage('printCenterPage')">Print Center</button>
     <button data-permission="viewFinancial" onclick="showPage('financialPage')">Financial</button>
     <button data-permission="editMasterData" onclick="showPage('companyPage')">Company Profile</button>
     <button data-permission="editMasterData" onclick="showPage('masterDataPage')">Master Data</button>
@@ -151,12 +151,12 @@
       </div>
     </section>
 
-    <section id="printCenterPage" class="page" data-permission="printDailyReport">
+    <section id="printCenterPage" class="page" data-any-permission="printCounterReport,printBoatReport,printDailyReport,addIslandAddOn">
       <h1>Print Center</h1>
       <div class="card">
         <div class="form-grid">
           <div><label>วันที่</label><input id="pcDate" type="date"></div>
-          <div><label>Report</label><select id="pcType"><option value="counter">Counter Report</option><option value="boat">Boat Report</option><option value="island">Island Report</option><option value="insurance">Insurance Report</option><option value="driver">Driver Report</option><option value="management">Management Report</option></select></div>
+          <div><label>Report</label><select id="pcType"><option value="counter" data-any-permission="printCounterReport,printDailyReport">Counter — รายการจองประจำวัน</option><option value="boat" data-any-permission="printBoatReport,printDailyReport">Boat — รายชื่อผู้โดยสารเรือ</option><option value="island" data-any-permission="addIslandAddOn,printBoatReport,printDailyReport">Island — ผู้ลงเกาะ/ขึ้นจากเกาะ</option><option value="insurance" data-any-permission="printCounterReport,printDailyReport">Insurance — ข้อมูลทำประกัน</option><option value="driver" data-any-permission="printCounterReport,printDailyReport">Driver — รายการรับส่ง</option><option value="management" data-any-permission="printDailyReport">CEO / Management — สรุปวันนี้และ 7 วัน</option></select></div>
         </div>
         <button class="btn primary" onclick="generatePrintCenterReport()">Generate</button>
         <button class="btn soft" onclick="window.print()">Print / Save PDF</button>
