@@ -7,10 +7,10 @@ router.use(requireAuth);
 const normalizeName = value => String(value || "").normalize("NFC").replace(/\s+/g, "").toLocaleLowerCase("th-TH");
 const normalizePhone = value => String(value || "").replace(/\D/g, "").replace(/^66/, "0");
 
-router.get("/",async(req,res)=>{const {data,error}=await supabaseAdmin.rpc("list_bookings_json_v2");if(error)return res.status(500).json({error:error.message});res.json(data||[])});
+router.get("/",async(req,res)=>{const {data,error}=await supabaseAdmin.rpc("list_bookings_json_v3");if(error)return res.status(500).json({error:error.message});res.json(data||[])});
 router.post("/check-duplicate",async(req,res)=>{
   const booking=req.body||{};
-  const {data,error}=await supabaseAdmin.rpc("list_bookings_json_v2");
+  const {data,error}=await supabaseAdmin.rpc("list_bookings_json_v3");
   if(error)return res.status(500).json({error:error.message});
   const candidates=(data||[]).filter(row=>row.travelDate===booking.travelDate&&row.bookingCode!==booking.bookingCode&&row.status!=="cancelled");
   const names=new Set((booking.passengers||[]).map(person=>normalizeName(`${person.title||""}${person.firstName||""}${person.lastName||""}`)).filter(Boolean));

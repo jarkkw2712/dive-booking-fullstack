@@ -19,10 +19,10 @@ function equipmentSummary(entries){
 function accommodationSummary(entries){
   const people=entries.flatMap(({booking})=>passengersOf(booking));
   return{
-    parkHouse:people.filter(person=>person.parkAccommodationType==="park_house").length,
-    parkTent:people.filter(person=>person.parkAccommodationType==="park_tent").length,
-    none:people.filter(person=>!person.parkAccommodationType||person.parkAccommodationType==="none").length,
-    customerSelfBooked:people.filter(person=>person.parkAccommodationArrangement==="customer_self_booked").length,
+    parkHouse:people.filter(person=>person.accommodationId==="park_house").length,
+    parkTent:people.filter(person=>person.accommodationId==="park_tent").length,
+    none:people.filter(person=>!person.accommodationId).length,
+    customerSelfBooked:people.filter(person=>person.accommodationId&&person.accommodationBookedBy==="customer").length,
     tentCreditDue:people.reduce((sum,person)=>sum+Number(person.tentCreditAmount||0),0),
     note:"ข้อมูลที่พักของอุทยาน ไม่รวมในรายได้บริษัท"
   };
@@ -46,10 +46,10 @@ function passengerRows(entries,{includeHealth=false}={}){
     phone:person.phone||booking.phone||"",
     program:person.program?.name||"",
     island:person.island||"",
-    accommodation:accommodationLabel[person.parkAccommodationType||"none"]||person.parkAccommodationType,
-    accommodationBookedBy:person.parkAccommodationType&&person.parkAccommodationType!=="none"?(person.parkAccommodationBookedBy==="customer"?"ลูกค้าจองเอง":person.parkAccommodationBookedBy==="park"?"อุทยานจัดให้":"ไม่ระบุ"):"",
+    accommodation:person.accommodationName||accommodationLabel[person.parkAccommodationType||"none"]||"",
+    accommodationBookedBy:person.accommodationId?(person.accommodationBookedBy==="company"?"จองให้":"ลูกค้าจองเอง"):"",
     accommodationReference:person.parkAccommodationReference||"",
-    accommodationArrangement:person.parkAccommodationArrangement==="customer_self_booked"?"ลูกค้าจองเอง":person.parkAccommodationArrangement==="included_tent"?"เต็นท์รวมในโปรแกรม":person.parkAccommodationArrangement==="not_required"?"ไม่ค้างคืน":"ยังไม่ทราบ",
+    accommodationArrangement:person.accommodationId?(person.accommodationBookedBy==="company"?"จองให้":"ลูกค้าจองเอง"):"",
     tentCreditAmount:Number(person.tentCreditAmount||0),
     ...(includeHealth?{foodAllergy:person.foodAllergy||"",medicalNote:person.medicalNote||""}:{}),
     status:booking.status
@@ -141,7 +141,7 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],date,type})
       direction,bookingCode:booking.bookingCode,leader:leaderName(booking),phone:booking.phone||"",
       pax:passengersOf(booking).length,program:[...new Set(passengersOf(booking).map(person=>person.program?.name).filter(Boolean))].join(", "),
       island:[...new Set(passengersOf(booking).map(person=>person.island).filter(Boolean))].join(", "),
-      accommodation:`บ้าน ${passengersOf(booking).filter(person=>person.parkAccommodationType==="park_house").length} / เต็นท์ ${passengersOf(booking).filter(person=>person.parkAccommodationType==="park_tent").length}`,
+      accommodation:[...new Set(passengersOf(booking).map(person=>person.accommodationName).filter(Boolean))].join(", "),
       note:booking.bookingNote||""
     }));
   }else{

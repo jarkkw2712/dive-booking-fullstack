@@ -57,15 +57,17 @@ test("passenger editor records non-revenue park accommodation",()=>{
   assert.match(app,/บ้านพักอุทยาน/);
   assert.match(app,/เต็นท์อุทยาน/);
 });
-test("program policy controls stays and tent credits without locking boat return edits",()=>{
+test("simple accommodation fields follow Program Tour and use editable master data",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
   const financial=fs.readFileSync(path.join(root,"js","financial.js"),"utf8");
-  for(const id of ["mdpAccommodationPolicy","mdpTentCredit"])assert.match(html,new RegExp(`id=["']${id}["']`));
-  assert.match(app,/function programAccommodationPolicy/);
-  assert.match(app,/customer_self_booked/);
+  assert.match(html,/loadMasterDataPro\('accommodations'\)/);
+  assert.doesNotMatch(html,/id=["']mdpAccommodationPolicy["']/);
+  assert.match(app,/function setPassengerAccommodation/);
+  assert.match(app,/accommodationBookedBy/);
+  assert.match(app,/>ลูกค้าจองเอง</);
+  assert.match(app,/>จองให้</);
   assert.match(app,/tentCreditAmount/);
-  assert.match(app,/สามารถแก้ภายหลังได้/);
   assert.match(financial,/discountAmount:Number\(person\.tentCreditAmount/);
   assert.match(financial,/requestTentCreditRefund/);
 });

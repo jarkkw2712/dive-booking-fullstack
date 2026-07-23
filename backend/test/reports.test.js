@@ -7,7 +7,7 @@ import { buildPrintCenterReport } from "../src/services/reportService.js";
 
 const testDir=path.dirname(fileURLToPath(import.meta.url));
 
-const passenger=(name,island="อ่าวไม้งาม",accommodation="none")=>({firstName:name,lastName:"ทดสอบ",age:30,phone:"0800000000",island,foodAllergy:"",medicalNote:"",parkAccommodationType:accommodation,parkAccommodationBookedBy:"customer",parkAccommodationReference:accommodation==="none"?"":"PARK-01",program:{name:"One Day Trip"},preAddOns:[{id:"fin",name:"Fin",selected:true,qty:1}]});
+const passenger=(name,island="อ่าวไม้งาม",accommodation="")=>({firstName:name,lastName:"ทดสอบ",age:30,phone:"0800000000",island,foodAllergy:"",medicalNote:"",accommodationId:accommodation,accommodationName:accommodation==="park_house"?"บ้านพักอุทยาน":accommodation==="park_tent"?"เต็นท์อุทยาน":"",accommodationBookedBy:"customer",parkAccommodationReference:accommodation?"PARK-01":"",program:{name:"One Day Trip"},preAddOns:[{id:"fin",name:"Fin",selected:true,qty:1}]});
 const bookings=[
   {bookingCode:"BK1",travelDate:"2026-07-23",returnDate:"2026-07-24",leaderFirstName:"สมชาย",leaderLastName:"ใจดี",phone:"081",status:"confirmed",paymentMethod:"โอน",totalAmount:3000,passengers:[passenger("หนึ่ง","อ่าวไม้งาม","park_house"),passenger("สอง","อ่าวไม้งาม","park_tent")]},
   {bookingCode:"BK2",travelDate:"2026-07-24",returnDate:"2026-07-25",leaderFirstName:"สมหญิง",leaderLastName:"ใจดี",phone:"082",status:"pending",totalAmount:2000,passengers:[passenger("สาม","อ่าวช่องขาด")]},
@@ -65,4 +65,12 @@ test("program accommodation policy migration supports editable boat dates and au
   assert.match(sql,/upsert_booking_with_accommodation/);
   assert.match(sql,/list_bookings_json_v2/);
   assert.doesNotMatch(sql,/delete from (payments|refunds|financial_events)/i);
+});
+
+test("simplified accommodation migration provides editable master data and manual credits",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260723_009_simplify_accommodation.sql"),"utf8");
+  assert.match(sql,/create table if not exists master_accommodations/);
+  assert.match(sql,/accommodation_booked_by in\('customer','company'\)/);
+  assert.match(sql,/tentCreditAmount/);
+  assert.match(sql,/list_bookings_json_v3/);
 });

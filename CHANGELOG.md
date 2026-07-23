@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-07-23 - Simplified accommodation entry
+
+- Added editable Accommodation Master Data.
+- Reduced passenger accommodation entry to accommodation, booking owner, and manual tent credit.
+- Moved accommodation entry directly after Program Tour.
+- Kept existing accommodation history and financial refund auditability.
+
 ## 2026-07-23 - Program accommodation rules
 
 - One Day Trip now defaults to no overnight stay.

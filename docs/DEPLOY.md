@@ -16,10 +16,12 @@ Run these files once, in order, with Supabase SQL Editor:
 6. `database/migrations/20260722_006_per_user_authentication.sql`
 7. `database/migrations/20260723_007_park_accommodation.sql`
 8. `database/migrations/20260723_008_program_accommodation_policy.sql`
+9. `database/migrations/20260723_009_simplify_accommodation.sql`
 
 The stabilization and table migrations are idempotent and do not delete existing records. Function/view migrations use `CREATE OR REPLACE`.
 Migration 007 defaults existing passengers to no overnight stay and does not create revenue or financial entries.
 Migration 008 adds program accommodation policies and tent-credit snapshots. Run both before deploying the matching backend.
+Migration 009 simplifies the live workflow to editable Accommodation Master Data, two booking-owner choices, and a manual tent-credit field.
 
 ## 3. Render
 
