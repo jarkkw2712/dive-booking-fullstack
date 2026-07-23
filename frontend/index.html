@@ -243,8 +243,9 @@
           <div><label>Active</label><select id="userActive"><option value="true">ใช้งาน</option><option value="false">ปิดใช้งาน</option></select></div>
           <div class="full"><label>รหัสชั่วคราว</label><input id="userTemporaryPassword" type="password" autocomplete="new-password" placeholder="อย่างน้อย 12 ตัว; เว้นว่างเมื่อแก้ไขหากไม่ต้อง reset"></div>
         </div>
-        <button class="btn primary" onclick="saveUser()">Save</button>
+        <button id="saveUserBtn" class="btn primary" onclick="saveUser()">Save</button>
         <button class="btn soft" onclick="closeUserEditor()">Cancel</button>
+        <div id="userSaveMessage" class="error"></div>
       </div>
     </section>
 
