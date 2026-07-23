@@ -45,6 +45,9 @@ test("print center exposes role-specific reports and seven-day management output
   assert.match(html,/สรุปวันนี้และ 7 วัน/);
   assert.match(app,/คาดการณ์รวม 7 วัน/);
   assert.match(app,/function configureReportOptions/);
+  const css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
+  assert.match(css,/@page report\{size:A4 landscape/);
+  assert.match(css,/#printCenterPage>h1/);
 });
 test("active HTML does not contain known Thai mojibake markers",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
