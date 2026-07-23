@@ -7,6 +7,7 @@ function getTransporter(){
   if(!host||!user||!pass||!process.env.SMTP_FROM)throw new Error("SMTP is not configured");
   transporter=nodemailer.createTransport({
     host,port,
+    family:4,
     secure:process.env.SMTP_SECURE==="true"||port===465,
     pool:true,
     connectionTimeout:10_000,
