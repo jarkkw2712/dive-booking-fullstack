@@ -128,10 +128,10 @@ function printSelectedReceiptV3() {
   if (!b) return alert("ไม่พบ Booking");
   openDocumentWindow(renderReceiptDocument(b, "RECEIPT"));
 }
-function printSelectedVoucherV3() {
+function printSelectedBookingConfirmationV3() {
   const b = selectedOrDraftBooking();
   if (!b) return alert("ไม่พบ Booking");
-  openDocumentWindow(renderReceiptDocument(b, "VOUCHER"));
+  openDocumentWindow(renderReceiptDocument(b, "BOOKING CONFIRMATION"));
 }
 function printSelectedInvoiceV3() {
   const b = selectedOrDraftBooking();

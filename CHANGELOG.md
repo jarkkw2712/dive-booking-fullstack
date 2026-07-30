@@ -5,8 +5,9 @@
 - Added contact email, deposit, receipt book, and manual receipt number to bookings, lists, receipts, and counter reports.
 - Booking can be saved with only the group leader name and phone; travel dates and passenger details may be completed later.
 - Added an idempotent migration that makes the booking travel date optional without deleting booking or financial history.
-- Split Print Center into flexible per-booking document search and date-required daily reports.
-- Per-booking search supports outbound/return date, booking and receipt references, customer/passenger name, phone, and email.
+- Kept Print Center focused on date-required daily reports and moved flexible document search to Booking List.
+- Booking List search supports outbound/return date, booking and receipt references, customer/passenger name, phone, email, source, and agent.
+- Renamed the customer document from Voucher to Booking Confirmation.
 
 ## 2026-07-23 - Simplified accommodation entry
 

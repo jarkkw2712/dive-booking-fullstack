@@ -1,7 +1,7 @@
 # Sprint 1.2 Report + Receipt
 
 เพิ่ม:
-- Receipt / Voucher / Invoice template
+- Receipt / Booking Confirmation / Invoice template
 - Company settings: logo URL, company name, phone, address, tax id, payment info
 - Print / Save PDF ผ่าน browser print
 - Pretty Print Center report

@@ -134,10 +134,12 @@
         <div class="card">
           <h2>ค้นหา</h2>
           <div class="form-grid one">
-            <div><label>วันที่</label><input id="blDate" type="date" onchange="loadBookingList()"></div>
+            <div><label>ค้นหาวันที่</label><input id="blDate" type="date" onchange="loadBookingList()"></div>
+            <div><label>ประเภทวันที่</label><select id="blDateMode" onchange="loadBookingList()"><option value="any">วันไปหรือวันกลับ</option><option value="travel">วันเดินทางไป</option><option value="return">วันเดินทางกลับ</option></select></div>
             <div><label>Status</label><select id="blStatus" onchange="loadBookingList()"><option value="">ทั้งหมด</option><option>pending</option><option>confirmed</option><option>checked-in</option><option>completed</option><option>cancelled</option></select></div>
-            <div><label>Search</label><input id="blSearch" oninput="loadBookingList()" placeholder="ชื่อ / เบอร์ / Booking"></div>
+            <div><label>ค้นหาข้อมูล Booking</label><input id="blSearch" oninput="loadBookingList()" placeholder="Booking, เล่มที่/เลขที่, ชื่อ-สกุล, เบอร์โทร, อีเมล หรือ Agent"></div>
           </div>
+          <button class="btn soft" onclick="clearBookingListFilters()">ล้างการค้นหา</button>
           <div id="bookingList"></div>
         </div>
         <div class="card">
@@ -146,7 +148,7 @@
           <div class="btn-row">
             <button class="btn primary" onclick="editSelectedBooking()">Edit</button>
             <button class="btn soft" onclick="printSelectedReceipt('RECEIPT')">Receipt</button>
-            <button class="btn soft" onclick="printSelectedReceipt('VOUCHER')">Voucher</button>
+            <button class="btn soft" onclick="printSelectedReceipt('BOOKING CONFIRMATION')">Booking Confirmation</button>
             <button class="btn soft" onclick="printSelectedReceipt('INVOICE')">Invoice</button>
             <button class="btn soft" onclick="loadTimeline()">Timeline</button>
           </div>
@@ -157,21 +159,7 @@
 
     <section id="printCenterPage" class="page" data-any-permission="printCounterReport,printBoatReport,printDailyReport,addIslandAddOn">
       <h1>Print Center</h1>
-      <div class="print-center-tabs">
-        <button id="pcDocumentTab" class="btn primary" onclick="switchPrintCenterTab('documents')">ค้นหาเอกสารราย Booking</button>
-        <button id="pcDailyTab" class="btn soft" onclick="switchPrintCenterTab('daily')">รายงานประจำวัน</button>
-      </div>
-      <div id="pcDocumentPanel" class="card">
-        <h2>ค้นหา Booking เพื่อพิมพ์เอกสาร</h2>
-        <div class="form-grid">
-          <div><label>วันที่เดินทางไปหรือกลับ</label><input id="pcSearchDate" type="date"></div>
-          <div><label>ค้นหาด้วยข้อมูลอื่น</label><input id="pcSearchText" placeholder="Booking, เล่มที่/เลขที่, ชื่อ-สกุล, เบอร์โทร หรืออีเมล" onkeydown="if(event.key==='Enter')searchPrintBookings()"></div>
-        </div>
-        <button class="btn primary" onclick="searchPrintBookings()">ค้นหา</button>
-        <button class="btn soft" onclick="clearPrintBookingSearch()">ล้างการค้นหา</button>
-        <div id="pcDocumentResults"></div>
-      </div>
-      <div id="pcDailyPanel" class="card hidden">
+      <div class="card">
         <h2>รายงานรวมตามวันที่</h2>
         <div class="form-grid">
           <div><label>วันที่รายงาน</label><input id="pcDate" type="date"></div>

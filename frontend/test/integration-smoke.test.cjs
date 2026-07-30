@@ -61,16 +61,18 @@ test("print center exposes role-specific reports and seven-day management output
   assert.match(app,/ยอดอุปกรณ์ที่ต้องเบิก/);
   assert.match(app,/ที่พักอุทยาน \(ไม่รวมรายได้บริษัท\)/);
 });
-test("print center separates flexible booking document search from dated daily reports",()=>{
+test("booking list owns flexible document search while print center remains date-based",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
-  for(const id of ["pcDocumentTab","pcDailyTab","pcDocumentPanel","pcDailyPanel","pcSearchDate","pcSearchText","pcDocumentResults"])assert.match(html,new RegExp(`id=["']${id}["']`));
-  assert.match(app,/function switchPrintCenterTab/);
-  assert.match(app,/function searchPrintBookings/);
-  assert.match(app,/booking\.travelDate===date\|\|booking\.returnDate===date/);
+  for(const id of ["blDate","blDateMode","blStatus","blSearch","bookingList"])assert.match(html,new RegExp(`id=["']${id}["']`));
+  for(const id of ["pcDocumentTab","pcDocumentPanel","pcSearchDate","pcSearchText","pcDocumentResults"])assert.doesNotMatch(html,new RegExp(`id=["']${id}["']`));
+  assert.match(app,/function bookingSearchText/);
+  assert.match(app,/function clearBookingListFilters/);
+  assert.match(app,/b\.travelDate===d\|\|b\.returnDate===d/);
   for(const field of ["bookingCode","receiptBookNo","manualReceiptNo","leaderFirstName","leaderLastName","phone","contactEmail"])assert.match(app,new RegExp(field));
-  assert.match(app,/function printBookingFromCenter/);
   assert.match(app,/if\(!date\)return alert/);
+  assert.match(html,/Booking Confirmation/);
+  assert.doesNotMatch(html,/Voucher/i);
 });
 test("passenger editor records non-revenue park accommodation",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");

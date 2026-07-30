@@ -6,7 +6,7 @@
 - API:
   - GET /api/company-profile
   - PUT /api/company-profile
-- Receipt/Voucher/Invoice ดึงข้อมูลบริษัทจาก company_profile ผ่าน local cache
+- Receipt/Booking Confirmation/Invoice ดึงข้อมูลบริษัทจาก company_profile ผ่าน local cache
 - รองรับ logo_url, signature_url, stamp_url, bank, promptpay
 
 Deploy:
