@@ -157,13 +157,27 @@
 
     <section id="printCenterPage" class="page" data-any-permission="printCounterReport,printBoatReport,printDailyReport,addIslandAddOn">
       <h1>Print Center</h1>
-      <div class="card">
+      <div class="print-center-tabs">
+        <button id="pcDocumentTab" class="btn primary" onclick="switchPrintCenterTab('documents')">ค้นหาเอกสารราย Booking</button>
+        <button id="pcDailyTab" class="btn soft" onclick="switchPrintCenterTab('daily')">รายงานประจำวัน</button>
+      </div>
+      <div id="pcDocumentPanel" class="card">
+        <h2>ค้นหา Booking เพื่อพิมพ์เอกสาร</h2>
         <div class="form-grid">
-          <div><label>วันที่</label><input id="pcDate" type="date"></div>
+          <div><label>วันที่เดินทางไปหรือกลับ</label><input id="pcSearchDate" type="date"></div>
+          <div><label>ค้นหาด้วยข้อมูลอื่น</label><input id="pcSearchText" placeholder="Booking, เล่มที่/เลขที่, ชื่อ-สกุล, เบอร์โทร หรืออีเมล" onkeydown="if(event.key==='Enter')searchPrintBookings()"></div>
+        </div>
+        <button class="btn primary" onclick="searchPrintBookings()">ค้นหา</button>
+        <button class="btn soft" onclick="clearPrintBookingSearch()">ล้างการค้นหา</button>
+        <div id="pcDocumentResults"></div>
+      </div>
+      <div id="pcDailyPanel" class="card hidden">
+        <h2>รายงานรวมตามวันที่</h2>
+        <div class="form-grid">
+          <div><label>วันที่รายงาน</label><input id="pcDate" type="date"></div>
           <div><label>Report</label><select id="pcType"><option value="counter" data-any-permission="printCounterReport,printDailyReport">Counter — รายการจองประจำวัน</option><option value="boat" data-any-permission="printBoatReport,printDailyReport">Boat — รายชื่อผู้โดยสารเรือ</option><option value="island" data-any-permission="addIslandAddOn,printBoatReport,printDailyReport">Island — ผู้ลงเกาะ/ขึ้นจากเกาะ</option><option value="insurance" data-any-permission="printCounterReport,printDailyReport">Insurance — ข้อมูลทำประกัน</option><option value="driver" data-any-permission="printCounterReport,printDailyReport">Driver — รายการรับส่ง</option><option value="management" data-any-permission="printDailyReport">CEO / Management — สรุปวันนี้และ 7 วัน</option></select></div>
         </div>
-        <button class="btn primary" onclick="generatePrintCenterReport()">Generate</button>
-        <button class="btn soft" onclick="window.print()">Print / Save PDF</button>
+        <button class="btn primary" onclick="generatePrintCenterReport()">สร้างรายงาน</button>
       </div>
       <div id="printCenterOutput" class="card print-doc"></div>
     </section>

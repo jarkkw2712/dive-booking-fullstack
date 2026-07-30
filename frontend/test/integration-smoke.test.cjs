@@ -61,6 +61,17 @@ test("print center exposes role-specific reports and seven-day management output
   assert.match(app,/ยอดอุปกรณ์ที่ต้องเบิก/);
   assert.match(app,/ที่พักอุทยาน \(ไม่รวมรายได้บริษัท\)/);
 });
+test("print center separates flexible booking document search from dated daily reports",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  for(const id of ["pcDocumentTab","pcDailyTab","pcDocumentPanel","pcDailyPanel","pcSearchDate","pcSearchText","pcDocumentResults"])assert.match(html,new RegExp(`id=["']${id}["']`));
+  assert.match(app,/function switchPrintCenterTab/);
+  assert.match(app,/function searchPrintBookings/);
+  assert.match(app,/booking\.travelDate===date\|\|booking\.returnDate===date/);
+  for(const field of ["bookingCode","receiptBookNo","manualReceiptNo","leaderFirstName","leaderLastName","phone","contactEmail"])assert.match(app,new RegExp(field));
+  assert.match(app,/function printBookingFromCenter/);
+  assert.match(app,/if\(!date\)return alert/);
+});
 test("passenger editor records non-revenue park accommodation",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
   for(const field of ["parkAccommodationType","parkAccommodationBookedBy","parkAccommodationReference","parkAccommodationNote"])assert.match(app,new RegExp(field));
