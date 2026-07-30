@@ -74,3 +74,25 @@ test("simplified accommodation migration provides editable master data and manua
   assert.match(sql,/tentCreditAmount/);
   assert.match(sql,/list_bookings_json_v3/);
 });
+
+test("counter report exposes email, deposit, balance and manual receipt reference",()=>{
+  const booking={bookingCode:"DRAFT1",travelDate:"2026-07-23",leaderFirstName:"Draft",phone:"081",contactEmail:"guest@example.com",status:"pending",totalAmount:3000,depositAmount:500,receiptBookNo:"1",manualReceiptNo:"15",passengers:[]};
+  const row=buildPrintCenterReport({bookings:[booking],date:"2026-07-23",type:"counter"}).rows[0];
+  assert.equal(row.email,"guest@example.com");
+  assert.equal(row.depositAmount,500);
+  assert.equal(row.balanceAmount,2500);
+  assert.equal(row.receiptBookNo,"1");
+  assert.equal(row.manualReceiptNo,"15");
+});
+
+test("draft booking migration is idempotent and preserves financial history",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260730_010_booking_draft_contact_deposit.sql"),"utf8");
+  assert.match(sql,/alter column travel_date drop not null/);
+  assert.match(sql,/add column if not exists contact_email text/);
+  assert.match(sql,/add column if not exists deposit_amount numeric\(14,2\)/);
+  assert.match(sql,/add column if not exists receipt_book_no text/);
+  assert.match(sql,/add column if not exists manual_receipt_no text/);
+  assert.match(sql,/create or replace function upsert_booking_v4/);
+  assert.match(sql,/create or replace function list_bookings_json_v4/);
+  assert.doesNotMatch(sql,/delete from (payments|refunds|receipts|financial_events)/i);
+});

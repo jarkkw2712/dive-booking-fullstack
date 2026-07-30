@@ -68,6 +68,7 @@ function managementReport(bookings,financialRows,date){
     const dailyArrivals=daily.map(booking=>({booking,direction:"ลงเกาะ",movement:"arrival"}));
     const lodging=accommodationSummary(dailyArrivals);
     const expectedRevenue=daily.reduce((sum,booking)=>sum+money(booking.totalAmount),0);
+    const deposits=daily.reduce((sum,booking)=>sum+money(booking.depositAmount),0);
     const actualReceived=daily.reduce((sum,booking)=>sum+money(finances.get(booking.bookingCode)?.net_cash_received),0);
     return{
       date:day,
@@ -81,6 +82,7 @@ function managementReport(bookings,financialRows,date){
       equipmentUnits:equipmentSummary(dailyArrivals).reduce((sum,item)=>sum+item.qty,0),
       tentCreditDue:lodging.tentCreditDue,
       expectedRevenue,
+      deposits,
       actualReceived,
       outstanding:Math.max(expectedRevenue-actualReceived,0)
     };
@@ -96,6 +98,7 @@ function managementReport(bookings,financialRows,date){
       arrivals:movements(bookings,date).filter(row=>row.movement==="arrival").reduce((sum,row)=>sum+passengersOf(row.booking).length,0),
       departures:movements(bookings,date).filter(row=>row.movement==="departure").reduce((sum,row)=>sum+passengersOf(row.booking).length,0),
       expectedRevenue:today.expectedRevenue,
+      deposits:today.deposits,
       actualReceived:today.actualReceived,
       outstanding:today.outstanding,
       sevenDayExpected:rows.reduce((sum,row)=>sum+row.expectedRevenue,0),
@@ -118,9 +121,12 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],date,type})
     title="Counter Daily Booking Report";
     purpose="ตรวจรายการจอง ติดต่อผู้โดยสาร และติดตามสถานะหน้าเคาน์เตอร์";
     rows=active.filter(booking=>booking.travelDate===date).map(booking=>({
-      bookingCode:booking.bookingCode,leader:leaderName(booking),phone:booking.phone||"",
+      bookingCode:booking.bookingCode,leader:leaderName(booking),phone:booking.phone||"",email:booking.contactEmail||"",
       pax:passengersOf(booking).length,status:booking.status,paymentMethod:booking.paymentMethod||"",
-      totalAmount:money(booking.totalAmount),agent:booking.agentName||booking.source||""
+      totalAmount:money(booking.totalAmount),depositAmount:money(booking.depositAmount),
+      balanceAmount:Math.max(money(booking.totalAmount)-money(booking.depositAmount),0),
+      receiptBookNo:booking.receiptBookNo||"",manualReceiptNo:booking.manualReceiptNo||"",
+      agent:booking.agentName||booking.source||""
     }));
   }else if(type==="boat"){
     title="Boat Passenger Manifest";

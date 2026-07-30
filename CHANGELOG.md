@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-30 - Draft booking and deposit details
+
+- Added contact email, deposit, receipt book, and manual receipt number to bookings, lists, receipts, and counter reports.
+- Booking can be saved with only the group leader name and phone; travel dates and passenger details may be completed later.
+- Added an idempotent migration that makes the booking travel date optional without deleting booking or financial history.
+
 ## 2026-07-23 - Simplified accommodation entry
 
 - Added editable Accommodation Master Data.
