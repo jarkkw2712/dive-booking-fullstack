@@ -5,6 +5,7 @@ const leaderName=booking=>[booking.leaderTitle,booking.leaderFirstName,booking.l
 const isoDate=(date,offset=0)=>{const value=new Date(`${date}T00:00:00Z`);value.setUTCDate(value.getUTCDate()+offset);return value.toISOString().slice(0,10)};
 const money=value=>Number(value||0);
 const accommodationLabel={none:"ไม่นอน",park_house:"บ้านพักอุทยาน",park_tent:"เต็นท์อุทยาน"};
+const passengerTypeLabel={adult:"ผู้ใหญ่",child:"เด็ก",infant:"ทารก",foc:"FOC"};
 
 function equipmentSummary(entries){
   const totals=new Map();
@@ -42,6 +43,7 @@ function passengerRows(entries,{includeHealth=false}={}){
     direction,
     bookingCode:booking.bookingCode,
     passenger:personName(person),
+    passengerType:passengerTypeLabel[person.passengerType||"adult"]||"ผู้ใหญ่",
     age:person.age||"",
     phone:person.phone||booking.phone||"",
     program:person.program?.name||"",

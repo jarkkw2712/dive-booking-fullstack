@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-07-31 - Passenger composition
+
+- Replaced the manual passenger-count action with automatic Adult, Child, Infant, and FOC composition fields.
+- Total passengers is a read-only sum of every category.
+- Passenger placeholders are created automatically and may be saved without names for later completion.
+- Passenger cards, receipts, and operational reports show the passenger category; FOC program price defaults to zero.
+
 ## 2026-07-31 - Flexible booking contact
 
 - Renamed the Booking email field to `ติดต่อได้จาก`.

@@ -45,6 +45,18 @@ test("booking dropdowns are master-driven and new booking fully resets edit stat
   for(const field of ["travelDate","returnDate","leaderFirstName","phone","contactEmail","receiptBookNo","manualReceiptNo","bookingNote","passengerText"])assert.match(app,new RegExp(field));
   for(const table of ["master_customer_sources","master_transportation_methods","master_payment_methods"])assert.match(masterRoute,new RegExp(table));
 });
+test("passenger composition auto-builds adult child infant and FOC placeholders",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  for(const id of ["adultCount","childCount","infantCount","focCount","paxCount"])assert.match(html,new RegExp(`id=["']${id}["']`));
+  assert.match(html,/id="paxCount"[^>]*readonly/);
+  assert.doesNotMatch(html,/onclick=["']syncPassengerCount\(/);
+  assert.match(app,/function syncPassengerComposition/);
+  assert.match(app,/passengerTypeLabels=\{adult:"ผู้ใหญ่",child:"เด็ก",infant:"ทารก",foc:"FOC"\}/);
+  assert.match(app,/ผู้โดยสารคนที่/);
+  assert.match(app,/passengerType==="foc"\?0/);
+  assert.match(app,/passengers=b\.passengers\?\.length\?b\.passengers\.map/);
+});
 test("login and forced password-change markup is connected without self-service recovery",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");for(const id of ["loginPassword","changePasswordModal","currentPassword","newPassword","userEmail","userTemporaryPassword","saveUserBtn","userSaveMessage"])assert.match(html,new RegExp(`id=["']${id}["']`));for(const id of ["forgotPasswordModal","forgotEmail","resetPasswordModal","resetPassword"])assert.doesNotMatch(html,new RegExp(`id=["']${id}["']`));assert.equal(html.includes('id="loginPassword" type="password" value="1234"'),false);
 });

@@ -20,6 +20,7 @@ Run these files once, in order, with Supabase SQL Editor:
 10. `database/migrations/20260730_010_booking_draft_contact_deposit.sql`
 11. `database/migrations/20260731_011_booking_dropdown_master_data.sql`
 12. `database/migrations/20260731_012_flexible_booking_contact.sql`
+13. `database/migrations/20260731_013_passenger_categories.sql`
 
 The stabilization and table migrations are idempotent and do not delete existing records. Function/view migrations use `CREATE OR REPLACE`.
 Migration 007 defaults existing passengers to no overnight stay and does not create revenue or financial entries.
@@ -28,6 +29,7 @@ Migration 009 simplifies the live workflow to editable Accommodation Master Data
 Migration 010 allows draft bookings without travel dates and adds contact email, deposit, receipt book, and manual receipt number fields. Run it before deploying the matching backend.
 Migration 011 adds editable customer-source and transportation-method masters, connects payment methods to Booking, and stores the selected transportation method. Run it before deploying the matching backend.
 Migration 012 changes the Booking contact field to preserve flexible LINE, Facebook, email, or other contact text without lowercasing it.
+Migration 013 stores adult, child, infant, and FOC passenger categories while preserving existing passengers as adults.
 
 ## 3. Render
 

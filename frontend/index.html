@@ -88,7 +88,11 @@
               <div><label>นามสกุลหัวหน้าทริป</label><input id="leaderLastName"></div>
               <div><label>เบอร์โทร</label><input id="phone"></div>
               <div><label>ติดต่อได้จาก</label><input id="contactEmail" type="text" placeholder="เช่น LINE ID, Facebook, อีเมล หรือช่องทางอื่น"></div>
-              <div><label>จำนวนผู้เดินทาง</label><input id="paxCount" type="number" min="1" value="1"></div>
+              <div><label>ผู้ใหญ่</label><input id="adultCount" type="number" min="1" value="1" onchange="syncPassengerComposition()"></div>
+              <div><label>เด็ก</label><input id="childCount" type="number" min="0" value="0" onchange="syncPassengerComposition()"></div>
+              <div><label>ทารก</label><input id="infantCount" type="number" min="0" value="0" onchange="syncPassengerComposition()"></div>
+              <div><label>Free of Charge (FOC)</label><input id="focCount" type="number" min="0" value="0" onchange="syncPassengerComposition()"></div>
+              <div><label>จำนวนผู้เดินทางรวม</label><input id="paxCount" type="number" value="1" readonly></div>
               <div><label>ช่องทางลูกค้า</label><select id="source"></select></div>
               <div><label>Agent / ผู้แนะนำ</label><input id="agentName"></div>
               <div><label>วิธีการเดินทาง</label><select id="transportationMethod"></select></div>
@@ -99,7 +103,7 @@
               <div><label>เลขที่</label><input id="manualReceiptNo"></div>
               <div class="full"><label>หมายเหตุ Booking</label><textarea id="bookingNote"></textarea></div>
             </div>
-            <button class="btn primary" onclick="syncPassengerCount()">ปรับจำนวนผู้เดินทาง</button>
+            <p class="muted">รายการผู้โดยสารจะปรับอัตโนมัติเมื่อเปลี่ยนจำนวนแต่ละประเภท และสามารถบันทึกไว้ก่อนโดยยังไม่กรอกชื่อลูกทัวร์ได้</p>
           </div>
 
           <div class="card">

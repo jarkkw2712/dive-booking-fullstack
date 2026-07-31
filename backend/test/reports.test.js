@@ -116,3 +116,12 @@ test("flexible booking contact migration preserves contact text without forced l
   assert.match(sql,/contact_email=nullif\(trim\(p_booking->>'contactEmail'\),''\)/);
   assert.doesNotMatch(sql,/lower\s*\(/i);
 });
+
+test("passenger category migration preserves adult child infant and FOC per passenger",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260731_013_passenger_categories.sql"),"utf8");
+  assert.match(sql,/add column if not exists passenger_type text not null default 'adult'/);
+  assert.match(sql,/passenger_type in\('adult','child','infant','foc'\)/);
+  assert.match(sql,/create or replace function upsert_booking_v7/);
+  assert.match(sql,/create or replace function list_bookings_json_v6/);
+  assert.doesNotMatch(sql,/delete from/i);
+});
