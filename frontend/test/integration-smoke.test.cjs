@@ -17,6 +17,10 @@ test("booking draft fields allow minimum leader contact without travel dates",()
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
   for(const id of ["contactEmail","depositAmount","receiptBookNo","manualReceiptNo"])assert.match(html,new RegExp(`id=["']${id}["']`));
+  assert.match(html,/<label>ติดต่อได้จาก<\/label><input id="contactEmail"/);
+  assert.match(html,/id="contactEmail" type="text"/);
+  assert.match(html,/LINE ID, Facebook, อีเมล/);
+  assert.doesNotMatch(app,/รูปแบบ Email ไม่ถูกต้อง/);
   assert.equal(html.includes("(ประมาณการและแก้ภายหลังได้)"),false);
   assert.doesNotMatch(app,/if\s*\(\s*!b\.travelDate\s*\)\s*return/);
   assert.match(app,/if\(b\.travelDate&&b\.returnDate/);

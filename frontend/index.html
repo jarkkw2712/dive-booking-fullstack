@@ -87,7 +87,7 @@
               <div><label>ชื่อหัวหน้าทริป</label><input id="leaderFirstName"></div>
               <div><label>นามสกุลหัวหน้าทริป</label><input id="leaderLastName"></div>
               <div><label>เบอร์โทร</label><input id="phone"></div>
-              <div><label>Email</label><input id="contactEmail" type="email" autocomplete="email"></div>
+              <div><label>ติดต่อได้จาก</label><input id="contactEmail" type="text" placeholder="เช่น LINE ID, Facebook, อีเมล หรือช่องทางอื่น"></div>
               <div><label>จำนวนผู้เดินทาง</label><input id="paxCount" type="number" min="1" value="1"></div>
               <div><label>ช่องทางลูกค้า</label><select id="source"></select></div>
               <div><label>Agent / ผู้แนะนำ</label><input id="agentName"></div>
@@ -138,7 +138,7 @@
             <div><label>ค้นหาวันที่</label><input id="blDate" type="date" onchange="loadBookingList()"></div>
             <div><label>ประเภทวันที่</label><select id="blDateMode" onchange="loadBookingList()"><option value="any">วันไปหรือวันกลับ</option><option value="travel">วันเดินทางไป</option><option value="return">วันเดินทางกลับ</option></select></div>
             <div><label>Status</label><select id="blStatus" onchange="loadBookingList()"><option value="">ทั้งหมด</option><option>pending</option><option>confirmed</option><option>checked-in</option><option>completed</option><option>cancelled</option></select></div>
-            <div><label>ค้นหาข้อมูล Booking</label><input id="blSearch" oninput="loadBookingList()" placeholder="Booking, เล่มที่/เลขที่, ชื่อ-สกุล, เบอร์โทร, อีเมล หรือ Agent"></div>
+            <div><label>ค้นหาข้อมูล Booking</label><input id="blSearch" oninput="loadBookingList()" placeholder="Booking, เล่มที่/เลขที่, ชื่อ-สกุล, เบอร์โทร, ข้อมูลติดต่อ หรือ Agent"></div>
           </div>
           <button class="btn soft" onclick="clearBookingListFilters()">ล้างการค้นหา</button>
           <div id="bookingList"></div>

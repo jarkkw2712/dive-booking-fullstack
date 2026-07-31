@@ -109,3 +109,10 @@ test("booking dropdown migration adds editable masters and transportation snapsh
   assert.match(sql,/create or replace function list_bookings_json_v5/);
   assert.doesNotMatch(sql,/delete from/i);
 });
+
+test("flexible booking contact migration preserves contact text without forced lowercase",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260731_012_flexible_booking_contact.sql"),"utf8");
+  assert.match(sql,/create or replace function upsert_booking_v6/);
+  assert.match(sql,/contact_email=nullif\(trim\(p_booking->>'contactEmail'\),''\)/);
+  assert.doesNotMatch(sql,/lower\s*\(/i);
+});

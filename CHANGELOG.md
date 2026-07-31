@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-07-31 - Flexible booking contact
+
+- Renamed the Booking email field to `ติดต่อได้จาก`.
+- Accepts LINE ID, Facebook name, email, or any other contact text without email-format validation or forced lowercasing.
+
 ## 2026-07-31 - Master-driven booking dropdowns and navigation
 
 - Added editable Customer Source and Transportation Method Master Data.
