@@ -125,3 +125,13 @@ test("passenger category migration preserves adult child infant and FOC per pass
   assert.match(sql,/create or replace function list_bookings_json_v6/);
   assert.doesNotMatch(sql,/delete from/i);
 });
+
+test("program age-price migration preserves adult price and initializes child and infant prices",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260731_014_program_age_prices.sql"),"utf8");
+  assert.match(sql,/add column if not exists child_price numeric\(14,2\)/);
+  assert.match(sql,/add column if not exists infant_price numeric\(14,2\)/);
+  assert.match(sql,/child_price=coalesce\(child_price,default_price,0\)/);
+  assert.match(sql,/infant_price=coalesce\(infant_price,default_price,0\)/);
+  assert.match(sql,/check\(default_price>=0 and child_price>=0 and infant_price>=0\)/);
+  assert.doesNotMatch(sql,/delete from/i);
+});

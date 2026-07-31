@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-07-31 - Program prices by passenger category
+
+- Program Master Data now stores separate adult, child, and infant prices; FOC remains zero.
+- New passenger placeholders receive the matching category price automatically.
+- Changing a passenger category, changing a program, or copying the leader package reapplies the correct category default.
+- Existing Booking program prices remain immutable snapshots when Master Data prices change later.
+
 ## 2026-07-31 - Passenger composition
 
 - Replaced the manual passenger-count action with automatic Adult, Child, Infant, and FOC composition fields.

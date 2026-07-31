@@ -54,8 +54,21 @@ test("passenger composition auto-builds adult child infant and FOC placeholders"
   assert.match(app,/function syncPassengerComposition/);
   assert.match(app,/passengerTypeLabels=\{adult:"ผู้ใหญ่",child:"เด็ก",infant:"ทารก",foc:"FOC"\}/);
   assert.match(app,/ผู้โดยสารคนที่/);
-  assert.match(app,/passengerType==="foc"\?0/);
+  assert.match(app,/if\(passengerType==="foc"\)return 0/);
   assert.match(app,/passengers=b\.passengers\?\.length\?b\.passengers\.map/);
+});
+test("program master prices adult child and infant separately and applies category defaults",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  const route=fs.readFileSync(path.join(root,"..","backend","src","routes","masterDataPro.js"),"utf8");
+  for(const id of ["mdpPrice","mdpChildPrice","mdpInfantPrice"])assert.match(html,new RegExp(`id=["']${id}["']`));
+  assert.match(app,/function programPriceForType/);
+  assert.match(app,/program\.child_price\?\?program\.default_price/);
+  assert.match(app,/program\.infant_price\?\?program\.default_price/);
+  assert.match(app,/passengerType==="foc"\)return 0/);
+  assert.match(app,/tiered:true/);
+  assert.match(route,/p\.child_price=req\.body\.child_price/);
+  assert.match(route,/p\.infant_price=req\.body\.infant_price/);
 });
 test("login and forced password-change markup is connected without self-service recovery",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");for(const id of ["loginPassword","changePasswordModal","currentPassword","newPassword","userEmail","userTemporaryPassword","saveUserBtn","userSaveMessage"])assert.match(html,new RegExp(`id=["']${id}["']`));for(const id of ["forgotPasswordModal","forgotEmail","resetPasswordModal","resetPassword"])assert.doesNotMatch(html,new RegExp(`id=["']${id}["']`));assert.equal(html.includes('id="loginPassword" type="password" value="1234"'),false);
