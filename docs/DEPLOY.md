@@ -18,12 +18,14 @@ Run these files once, in order, with Supabase SQL Editor:
 8. `database/migrations/20260723_008_program_accommodation_policy.sql`
 9. `database/migrations/20260723_009_simplify_accommodation.sql`
 10. `database/migrations/20260730_010_booking_draft_contact_deposit.sql`
+11. `database/migrations/20260731_011_booking_dropdown_master_data.sql`
 
 The stabilization and table migrations are idempotent and do not delete existing records. Function/view migrations use `CREATE OR REPLACE`.
 Migration 007 defaults existing passengers to no overnight stay and does not create revenue or financial entries.
 Migration 008 adds program accommodation policies and tent-credit snapshots. Run both before deploying the matching backend.
 Migration 009 simplifies the live workflow to editable Accommodation Master Data, two booking-owner choices, and a manual tent-credit field.
 Migration 010 allows draft bookings without travel dates and adds contact email, deposit, receipt book, and manual receipt number fields. Run it before deploying the matching backend.
+Migration 011 adds editable customer-source and transportation-method masters, connects payment methods to Booking, and stores the selected transportation method. Run it before deploying the matching backend.
 
 ## 3. Render
 

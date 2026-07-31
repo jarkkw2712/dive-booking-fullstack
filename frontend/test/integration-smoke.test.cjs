@@ -23,6 +23,24 @@ test("booking draft fields allow minimum leader contact without travel dates",()
   assert.match(app,/กรุณาระบุชื่อหัวหน้าทริป/);
   assert.match(app,/กรุณาระบุเบอร์โทรหัวหน้าทริป/);
 });
+test("booking dropdowns are master-driven and new booking fully resets edit state",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  const masterRoute=fs.readFileSync(path.join(root,"..","backend","src","routes","masterData.js"),"utf8");
+  for(const id of ["source","transportationMethod","paymentMethod"])assert.match(html,new RegExp(`id=["']${id}["']`));
+  assert.match(html,/loadMasterDataPro\('customer_sources'\)/);
+  assert.match(html,/loadMasterDataPro\('transportation_methods'\)/);
+  assert.match(html,/onclick=["']openNewBooking\(\)/);
+  assert.match(html,/onclick=["']backToBookingEditor\(\)/);
+  assert.match(app,/function populateBookingMasterSelects/);
+  assert.match(app,/master\.customerSources/);
+  assert.match(app,/master\.transportationMethods/);
+  assert.match(app,/master\.paymentMethods/);
+  assert.match(app,/async function openNewBooking\(\)\{try\{await loadMaster\(\)/);
+  assert.match(app,/function startNewBooking\(\)\{editingCode=null;selectedBooking=null/);
+  for(const field of ["travelDate","returnDate","leaderFirstName","phone","contactEmail","receiptBookNo","manualReceiptNo","bookingNote","passengerText"])assert.match(app,new RegExp(field));
+  for(const table of ["master_customer_sources","master_transportation_methods","master_payment_methods"])assert.match(masterRoute,new RegExp(table));
+});
 test("login and forced password-change markup is connected without self-service recovery",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");for(const id of ["loginPassword","changePasswordModal","currentPassword","newPassword","userEmail","userTemporaryPassword","saveUserBtn","userSaveMessage"])assert.match(html,new RegExp(`id=["']${id}["']`));for(const id of ["forgotPasswordModal","forgotEmail","resetPasswordModal","resetPassword"])assert.doesNotMatch(html,new RegExp(`id=["']${id}["']`));assert.equal(html.includes('id="loginPassword" type="password" value="1234"'),false);
 });

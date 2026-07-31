@@ -46,7 +46,7 @@
     <div id="userBox" class="user-box"></div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
-    <button data-permission="createBooking" onclick="showPage('bookingPage')">+ เพิ่ม Booking</button>
+    <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
     <button onclick="showPage('bookingListPage')">Booking List</button>
     <button data-any-permission="printCounterReport,printBoatReport,printDailyReport,addIslandAddOn" onclick="showPage('printCenterPage')">Print Center</button>
     <button data-permission="viewFinancial" onclick="showPage('financialPage')">Financial</button>
@@ -89,10 +89,11 @@
               <div><label>เบอร์โทร</label><input id="phone"></div>
               <div><label>Email</label><input id="contactEmail" type="email" autocomplete="email"></div>
               <div><label>จำนวนผู้เดินทาง</label><input id="paxCount" type="number" min="1" value="1"></div>
-              <div><label>ช่องทางลูกค้า</label><select id="source"><option>ลูกค้าเก่า</option><option>Facebook</option><option>ไทยเที่ยวไทย</option><option>Agent</option><option>ผู้บริหาร</option><option>Walk-in</option></select></div>
+              <div><label>ช่องทางลูกค้า</label><select id="source"></select></div>
               <div><label>Agent / ผู้แนะนำ</label><input id="agentName"></div>
+              <div><label>วิธีการเดินทาง</label><select id="transportationMethod"></select></div>
               <div><label>สถานะ</label><select id="status"><option>pending</option><option selected>confirmed</option><option>checked-in</option><option>completed</option><option>cancelled</option></select></div>
-              <div><label>ชำระเงิน</label><select id="paymentMethod"><option>เงินสด</option><option>โอนผ่านธนาคาร</option></select></div>
+              <div><label>ชำระเงิน</label><select id="paymentMethod"></select></div>
               <div><label>มัดจำ</label><input id="depositAmount" type="number" min="0" step="0.01" value="0" oninput="refreshSummary()"></div>
               <div><label>เล่มที่</label><input id="receiptBookNo"></div>
               <div><label>เลขที่</label><input id="manualReceiptNo"></div>
@@ -146,7 +147,8 @@
           <h2>Booking Detail</h2>
           <div id="bookingDetail">เลือก Booking ทางซ้าย</div>
           <div class="btn-row">
-            <button class="btn primary" onclick="editSelectedBooking()">Edit</button>
+            <button class="btn primary" onclick="editSelectedBooking()">เปิดแก้ไข Booking</button>
+            <button class="btn soft" onclick="backToBookingEditor()">ย้อนกลับไปหน้าแก้ไข</button>
             <button class="btn soft" onclick="printSelectedReceipt('RECEIPT')">Receipt</button>
             <button class="btn soft" onclick="printSelectedReceipt('BOOKING CONFIRMATION')">Booking Confirmation</button>
             <button class="btn soft" onclick="printSelectedReceipt('INVOICE')">Invoice</button>
@@ -206,6 +208,8 @@
           <button class="btn soft" onclick="loadMasterDataPro('accommodations')">ที่พัก</button>
           <button class="btn soft" onclick="loadMasterDataPro('addons')">Add-ons</button>
           <button class="btn soft" onclick="loadMasterDataPro('agents')">Agents</button>
+          <button class="btn soft" onclick="loadMasterDataPro('customer_sources')">ช่องทางลูกค้า</button>
+          <button class="btn soft" onclick="loadMasterDataPro('transportation_methods')">วิธีการเดินทาง</button>
           <button class="btn soft" onclick="loadMasterDataPro('boats')">Boats</button>
           <button class="btn soft" onclick="loadMasterDataPro('islands')">Islands</button>
           <button class="btn soft" onclick="loadMasterDataPro('price_reasons')">Price Reasons</button>

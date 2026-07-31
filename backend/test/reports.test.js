@@ -96,3 +96,16 @@ test("draft booking migration is idempotent and preserves financial history",()=
   assert.match(sql,/create or replace function list_bookings_json_v4/);
   assert.doesNotMatch(sql,/delete from (payments|refunds|receipts|financial_events)/i);
 });
+
+test("booking dropdown migration adds editable masters and transportation snapshot",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260731_011_booking_dropdown_master_data.sql"),"utf8");
+  assert.match(sql,/create table if not exists master_customer_sources/);
+  assert.match(sql,/create table if not exists master_transportation_methods/);
+  assert.match(sql,/รถยนต์ส่วนตัว/);
+  assert.match(sql,/รถตู้/);
+  assert.match(sql,/รถทัวร์/);
+  assert.match(sql,/add column if not exists transportation_method text/);
+  assert.match(sql,/create or replace function upsert_booking_v5/);
+  assert.match(sql,/create or replace function list_bookings_json_v5/);
+  assert.doesNotMatch(sql,/delete from/i);
+});

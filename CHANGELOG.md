@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-31 - Master-driven booking dropdowns and navigation
+
+- Added editable Customer Source and Transportation Method Master Data.
+- Booking customer source, transportation method, and payment method dropdowns now load active Master Data.
+- Added private car, van, and coach transportation defaults.
+- New Booking now clears all prior form, passenger, document, and edit state.
+- Booking List provides a direct return-to-editor action without starting a new booking.
+
 ## 2026-07-30 - Draft booking and deposit details
 
 - Added contact email, deposit, receipt book, and manual receipt number to bookings, lists, receipts, and counter reports.

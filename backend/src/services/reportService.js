@@ -123,6 +123,7 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],date,type})
     rows=active.filter(booking=>booking.travelDate===date).map(booking=>({
       bookingCode:booking.bookingCode,leader:leaderName(booking),phone:booking.phone||"",email:booking.contactEmail||"",
       pax:passengersOf(booking).length,status:booking.status,paymentMethod:booking.paymentMethod||"",
+      transportationMethod:booking.transportationMethod||"",
       totalAmount:money(booking.totalAmount),depositAmount:money(booking.depositAmount),
       balanceAmount:Math.max(money(booking.totalAmount)-money(booking.depositAmount),0),
       receiptBookNo:booking.receiptBookNo||"",manualReceiptNo:booking.manualReceiptNo||"",
