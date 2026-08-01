@@ -13,6 +13,12 @@ test("Booking List, Print Center and Financial markup is connected",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   for(const id of ["bookingListPage","bookingList","bookingDetail","timelineRoot","blDate","blStatus","blSearch","printCenterPage","pcDate","pcType","printCenterOutput","financialPage","financialWorkspace"])assert.match(html,new RegExp(`id=["']${id}["']`));
 });
+test("frontend assets are cache-busted and expose a visible deployment version",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
+  assert.match(html,/id="appVersion"/);
+  assert.match(html,/Version 2026\.08\.01-1/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260801-1`));
+});
 test("booking draft fields allow minimum leader contact without travel dates",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
@@ -160,4 +166,13 @@ test("active scripts do not declare duplicate global functions or constants",()=
   const names=sources.flatMap(source=>[...source.matchAll(/^(?:async\s+)?function\s+([A-Za-z_$][\w$]*)|^(?:const|let|var)\s+([A-Za-z_$][\w$]*)/gm)].map(match=>match[1]||match[2]));
   const duplicates=names.filter((name,index)=>names.indexOf(name)!==index);
   assert.deepEqual([...new Set(duplicates)],[]);
+});
+test("authorized users have a searchable unified audit page",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
+  const api=fs.readFileSync(path.join(root,"js","api.js"),"utf8");
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  for(const id of ["auditPage","auditFrom","auditTo","auditActor","auditAction","auditSource","auditSuccess","auditBookingCode","auditLogRoot"])assert.match(html,new RegExp(`id=["']${id}["']`));
+  assert.match(html,/data-permission="viewAudit"/);
+  assert.match(api,/audit-logs\/unified/);
+  assert.match(app,/function loadAuditLogs/);
 });

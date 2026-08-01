@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sabina Tour Booking</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=20260801-1">
 </head>
 <body>
 <div id="globalSavingIndicator" class="saving-indicator hidden" role="status" aria-live="polite">
@@ -44,6 +44,7 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
+    <div id="appVersion" class="app-version">Version 2026.08.01-1</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
@@ -54,6 +55,7 @@
     <button data-permission="editMasterData" onclick="showPage('masterDataPage')">Master Data</button>
     <button data-permission="manageUsers" onclick="showPage('userPage')">User Management</button>
     <button data-permission="editPermissions" onclick="showPage('permissionPage')">Permission Matrix</button>
+    <button data-permission="viewAudit" onclick="showPage('auditPage')">Audit Log</button>
     <button onclick="showChangePassword(false)">เปลี่ยนรหัสผ่าน</button>
     <button onclick="logout()" class="danger">Logout</button>
   </aside>
@@ -290,12 +292,31 @@
       <div id="financialSummary" class="kpi-grid"></div>
       <div id="financialWorkspace" class="card">เลือก Booking เพื่อดูข้อมูลการเงิน</div>
     </section>
+
+    <section id="auditPage" class="page" data-permission="viewAudit">
+      <h1>Audit Log</h1>
+      <div class="card">
+        <div class="form-grid">
+          <div><label>ตั้งแต่วันที่</label><input id="auditFrom" type="date"></div>
+          <div><label>ถึงวันที่</label><input id="auditTo" type="date"></div>
+          <div><label>ผู้ดำเนินการ</label><input id="auditActor" placeholder="Username"></div>
+          <div><label>เหตุการณ์</label><input id="auditAction" placeholder="เช่น USER_UPDATED"></div>
+          <div><label>หมวด</label><select id="auditSource"><option value="">ทั้งหมด</option><option value="system">ระบบ/ข้อมูล</option><option value="auth">เข้าสู่ระบบ/บัญชี</option><option value="financial">การเงิน</option></select></div>
+          <div><label>ผลลัพธ์</label><select id="auditSuccess"><option value="">ทั้งหมด</option><option value="true">สำเร็จ</option><option value="false">ล้มเหลว</option></select></div>
+          <div><label>Booking Code</label><input id="auditBookingCode"></div>
+        </div>
+        <button class="btn primary" onclick="loadAuditLogs()">ค้นหา</button>
+        <button class="btn soft" onclick="resetAuditFilters()">ล้างตัวกรอง</button>
+        <div id="auditSummary" class="muted"></div>
+      </div>
+      <div id="auditLogRoot" class="card table-scroll"></div>
+    </section>
   </main>
 </div>
 
-<script src="js/api.js"></script>
-<script src="js/smartPaste.js"></script>
-<script src="js/app.js"></script>
-<script src="js/financial.js"></script>
+<script src="js/api.js?v=20260801-1"></script>
+<script src="js/smartPaste.js?v=20260801-1"></script>
+<script src="js/app.js?v=20260801-1"></script>
+<script src="js/financial.js?v=20260801-1"></script>
 </body>
 </html>

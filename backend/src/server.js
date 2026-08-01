@@ -15,6 +15,7 @@ import auditRoutes from "./routes/auditLogs.js";
 import lineRoutes from "./routes/line.js";
 import financialRoutes from "./routes/financial.js";
 import permissionRoutes from "./routes/permissions.js";
+import { mutationAudit } from "./services/auditService.js";
 dotenv.config();
 const app=express();
 app.set("trust proxy",1);
@@ -24,6 +25,7 @@ if(process.env.NODE_ENV==="production"&&!allowedOrigins.length)throw new Error("
 app.use(cors({origin(origin,callback){if(!origin||!allowedOrigins.length||allowedOrigins.includes(origin))return callback(null,true);callback(new Error("Origin not allowed by CORS"));},credentials:true}));
 app.use(express.json({limit:"10mb"}));
 app.use(morgan("dev"));
+app.use(mutationAudit);
 app.get("/api/health",(req,res)=>res.json({ok:true,service:"sabina-tour-booking-api",time:new Date().toISOString()}));
 app.use("/api/auth",authRoutes);
 app.use("/api/bookings",bookingRoutes);

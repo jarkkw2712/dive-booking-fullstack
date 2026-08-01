@@ -32,6 +32,7 @@ Migration 011 adds editable customer-source and transportation-method masters, c
 Migration 012 changes the Booking contact field to preserve flexible LINE, Facebook, email, or other contact text without lowercasing it.
 Migration 013 stores adult, child, infant, and FOC passenger categories while preserving existing passengers as adults.
 Migration 014 adds separate adult, child, and infant Program Master prices. Existing program prices remain the adult price and initialize the other categories safely.
+Migration 015 adds comprehensive audit context and makes audit history append-only. Run it after migration 014 and before deploying the matching backend/frontend.
 
 ## 3. Render
 
@@ -60,4 +61,8 @@ Deploy `frontend/` after the backend and migrations are ready. Verify login, boo
 ## 5. Financial smoke workflow
 
 Use a non-production test booking: issue an invoice, receive a deposit, verify it, issue a receipt, receive a partial payment, confirm outstanding, request/approve/pay a refund, and verify the timeline. Void/reverse test documents rather than deleting them.
+
+## 6. Audit and anti-corruption operations
+
+Grant `viewAudit` only to the owner, CEO, or independent reviewer. Review failed actions, permission changes, user resets, Master Data price changes, and financial events routinely. Restrict Supabase and Render owner access with MFA, rotate service-role/JWT secrets, and keep independent database backups. Application-level immutability cannot protect against a compromised Supabase project owner, so separation of duties and off-platform backups remain required.
 

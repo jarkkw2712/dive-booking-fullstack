@@ -9,6 +9,7 @@ body{margin:0;background:#eef4f8;color:#123}
 .sidebar .danger,.danger{background:#a83222!important;color:#fff!important}
 .mobile-menu-toggle{display:none!important}
 .user-box{background:#31667d;border-radius:14px;padding:12px;margin-bottom:12px;font-size:13px}
+.app-version{font-size:11px;color:#c8dce6;margin:-6px 0 10px;text-align:right}
 .content{padding:24px;max-width:1400px}
 .page{display:none}.page.active{display:block}
 .card{background:#fff;border-radius:18px;padding:18px;margin-bottom:16px;box-shadow:0 8px 26px rgba(0,0,0,.05)}
@@ -298,3 +299,4 @@ textarea{min-height:80px}
   animation:saving-spin .8s linear infinite;
 }
 @keyframes saving-spin{to{transform:rotate(360deg)}}
+.audit-table{min-width:1250px}.audit-json{max-width:440px;max-height:260px;overflow:auto;white-space:pre-wrap;font-size:11px;background:#f5f7fa;padding:10px;border-radius:6px}.audit-ok{color:#08783e;font-weight:700}.audit-fail{color:#b42318;font-weight:700}#auditSummary{margin-top:12px}

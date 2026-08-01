@@ -45,6 +45,7 @@ const API={
   roles:()=>apiFetch("/roles"),
   perms:()=>apiFetch("/permissions/matrix"),
   savePerms:m=>apiFetch("/permissions/matrix",{method:"PUT",body:JSON.stringify({matrix:m})}),
+  audit:params=>apiFetch(`/audit-logs/unified?${new URLSearchParams(params).toString()}`),
   financial:code=>apiFetch(`/financial/bookings/${encodeURIComponent(code)}`),
   createInvoice:(code,data)=>apiFetch(`/financial/bookings/${encodeURIComponent(code)}/invoices`,{method:"POST",body:JSON.stringify(data)}),
   createPayment:(code,data)=>apiFetch(`/financial/bookings/${encodeURIComponent(code)}/payments`,{method:"POST",body:JSON.stringify(data)}),

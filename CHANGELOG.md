@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-01 - Comprehensive anti-corruption audit trail
+
+- Added an immutable, searchable Audit Log covering data mutations, authentication, users, permissions, Master Data, company settings, and financial events.
+- Records actor, role, timestamp, request ID, IP, endpoint, result, and sanitized before/after values without passwords, tokens, or secrets.
+- Added database protections against update, delete, and truncate of audit history.
+
+## 2026-08-01 - Frontend deployment visibility
+
+- Added asset cache-busting and a visible application version so staff can verify that the latest Program price UI is deployed.
+
 ## 2026-07-31 - Program prices by passenger category
 
 - Program Master Data now stores separate adult, child, and infant prices; FOC remains zero.
