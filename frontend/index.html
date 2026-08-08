@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sabina Tour Booking</title>
-  <link rel="stylesheet" href="css/style.css?v=20260801-1">
+  <link rel="stylesheet" href="css/style.css?v=20260808-1">
 </head>
 <body>
 <div id="globalSavingIndicator" class="saving-indicator hidden" role="status" aria-live="polite">
@@ -44,7 +44,7 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
-    <div id="appVersion" class="app-version">Version 2026.08.01-1</div>
+    <div id="appVersion" class="app-version">Version 2026.08.08-1</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
@@ -100,7 +100,10 @@
               <div><label>วิธีการเดินทาง</label><select id="transportationMethod"></select></div>
               <div><label>สถานะ</label><select id="status"><option>pending</option><option selected>confirmed</option><option>checked-in</option><option>completed</option><option>cancelled</option></select></div>
               <div><label>ชำระเงิน</label><select id="paymentMethod"></select></div>
-              <div><label>มัดจำ</label><input id="depositAmount" type="number" min="0" step="0.01" value="0" oninput="refreshSummary()"></div>
+              <div><label>มัดจำ</label><input id="depositAmount" type="number" min="0" step="0.01" value="0" oninput="ensurePaymentMethod('depositPaymentMethod');refreshSummary()"></div>
+              <div><label>ช่องทางมัดจำ</label><select id="depositPaymentMethod"></select></div>
+              <div><label>ขายเชื่อ</label><input id="creditAmount" type="number" min="0" step="0.01" value="0" oninput="ensurePaymentMethod('creditPaymentMethod');refreshSummary()"></div>
+              <div><label>ช่องทางรับชำระยอดเชื่อ</label><select id="creditPaymentMethod"></select></div>
               <div><label>เล่มที่</label><input id="receiptBookNo"></div>
               <div><label>เลขที่</label><input id="manualReceiptNo"></div>
               <div class="full"><label>หมายเหตุ Booking</label><textarea id="bookingNote"></textarea></div>
@@ -170,7 +173,9 @@
       <div class="card">
         <h2>รายงานรวมตามวันที่</h2>
         <div class="form-grid">
-          <div><label>วันที่รายงาน</label><input id="pcDate" type="date"></div>
+          <div><label>รูปแบบช่วงเวลา</label><select id="pcPeriod" onchange="applyReportPeriod()"><option value="day">รายวัน</option><option value="week">รายสัปดาห์</option><option value="month">รายเดือน</option><option value="custom">กำหนดช่วงเอง</option></select></div>
+          <div><label>วันที่เริ่มต้น</label><input id="pcDate" type="date" onchange="applyReportPeriod()"></div>
+          <div><label>วันที่สิ้นสุด</label><input id="pcToDate" type="date"></div>
           <div><label>Report</label><select id="pcType"><option value="counter" data-any-permission="printCounterReport,printDailyReport">Counter — รายการจองประจำวัน</option><option value="boat" data-any-permission="printBoatReport,printDailyReport">Boat — รายชื่อผู้โดยสารเรือ</option><option value="island" data-any-permission="addIslandAddOn,printBoatReport,printDailyReport">Island — ผู้ลงเกาะ/ขึ้นจากเกาะ</option><option value="insurance" data-any-permission="printCounterReport,printDailyReport">Insurance — ข้อมูลทำประกัน</option><option value="driver" data-any-permission="printCounterReport,printDailyReport">Driver — รายการรับส่ง</option><option value="management" data-any-permission="printDailyReport">CEO / Management — สรุปวันนี้และ 7 วัน</option></select></div>
         </div>
         <button class="btn primary" onclick="generatePrintCenterReport()">สร้างรายงาน</button>
@@ -314,9 +319,9 @@
   </main>
 </div>
 
-<script src="js/api.js?v=20260801-1"></script>
-<script src="js/smartPaste.js?v=20260801-1"></script>
-<script src="js/app.js?v=20260801-1"></script>
-<script src="js/financial.js?v=20260801-1"></script>
+<script src="js/api.js?v=20260808-1"></script>
+<script src="js/smartPaste.js?v=20260808-1"></script>
+<script src="js/app.js?v=20260808-1"></script>
+<script src="js/financial.js?v=20260808-1"></script>
 </body>
 </html>

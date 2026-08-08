@@ -13,11 +13,19 @@ test("Booking List, Print Center and Financial markup is connected",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   for(const id of ["bookingListPage","bookingList","bookingDetail","timelineRoot","blDate","blStatus","blSearch","printCenterPage","pcDate","pcType","printCenterOutput","financialPage","financialWorkspace"])assert.match(html,new RegExp(`id=["']${id}["']`));
 });
+test("booking captures credit payment, passenger logistics and ranged management reports",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  for(const id of ["depositPaymentMethod","creditAmount","creditPaymentMethod","pcPeriod","pcToDate"])assert.match(html,new RegExp(`id=["']${id}["']`));
+  for(const field of ["nationalityType","pickupLocation","transportationMethod","transportationAmount"])assert.match(app,new RegExp(field));
+  assert.match(app,/function managementIncomeMatrix/);
+  assert.match(app,/ค่าอุปกรณ์- /);
+  assert.doesNotMatch(app,/name:`\$\{idx\+1\}/);
+});
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.08\.01-1/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260801-1`));
+  assert.match(html,/Version 2026\.08\.08-1/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260808-1`));
 });
 test("booking draft fields allow minimum leader contact without travel dates",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-08 - Credit, passenger logistics and management range reporting
+
+- Added deposit and credit-sale amounts with a required payment method for each.
+- Added Thai/foreign nationality, pickup location, transportation method, and transportation charge per passenger.
+- Transportation prices are editable in Master Data and copied as an editable booking snapshot.
+- Receipts group passengers by age/nationality and group equipment and transportation lines without showing passenger names.
+- Print Center supports daily, weekly, monthly, and custom ranges with a date-column management income matrix.
+
 ## 2026-08-01 - Comprehensive anti-corruption audit trail
 
 - Added an immutable, searchable Audit Log covering data mutations, authentication, users, permissions, Master Data, company settings, and financial events.

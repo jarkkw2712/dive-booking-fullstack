@@ -33,7 +33,7 @@ const API={
   duplicate:b=>apiFetch("/bookings/check-duplicate",{method:"POST",body:JSON.stringify(b)}),
   timeline:code=>apiFetch(`/bookings/${encodeURIComponent(code)}/timeline`),
   master:()=>apiFetch("/master-data"),
-  report:(date,type)=>apiFetch(`/reports/print-center?date=${encodeURIComponent(date)}&type=${encodeURIComponent(type)}`),
+  report:(date,type,to=date)=>apiFetch(`/reports/print-center?date=${encodeURIComponent(date)}&to=${encodeURIComponent(to)}&type=${encodeURIComponent(type)}`),
   company:()=>apiFetch("/company-profile"),
   saveCompany:p=>apiFetch("/company-profile",{method:"PUT",body:JSON.stringify(p)}),
   mdp:cat=>apiFetch(`/master-data-pro/${encodeURIComponent(cat)}`),
