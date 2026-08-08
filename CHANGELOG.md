@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-08-08 - Separate boat-ticket references
+
+- Added `เล่มที่ (ตั๋วเรือ)` and `เลขที่ (ตั๋วเรือ)` without replacing the existing receipt book/number.
+- Boat-ticket references are searchable and appear in booking details, receipts, and counter reports.
+
 ## 2026-08-08 - Credit, passenger logistics and management range reporting
 
 - Added deposit and credit-sale amounts with a required payment method for each.

@@ -138,6 +138,7 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],date,toDate
       depositPaymentMethod:booking.depositPaymentMethod||booking.paymentMethod||"",creditAmount:money(booking.creditAmount),creditPaymentMethod:booking.creditPaymentMethod||"",
       balanceAmount:Math.max(money(booking.totalAmount)-money(booking.depositAmount)-money(booking.creditAmount),0),
       receiptBookNo:booking.receiptBookNo||"",manualReceiptNo:booking.manualReceiptNo||"",
+      boatTicketBookNo:booking.boatTicketBookNo||"",boatTicketNo:booking.boatTicketNo||"",
       agent:booking.agentName||booking.source||""
     }));
   }else if(type==="boat"){

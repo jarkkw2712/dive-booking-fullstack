@@ -44,6 +44,11 @@ test("credit transport and nationality migration is idempotent and numeric",()=>
   for(const field of ["credit_amount numeric(14,2)","deposit_payment_method","credit_payment_method","nationality_type","pickup_location","transportation_amount numeric(14,2)","default_price numeric(14,2)","upsert_booking_v8","list_bookings_json_v7"])assert.match(sql,new RegExp(field.replace(/[()]/g,"\\$&"),"i"));
   assert.match(sql,/add column if not exists/);
 });
+test("boat ticket references are separate from receipt references",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260808_017_boat_ticket_book_numbers.sql"),"utf8");
+  for(const expected of ["boat_ticket_book_no","boat_ticket_no","upsert_booking_v9","list_bookings_json_v8"])assert.match(sql,new RegExp(expected));
+  assert.match(sql,/add column if not exists/);
+});
 
 test("island report includes both arrivals and departures on the selected date",()=>{
   const report=buildPrintCenterReport({bookings,date:"2026-07-24",type:"island"});

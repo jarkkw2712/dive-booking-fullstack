@@ -21,11 +21,16 @@ test("booking captures credit payment, passenger logistics and ranged management
   assert.match(app,/ค่าอุปกรณ์- /);
   assert.doesNotMatch(app,/name:`\$\{idx\+1\}/);
 });
+test("boat ticket book and serial remain separate from receipt references",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),api=fs.readFileSync(path.join(root,"js","api.js"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  for(const id of ["receiptBookNo","manualReceiptNo","boatTicketBookNo","boatTicketNo"])assert.match(html,new RegExp(`id=["']${id}["']`));
+  assert.match(api,/boatTicketBookNo/);assert.match(api,/boatTicketNo/);assert.match(app,/เล่มที่ \(ตั๋วเรือ\)/);assert.match(app,/bookingSearchTextBase/);
+});
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.08\.08-1/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260808-1`));
+  assert.match(html,/Version 2026\.08\.08-2/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260808-2`));
 });
 test("booking draft fields allow minimum leader contact without travel dates",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");

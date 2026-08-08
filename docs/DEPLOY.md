@@ -34,6 +34,7 @@ Migration 013 stores adult, child, infant, and FOC passenger categories while pr
 Migration 014 adds separate adult, child, and infant Program Master prices. Existing program prices remain the adult price and initialize the other categories safely.
 Migration 015 adds comprehensive audit context and makes audit history append-only. Run it after migration 014 and before deploying the matching backend/frontend.
 Migration 016 adds booking credit/payment-method snapshots, per-passenger nationality/pickup/transport charges, and transportation Master Data prices. Run it after migration 015 before deploying version 2026.08.08-1.
+Migration 017 adds separate boat-ticket book and serial references. Run it after migration 016 before deploying version 2026.08.08-2.
 
 ## 3. Render
 
