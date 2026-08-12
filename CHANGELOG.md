@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-12 - Excel booking export and receipt leader
+
+- Added a UTF-8 Excel-compatible booking export for the selected Print Center date range using the requested operational columns.
+- Exposed the original booking creation date without allowing it to be overwritten.
+- Restored the trip-leader name in the receipt contact section while keeping passenger line items anonymous and grouped.
+
 ## 2026-08-08 - Separate boat-ticket references
 
 - Added `เล่มที่ (ตั๋วเรือ)` and `เลขที่ (ตั๋วเรือ)` without replacing the existing receipt book/number.

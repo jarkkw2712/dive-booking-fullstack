@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sabina Tour Booking</title>
-  <link rel="stylesheet" href="css/style.css?v=20260808-2">
+  <link rel="stylesheet" href="css/style.css?v=20260812-1">
 </head>
 <body>
 <div id="globalSavingIndicator" class="saving-indicator hidden" role="status" aria-live="polite">
@@ -44,7 +44,7 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
-    <div id="appVersion" class="app-version">Version 2026.08.08-2</div>
+    <div id="appVersion" class="app-version">Version 2026.08.12-1</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
@@ -181,6 +181,7 @@
           <div><label>Report</label><select id="pcType"><option value="counter" data-any-permission="printCounterReport,printDailyReport">Counter — รายการจองประจำวัน</option><option value="boat" data-any-permission="printBoatReport,printDailyReport">Boat — รายชื่อผู้โดยสารเรือ</option><option value="island" data-any-permission="addIslandAddOn,printBoatReport,printDailyReport">Island — ผู้ลงเกาะ/ขึ้นจากเกาะ</option><option value="insurance" data-any-permission="printCounterReport,printDailyReport">Insurance — ข้อมูลทำประกัน</option><option value="driver" data-any-permission="printCounterReport,printDailyReport">Driver — รายการรับส่ง</option><option value="management" data-any-permission="printDailyReport">CEO / Management — สรุปวันนี้และ 7 วัน</option></select></div>
         </div>
         <button class="btn primary" onclick="generatePrintCenterReport()">สร้างรายงาน</button>
+        <button class="btn soft" onclick="exportBookingExcel()">ดาวน์โหลด Excel</button>
       </div>
       <div id="printCenterOutput" class="card print-doc"></div>
     </section>
@@ -321,9 +322,9 @@
   </main>
 </div>
 
-<script src="js/api.js?v=20260808-2"></script>
-<script src="js/smartPaste.js?v=20260808-2"></script>
-<script src="js/app.js?v=20260808-2"></script>
-<script src="js/financial.js?v=20260808-2"></script>
+<script src="js/api.js?v=20260812-1"></script>
+<script src="js/smartPaste.js?v=20260812-1"></script>
+<script src="js/app.js?v=20260812-1"></script>
+<script src="js/financial.js?v=20260812-1"></script>
 </body>
 </html>

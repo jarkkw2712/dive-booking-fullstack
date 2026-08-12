@@ -49,6 +49,10 @@ test("boat ticket references are separate from receipt references",()=>{
   for(const expected of ["boat_ticket_book_no","boat_ticket_no","upsert_booking_v9","list_bookings_json_v8"])assert.match(sql,new RegExp(expected));
   assert.match(sql,/add column if not exists/);
 });
+test("booking export exposes immutable creation date",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260812_018_booking_created_date_export.sql"),"utf8");
+  assert.match(sql,/list_bookings_json_v9/);assert.match(sql,/created_at/);assert.match(sql,/'createdAt'/);
+});
 
 test("island report includes both arrivals and departures on the selected date",()=>{
   const report=buildPrintCenterReport({bookings,date:"2026-07-24",type:"island"});

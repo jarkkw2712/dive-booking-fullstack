@@ -35,6 +35,7 @@ Migration 014 adds separate adult, child, and infant Program Master prices. Exis
 Migration 015 adds comprehensive audit context and makes audit history append-only. Run it after migration 014 and before deploying the matching backend/frontend.
 Migration 016 adds booking credit/payment-method snapshots, per-passenger nationality/pickup/transport charges, and transportation Master Data prices. Run it after migration 015 before deploying version 2026.08.08-1.
 Migration 017 adds separate boat-ticket book and serial references. Run it after migration 016 before deploying version 2026.08.08-2.
+Migration 018 exposes the immutable booking creation timestamp for Excel exports. Run it after migration 017 before deploying version 2026.08.12-1.
 
 ## 3. Render
 

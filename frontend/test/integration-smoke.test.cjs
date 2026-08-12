@@ -26,11 +26,17 @@ test("boat ticket book and serial remain separate from receipt references",()=>{
   for(const id of ["receiptBookNo","manualReceiptNo","boatTicketBookNo","boatTicketNo"])assert.match(html,new RegExp(`id=["']${id}["']`));
   assert.match(api,/boatTicketBookNo/);assert.match(api,/boatTicketNo/);assert.match(app,/เล่มที่ \(ตั๋วเรือ\)/);assert.match(app,/bookingSearchTextBase/);
 });
+test("print center exports the requested Excel-compatible booking columns",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  assert.match(html,/onclick="exportBookingExcel\(\)"/);
+  for(const heading of ["ต้นฉบับ","จองในงาน","วันที่จอง","เลขตั๋วเรือ","ชื่อลูกค้า","เดินทางกลับ","ช่องทางติดต่อ"])assert.match(app,new RegExp(heading));
+  assert.match(app,/text\/csv;charset=utf-8/);assert.match(app,/หัวหน้าทริป:/);assert.match(app,/booking\.createdAt/);
+});
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.08\.08-2/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260808-2`));
+  assert.match(html,/Version 2026\.08\.12-1/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260812-1`));
 });
 test("booking draft fields allow minimum leader contact without travel dates",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
