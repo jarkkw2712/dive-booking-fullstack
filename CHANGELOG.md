@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-12 - Apply-all edited price fix
+
+- Copy-from-leader actions now preserve the leader's currently edited Program price, quantity, and Add-ons instead of recalculating and overwriting the price from Master Data.
+
 ## 2026-08-12 - Large group booking workflow
 
 - Added one-click copy of the leader Program/Add-on package to every passenger while preserving category pricing.
