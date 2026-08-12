@@ -53,6 +53,10 @@ test("booking export exposes immutable creation date",()=>{
   const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260812_018_booking_created_date_export.sql"),"utf8");
   assert.match(sql,/list_bookings_json_v9/);assert.match(sql,/created_at/);assert.match(sql,/'createdAt'/);
 });
+test("booking creator comes from authenticated server user and remains immutable",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260812_019_booking_creator_export.sql"),"utf8"),route=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8");
+  assert.match(sql,/created_by=coalesce\(created_by/);assert.match(sql,/list_bookings_json_v10/);assert.match(route,/createdBy:req\.user\.username/);assert.match(route,/upsert_booking_v10/);
+});
 
 test("island report includes both arrivals and departures on the selected date",()=>{
   const report=buildPrintCenterReport({bookings,date:"2026-07-24",type:"island"});

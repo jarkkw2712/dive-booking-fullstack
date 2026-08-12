@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-08-12 - Excel creator and Agent correction
+
+- Replaced the Excel `ต้นฉบับ` value with the authenticated User who originally created the Booking.
+- Added a separate Agent column; later Booking edits cannot overwrite the original creator.
+
 ## 2026-08-12 - Apply-all edited price fix
 
 - Copy-from-leader actions now preserve the leader's currently edited Program price, quantity, and Add-ons instead of recalculating and overwriting the price from Master Data.

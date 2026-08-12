@@ -36,6 +36,7 @@ Migration 015 adds comprehensive audit context and makes audit history append-on
 Migration 016 adds booking credit/payment-method snapshots, per-passenger nationality/pickup/transport charges, and transportation Master Data prices. Run it after migration 015 before deploying version 2026.08.08-1.
 Migration 017 adds separate boat-ticket book and serial references. Run it after migration 016 before deploying version 2026.08.08-2.
 Migration 018 exposes the immutable booking creation timestamp for Excel exports. Run it after migration 017 before deploying version 2026.08.12-1.
+Migration 019 records the authenticated Booking creator once and backfills historical creators from the earliest available audit entry. Run it after migration 018 before deploying version 2026.08.12-4.
 
 ## 3. Render
 

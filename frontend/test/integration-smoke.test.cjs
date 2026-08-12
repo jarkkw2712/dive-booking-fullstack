@@ -27,6 +27,10 @@ test("large groups support apply-all and CSV preview import",()=>{
   for(const name of ["copyLeaderPackageToAll","previewPassengerCsv","confirmPassengerCsvImport","downloadPassengerCsvTemplate"])assert.match(app,new RegExp(`function ${name}`));
   assert.match(app,/function applyLeaderPackageToPassenger/);assert.match(app,/person\.program\.price=Number\(leader\.program\?\.price/);assert.match(app,/person\.preAddOns=structuredClone\(leader\.preAddOns/);assert.match(app,/แทนที่รายชื่อเดิม|csvImportMode/);
 });
+test("Excel export uses immutable creator User and a separate Agent column",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  assert.match(app,/row\[0\]=booking\.createdBy/);assert.match(app,/row\.splice\(1,0,booking\.agentName/);assert.match(app,/headers=\["User","Agent"/);
+});
 test("boat ticket book and serial remain separate from receipt references",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),api=fs.readFileSync(path.join(root,"js","api.js"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
   for(const id of ["receiptBookNo","manualReceiptNo","boatTicketBookNo","boatTicketNo"])assert.match(html,new RegExp(`id=["']${id}["']`));
@@ -41,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.08\.12-3/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260812-3`));
+  assert.match(html,/Version 2026\.08\.12-4/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260812-4`));
 });
 test("booking draft fields allow minimum leader contact without travel dates",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
