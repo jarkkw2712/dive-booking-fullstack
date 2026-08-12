@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-08-12 - Large group booking workflow
+
+- Added one-click copy of the leader Program/Add-on package to every passenger while preserving category pricing.
+- Added CSV upload beside Booking Details with template download, quoted-field parsing, preview, validation, duplicate warnings, composition totals, and append/replace confirmation.
+
 ## 2026-08-12 - Excel booking export and receipt leader
 
 - Added a UTF-8 Excel-compatible booking export for the selected Print Center date range using the requested operational columns.

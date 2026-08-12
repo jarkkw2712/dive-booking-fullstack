@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sabina Tour Booking</title>
-  <link rel="stylesheet" href="css/style.css?v=20260812-1">
+  <link rel="stylesheet" href="css/style.css?v=20260812-2">
 </head>
 <body>
 <div id="globalSavingIndicator" class="saving-indicator hidden" role="status" aria-live="polite">
@@ -44,7 +44,7 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
-    <div id="appVersion" class="app-version">Version 2026.08.12-1</div>
+    <div id="appVersion" class="app-version">Version 2026.08.12-2</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
@@ -80,7 +80,7 @@
       <div class="booking-grid">
         <div>
           <div class="card">
-            <h2>ข้อมูล Booking หลัก</h2>
+            <div class="section-title-row"><h2>ข้อมูล Booking หลัก</h2><button type="button" class="btn soft" onclick="openCsvImport()">Upload CSV รายชื่อ</button></div>
             <div class="form-grid">
               <div><label>ประเภทการเดินทาง</label><select id="tripType" onchange="toggleReturnDate()"><option value="one_way">ครั้งเดียว</option><option value="round_trip">Round Trip</option></select></div>
               <div><label>วันเดินทางไป</label><input id="travelDate" type="date"></div>
@@ -322,9 +322,22 @@
   </main>
 </div>
 
-<script src="js/api.js?v=20260812-1"></script>
-<script src="js/smartPaste.js?v=20260812-1"></script>
-<script src="js/app.js?v=20260812-1"></script>
-<script src="js/financial.js?v=20260812-1"></script>
+<div id="csvImportModal" class="login-screen hidden">
+  <div class="csv-import-card">
+    <h2>นำเข้ารายชื่อผู้เดินทางจาก CSV</h2>
+    <p class="muted">ต้องมีคอลัมน์ “ชื่อ” และ “นามสกุล” ส่วนคอลัมน์อื่นเว้นได้</p>
+    <input id="csvPassengerFile" type="file" accept=".csv,text/csv" onchange="previewPassengerCsv(this.files[0])">
+    <div class="btn-row"><button class="btn soft" onclick="downloadPassengerCsvTemplate()">ดาวน์โหลดไฟล์ตัวอย่าง</button></div>
+    <div id="csvImportSummary"></div><div id="csvImportPreview" class="table-scroll"></div>
+    <div class="form-grid"><div><label>วิธีนำเข้า</label><select id="csvImportMode"><option value="replace">แทนที่รายชื่อเดิม</option><option value="append">เพิ่มต่อท้ายรายชื่อเดิม</option></select></div></div>
+    <div class="btn-row"><button id="confirmCsvImportBtn" class="btn primary" onclick="confirmPassengerCsvImport()" disabled>ยืนยันนำเข้า</button><button class="btn soft" onclick="closeCsvImport()">ยกเลิก</button></div>
+  </div>
+</div>
+
+<script src="js/api.js?v=20260812-2"></script>
+<script src="js/smartPaste.js?v=20260812-2"></script>
+<script src="js/csvImport.js?v=20260812-2"></script>
+<script src="js/app.js?v=20260812-2"></script>
+<script src="js/financial.js?v=20260812-2"></script>
 </body>
 </html>
