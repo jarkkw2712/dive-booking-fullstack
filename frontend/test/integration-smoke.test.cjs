@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.08\.18-8/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260818-8`));
+  assert.match(html,/Version 2026\.08\.18-9/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260818-9`));
 });
 test("booking draft fields allow minimum leader contact without travel dates",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
@@ -173,7 +173,7 @@ test("Add-on master data controls visibility across all five documents",()=>{
 });
 test("credit is hidden on Register and transportation visibility is master-driven",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_021_transport_document_visibility.sql"),"utf8");
-  assert.match(css,/document-register \.document-total-row:last-child\{display:none\}/);
+  assert.match(css,/document-register>\.document-total:not\(\.document-financial-summary\)/);
   assert.match(app,/function transportationVisibleOnDocument/);assert.match(app,/master\.transportationMethods/);assert.match(app,/transportationVisibleOnDocument\(person,booking,profile\)/);
   assert.match(route,/\["addons","transportation_methods","accommodations"\]\.includes\(category\)/);assert.match(sql,/alter table if exists master_transportation_methods/);assert.match(sql,/show_van_receipt boolean not null default true/);
 });
@@ -204,9 +204,15 @@ test("simple accommodation fields follow Program Tour and use editable master da
   assert.match(app,/accommodationBookedBy/);
   assert.match(app,/>ลูกค้าจองเอง</);
   assert.match(app,/>จองให้</);
-  assert.match(app,/tentCreditAmount/);
-  assert.match(financial,/discountAmount:Number\(person\.tentCreditAmount/);
-  assert.match(financial,/requestTentCreditRefund/);
+  assert.match(app,/ข้อมูลการแพ้อาหาร/);
+  assert.match(financial,/discountAmount:0,description:""/);
+  assert.doesNotMatch(financial,/requestTentCreditRefund/);
+});
+test("payment masters drive receipt accounts and booking totals use one source",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_024_payment_method_receipt_settings.sql"),"utf8");
+  for(const id of ["mdpPaymentSettings","mdpPaymentType","mdpShowOnMoneyReceipt"])assert.match(html,new RegExp(`id=["']${id}["']`));assert.match(route,/payload\.payment_type/);assert.match(route,/payload\.show_on_money_receipt/);assert.match(sql,/payment_type text not null default 'transfer'/);assert.match(sql,/show_on_money_receipt boolean not null default true/);
+  assert.match(app,/function documentFinancialSummary/);assert.match(app,/ยอดทั้งหมด/);assert.match(app,/ยอดสุทธิ/);assert.match(app,/function moneyReceiptAllocationTable/);assert.match(app,/paymentTypeLabel/);assert.match(app,/documentGroupedItemsWithoutTentRefund/);
+  assert.match(html,/id="paymentBreakdownEditor"/);assert.match(app,/paymentBreakdown=structuredClone/);assert.match(app,/paymentBreakdownSum/);assert.match(app,/ยอดแบ่งบัญชีแถว/);
 });
 test("active HTML does not contain known Thai mojibake markers",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");

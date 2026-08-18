@@ -132,6 +132,11 @@ test("draft booking migration is idempotent and preserves financial history",()=
   assert.doesNotMatch(sql,/delete from (payments|refunds|receipts|financial_events)/i);
 });
 
+test("payment breakdown migration is idempotent and preserves financial history",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260818_025_booking_payment_breakdown.sql"),"utf8");
+  assert.match(sql,/add column if not exists payment_breakdown jsonb/);assert.match(sql,/upsert_booking_v11/);assert.match(sql,/list_bookings_json_v11/);assert.doesNotMatch(sql,/delete from|truncate/i);
+});
+
 test("booking dropdown migration adds editable masters and transportation snapshot",()=>{
   const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260731_011_booking_dropdown_master_data.sql"),"utf8");
   assert.match(sql,/create table if not exists master_customer_sources/);

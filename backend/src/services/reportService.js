@@ -24,7 +24,6 @@ function accommodationSummary(entries){
     parkTent:people.filter(person=>person.accommodationId==="park_tent").length,
     none:people.filter(person=>!person.accommodationId).length,
     customerSelfBooked:people.filter(person=>person.accommodationId&&person.accommodationBookedBy==="customer").length,
-    tentCreditDue:people.reduce((sum,person)=>sum+Number(person.tentCreditAmount||0),0),
     note:"ข้อมูลที่พักของอุทยาน ไม่รวมในรายได้บริษัท"
   };
 }
@@ -54,7 +53,6 @@ function passengerRows(entries,{includeHealth=false}={}){
     accommodationBookedBy:person.accommodationId?(person.accommodationBookedBy==="company"?"จองให้":"ลูกค้าจองเอง"):"",
     accommodationReference:person.parkAccommodationReference||"",
     accommodationArrangement:person.accommodationId?(person.accommodationBookedBy==="company"?"จองให้":"ลูกค้าจองเอง"):"",
-    tentCreditAmount:Number(person.tentCreditAmount||0),
     ...(includeHealth?{foodAllergy:person.foodAllergy||"",medicalNote:person.medicalNote||""}:{}),
     status:booking.status
   })));
@@ -86,7 +84,6 @@ function managementReport(bookings,financialRows,date,toDate=date){
       parkHouse:lodging.parkHouse,
       parkTent:lodging.parkTent,
       equipmentUnits:equipmentSummary(dailyArrivals).reduce((sum,item)=>sum+item.qty,0),
-      tentCreditDue:lodging.tentCreditDue,
       expectedRevenue,
       deposits,
       actualReceived,
@@ -110,7 +107,6 @@ function managementReport(bookings,financialRows,date,toDate=date){
       actualReceived:today.actualReceived,
       outstanding:today.outstanding,
       sevenDayExpected:rows.reduce((sum,row)=>sum+row.expectedRevenue,0),
-      sevenDayTentCredit:rows.reduce((sum,row)=>sum+row.tentCreditDue,0)
     },
     range:{from:date,to:toDate},incomeMatrix,
     equipment:equipmentSummary(movements(bookings,date).filter(row=>row.movement==="arrival")),

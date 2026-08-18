@@ -1,0 +1,6 @@
+-- Safe to run repeatedly. Stores account splits without rewriting financial events.
+alter table if exists bookings add column if not exists payment_breakdown jsonb not null default '{}'::jsonb;
+create or replace function upsert_booking_v11(p_booking jsonb) returns jsonb language plpgsql security definer as $$
+declare v_result jsonb;v_code text;begin v_result:=upsert_booking_v10(p_booking);v_code:=v_result->>'bookingCode';update bookings set payment_breakdown=coalesce(p_booking->'paymentBreakdown','{}'::jsonb) where booking_code=v_code;return v_result||jsonb_build_object('paymentBreakdown',coalesce(p_booking->'paymentBreakdown','{}'::jsonb));end $$;
+create or replace function list_bookings_json_v11() returns jsonb language plpgsql security definer as $$
+declare v_base jsonb;v_result jsonb:='[]'::jsonb;v_booking jsonb;v_breakdown jsonb;begin v_base:=list_bookings_json_v10();for v_booking in select value from jsonb_array_elements(coalesce(v_base,'[]'::jsonb)) loop select payment_breakdown into v_breakdown from bookings where booking_code=v_booking->>'bookingCode';v_result:=v_result||jsonb_build_array(v_booking||jsonb_build_object('paymentBreakdown',coalesce(v_breakdown,'{}'::jsonb)));end loop;return v_result;end $$;

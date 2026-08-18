@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sabina Tour Booking</title>
-  <link rel="stylesheet" href="css/style.css?v=20260818-8">
+  <link rel="stylesheet" href="css/style.css?v=20260818-9">
 </head>
 <body>
 <div id="globalSavingIndicator" class="saving-indicator hidden" role="status" aria-live="polite">
@@ -44,7 +44,7 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
-    <div id="appVersion" class="app-version">Version 2026.08.18-8</div>
+    <div id="appVersion" class="app-version">Version 2026.08.18-9</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
@@ -104,6 +104,7 @@
               <div><label>ช่องทางมัดจำ</label><select id="depositPaymentMethod"></select></div>
               <div><label>ขายเชื่อ</label><input id="creditAmount" type="number" min="0" step="0.01" value="0" oninput="ensurePaymentMethod('creditPaymentMethod');refreshSummary()"></div>
               <div><label>ช่องทางรับชำระยอดเชื่อ</label><select id="creditPaymentMethod"></select></div>
+              <div class="full"><label>แบ่งยอดตามเงินสด/บัญชีรับเงิน</label><div id="paymentBreakdownEditor" class="table-scroll"></div><small class="muted">กรอกได้หลายช่องทาง ผลรวมแต่ละแถวต้องตรงกับมัดจำ ขายเชื่อ และยอดที่เหลือ</small></div>
               <div><label>เล่มที่</label><input id="receiptBookNo"></div>
               <div><label>เลขที่</label><input id="manualReceiptNo"></div>
               <div><label>เล่มที่ (ตั๋วเรือ)</label><input id="boatTicketBookNo"></div>
@@ -253,6 +254,7 @@
           <div class="full"><label>Description</label><input id="mdpDescription"></div>
           <div><label>Active</label><select id="mdpActive"><option value="true">ใช้งาน</option><option value="false">ปิดใช้งาน</option></select></div>
           <div id="mdpDocumentVisibility" class="full hidden"><label>แสดงรายการนี้ในเอกสาร</label><div class="document-visibility-options"><label><input id="mdpShowRegister" type="checkbox"> ใบยืนยันการจอง</label><label><input id="mdpShowMoneyReceipt" type="checkbox"> ใบสำคัญรับเงิน</label><label><input id="mdpShowEquipmentSlip" type="checkbox"> ใบอุปกรณ์</label><label><input id="mdpShowVanReceipt" type="checkbox"> ใบเสร็จรถตู้</label><label><input id="mdpShowBoatTicket" type="checkbox"> ตั๋วเรือ</label></div><small class="muted">เลือกได้ว่ารายการ Add-on หรือวิธีการเดินทางนี้ต้องแสดงในเอกสารใดบ้าง</small></div>
+          <div id="mdpPaymentSettings" class="full hidden"><label>ตั้งค่าช่องทางรับเงิน</label><div class="document-visibility-options"><label>ประเภท <select id="mdpPaymentType"><option value="cash">เงินสด</option><option value="transfer">โอนธนาคาร</option></select></label><label><input id="mdpShowOnMoneyReceipt" type="checkbox" checked> แสดงบัญชีนี้ในใบสำคัญรับเงิน</label></div><small class="muted">ใบยืนยันการจองจะแสดงเพียง “เงินสด” หรือ “โอนธนาคาร” โดยไม่เปิดเผยชื่อบัญชี</small></div>
         </div>
         <button class="btn primary" onclick="saveMasterDataProItem()">Save</button>
         <button class="btn soft" onclick="closeMasterDataEditor()">Cancel</button>
@@ -337,10 +339,10 @@
   </div>
 </div>
 
-<script src="js/api.js?v=20260818-8"></script>
-<script src="js/smartPaste.js?v=20260818-8"></script>
-<script src="js/csvImport.js?v=20260818-8"></script>
-<script src="js/app.js?v=20260818-8"></script>
-<script src="js/financial.js?v=20260818-8"></script>
+<script src="js/api.js?v=20260818-9"></script>
+<script src="js/smartPaste.js?v=20260818-9"></script>
+<script src="js/csvImport.js?v=20260818-9"></script>
+<script src="js/app.js?v=20260818-9"></script>
+<script src="js/financial.js?v=20260818-9"></script>
 </body>
 </html>

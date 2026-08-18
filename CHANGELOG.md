@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-08-18 - Receipt totals and payment-account presentation
+
+- Removed tent-refund credit from active booking totals, documents, reports, invoice generation, and the passenger editor while preserving historical database columns.
+- Restored passenger food-allergy entry.
+- Replaced competing document subtotals with Booking total, deposit, and net total, plus a money-receipt allocation matrix.
+- Added cash/transfer classification and money-receipt visibility settings to Payment Method Master Data; Register exposes only the generic payment type.
+
 ## 2026-08-18 - A4 insurance summary correction
 
 - Assigned every operational report to an A4 page and made the insurance submission A4 portrait.
