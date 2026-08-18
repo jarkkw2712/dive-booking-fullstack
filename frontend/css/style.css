@@ -201,6 +201,8 @@ textarea{min-height:80px}
   border:1px solid #e5e7eb;
 }
 @page report{size:A4 landscape;margin:10mm}
+@page report-portrait{size:A4 portrait;margin:10mm}
+.report-insurance{page:report-portrait;width:210mm;min-height:297mm}
 .report-header{
   display:flex;
   justify-content:space-between;
@@ -324,4 +326,5 @@ textarea{min-height:80px}
 .document-register .document-total-row:last-child{display:none}
 .document-pax-matrix th,.document-pax-matrix td{text-align:center!important}.document-pax-matrix th{white-space:normal}.document-pax-matrix td{font-weight:800}
 .report-insurance .report-operations{display:none}
+.report-insurance .report-kpis{grid-template-columns:repeat(3,1fr)}
 .document-audit-line{margin-top:24px;padding-top:10px;border-top:1px dashed #b9c7ce;color:#5e6d73;font-size:11px}.document-empty{padding:20px;text-align:center;border:1px dashed #c8d5db;color:#60747d}.document-money_receipt .document-meta+h3,.document-money_receipt .document-pax-table,.document-equipment_slip .document-meta+h3,.document-equipment_slip .document-pax-table,.document-van_receipt .document-meta+h3,.document-van_receipt .document-pax-table,.document-boat_ticket .document-meta+h3,.document-boat_ticket .document-pax-table{display:none}.document-boat_ticket{max-width:760px}.document-boat_ticket .document-total{display:none}

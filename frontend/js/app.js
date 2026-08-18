@@ -73,7 +73,7 @@ async function generatePrintCenterReport(){
     const r=await API.report(date,type,to),summary=r.summary||{},insurance=r.insuranceSummary||{};
     document.getElementById("printCenterOutput").classList.remove("hidden");
     const equipmentRows=r.equipment||[],accommodation=r.accommodation||{};
-    const kpis=type==="insurance"?[["ผู้ใหญ่",insurance.adult||0],["เด็ก",insurance.child||0],["ทารก",insurance.infant||0],["FOC",insurance.foc||0],["รวม",insurance.total||0],...Object.entries(insurance.titleCounts||{}).map(([title,count])=>[`คำนำหน้า ${title}`,count])]:type==="management"?[
+    const kpis=type==="insurance"?[["ผู้ใหญ่",insurance.adult||0],["เด็ก",insurance.child||0],["รวม",insurance.total||0]]:type==="management"?[
       ["Booking วันนี้",summary.bookings],["จำนวนคนวันนี้",summary.pax],["ลงเกาะ",summary.arrivals],["ขึ้นจากเกาะ",summary.departures],
       ["รายได้คาดการณ์วันนี้",money(summary.expectedRevenue)],["รับเงินจริงวันนี้",money(summary.actualReceived)],["ค้างรับวันนี้",money(summary.outstanding)],["คาดการณ์รวม 7 วัน",money(summary.sevenDayExpected)],["เครดิตค่าเต็นท์ 7 วัน",money(summary.sevenDayTentCredit)]
     ]:[

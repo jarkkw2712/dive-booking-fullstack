@@ -151,8 +151,8 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],date,toDate
     title="ใบส่งประกัน";
     purpose="รายชื่อผู้เดินทางสำหรับส่งทำประกัน แยกตามหัวหน้าทริป";
     const people=arrivals.flatMap(({booking})=>passengersOf(booking));
-    const titleCounts=people.reduce((counts,person)=>{const title=person.title||"ไม่ระบุคำนำหน้า";counts[title]=(counts[title]||0)+1;return counts},{});
-    insuranceSummary={adult:people.filter(person=>(person.passengerType||"adult")==="adult").length,child:people.filter(person=>person.passengerType==="child").length,infant:people.filter(person=>person.passengerType==="infant").length,foc:people.filter(person=>person.passengerType==="foc").length,total:people.length,titleCounts};
+    const isChildTitle=person=>["เด็กชาย","เด็กหญิง"].includes(String(person.title||"").trim());
+    insuranceSummary={adult:people.filter(person=>!isChildTitle(person)).length,child:people.filter(isChildTitle).length,total:people.length};
     rows=arrivals.flatMap(({booking})=>passengersOf(booking).map((person,index)=>({leader:index===0?leaderName(booking):"",passenger:personName(person)})));
   }else if(type==="driver"){
     title="Driver Transfer Report";

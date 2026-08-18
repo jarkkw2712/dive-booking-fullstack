@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-08-18 - A4 insurance summary correction
+
+- Assigned every operational report to an A4 page and made the insurance submission A4 portrait.
+- Reduced the insurance header to Adult, Child, and Total, deriving child status strictly from the `เด็กชาย` and `เด็กหญิง` titles.
+
 ## 2026-08-18 - Insurance submission report and document references
 
 - Added a dedicated `printInsuranceReport` Permission Matrix key and a grouped insurance submission report with date, passenger-type totals, title totals, trip leaders, and passenger names.
