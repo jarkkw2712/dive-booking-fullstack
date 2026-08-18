@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-18 - Per-document Add-on visibility
+
+- Added five Master Data checkboxes that control whether each Add-on appears on Register, money receipt, equipment slip, van receipt, and boat ticket.
+- Existing and new Add-ons default to hidden on Register, visible on money/equipment documents, and hidden on van/boat documents.
+- Kept booking and travel information side by side in the compact A4 print layout.
+
 ## 2026-08-18 - A4 document layout and passenger-specific transport tickets
 
 - Changed the Add Booking print action to Booking Confirmation (Register).

@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.08\.18-2/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260818-2`));
+  assert.match(html,/Version 2026\.08\.18-3/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260818-3`));
 });
 test("booking draft fields allow minimum leader contact without travel dates",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
@@ -102,8 +102,8 @@ test("program master prices adult child and infant separately and applies catego
   assert.match(app,/program\.infant_price\?\?program\.default_price/);
   assert.match(app,/passengerType==="foc"\)return 0/);
   assert.match(app,/tiered:true/);
-  assert.match(route,/p\.child_price=req\.body\.child_price/);
-  assert.match(route,/p\.infant_price=req\.body\.infant_price/);
+  assert.match(route,/payload\.child_price=body\.child_price/);
+  assert.match(route,/payload\.infant_price=body\.infant_price/);
 });
 test("login and forced password-change markup is connected without self-service recovery",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");for(const id of ["loginPassword","changePasswordModal","currentPassword","newPassword","userEmail","userTemporaryPassword","saveUserBtn","userSaveMessage"])assert.match(html,new RegExp(`id=["']${id}["']`));for(const id of ["forgotPasswordModal","forgotEmail","resetPasswordModal","resetPassword"])assert.doesNotMatch(html,new RegExp(`id=["']${id}["']`));assert.equal(html.includes('id="loginPassword" type="password" value="1234"'),false);
@@ -163,6 +163,12 @@ test("five document profiles follow the receipt visibility matrix",()=>{
   assert.match(html,/พิมพ์ใบยืนยันการจอง/);assert.match(app,/printCurrentReceipt=function\(\).*renderReceipt\(booking,"REGISTER"\)/);
   assert.match(app,/profile\.title==="ใบเสร็จรถตู้"/);assert.match(app,/รถตู้ - \$\{type\} \(\$\{nationality\}\)/);assert.match(app,/const rank=name=>/);
   const css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");assert.match(css,/@page\{size:A4 portrait;margin:8mm\}/);for(const name of ["money_receipt","van_receipt","boat_ticket"])assert.match(css,new RegExp(`document-${name} \\.document-pax-table`));
+});
+test("Add-on master data controls visibility across all five documents",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_020_addon_document_visibility.sql"),"utf8");
+  for(const id of ["mdpShowRegister","mdpShowMoneyReceipt","mdpShowEquipmentSlip","mdpShowVanReceipt","mdpShowBoatTicket"])assert.match(html,new RegExp(`id=["']${id}["']`));
+  for(const field of ["show_register","show_money_receipt","show_equipment_slip","show_van_receipt","show_boat_ticket"]){assert.match(app,new RegExp(field));assert.match(route,new RegExp(field));assert.match(sql,new RegExp(`add column if not exists ${field}`))}
+  assert.match(app,/function addonVisibleOnDocument/);assert.match(app,/return field==="show_money_receipt"\|\|field==="show_equipment_slip"/);assert.doesNotMatch(app,/if\(profile\.title\.includes\("Register"\)\)\{const groups/);
 });
 test("passenger editor records non-revenue park accommodation",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
