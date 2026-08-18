@@ -114,11 +114,30 @@ function managementReport(bookings,financialRows,date,toDate=date){
   };
 }
 
-export function buildPrintCenterReport({bookings=[],financialRows=[],date,toDate,type}){
+const passengerCounts=booking=>passengersOf(booking).reduce((counts,person)=>{const type=person.passengerType||"adult";counts[type]=(counts[type]||0)+1;return counts},{adult:0,child:0,infant:0,foc:0});
+const uniqueValues=(people,getter)=>[...new Set(people.map(getter).filter(Boolean))].join(", ");
+const programShort=name=>String(name||"").replace(/(\d+)\s*(?:วัน|days?)\s*(\d+)\s*(?:คืน|nights?)/gi,"$1D$2N");
+function dailyRegisterSummary(bookings,date){
+  const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===date),totals={adult:0,child:0,infant:0,foc:0};
+  const rows=daily.map((booking,index)=>{const people=passengersOf(booking),counts=passengerCounts(booking);for(const key of Object.keys(totals))totals[key]+=counts[key];return{no:index+1,leader:leaderName(booking),returnDate:booking.returnDate||"",adult:counts.adult,child:counts.child,infant:counts.infant,foc:counts.foc,program:uniqueValues(people,p=>programShort(p.program?.name)),island:uniqueValues(people,p=>p.island),accommodation:uniqueValues(people,p=>p.accommodationName),transportation:uniqueValues(people,p=>p.transportationMethod)||booking.transportationMethod||"",agent:booking.agentName||"",note:booking.bookingNote||""}});
+  return{date,type:"register_summary",title:"ใบสรุปยอดยืนยันการจอง",purpose:"รายงานประจำวัน",rows,registerTotals:totals,manualTotals:{guide:"",mogan:"",parkOfficer:"",grandTotal:""},summary:{bookings:daily.length,pax:Object.values(totals).reduce((sum,value)=>sum+value,0)}};
+}
+const paymentKind=(name,methods)=>methods.find(method=>method.method_name===name)?.payment_type==="cash"?"cash":"transfer";
+function dailyReceiptSummary(bookings,date,paymentMethods){
+  const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===date),totals={depositCash:0,depositTransfer:0,creditCash:0,creditTransfer:0,balanceCash:0,balanceTransfer:0,totalCash:0,totalTransfer:0,grandTotal:0};
+  const rows=daily.map((booking,index)=>{const deposit=money(booking.depositAmount),credit=money(booking.creditAmount),balance=Math.max(money(booking.totalAmount)-deposit-credit,0),row={no:index+1,agent:booking.agentName||"",leader:leaderName(booking),program:uniqueValues(passengersOf(booking),p=>programShort(p.program?.name)),depositCash:0,depositTransfer:0,creditCash:0,creditTransfer:0,balanceCash:0,balanceTransfer:0,totalCash:0,totalTransfer:0,grandTotal:money(booking.totalAmount)};row[`deposit${paymentKind(booking.depositPaymentMethod,paymentMethods)==="cash"?"Cash":"Transfer"}`]=deposit;row[`credit${paymentKind(booking.creditPaymentMethod,paymentMethods)==="cash"?"Cash":"Transfer"}`]=credit;row[`balance${paymentKind(booking.paymentMethod,paymentMethods)==="cash"?"Cash":"Transfer"}`]=balance;row.totalCash=row.depositCash+row.creditCash+row.balanceCash;row.totalTransfer=row.depositTransfer+row.creditTransfer+row.balanceTransfer;for(const key of Object.keys(totals))totals[key]+=row[key];return row});
+  return{date,type:"receipt_summary",title:"ใบสรุปยอดใบสำคัญรับเงิน",purpose:"รายงานประจำวัน",rows,receiptTotals:totals,summary:{bookings:daily.length,pax:daily.reduce((sum,booking)=>sum+passengersOf(booking).length,0)}};
+}
+function dailyEquipmentSummary(bookings,date){const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===date),groups=new Map();for(const booking of daily)for(const person of passengersOf(booking))for(const addon of person.preAddOns||[]){if(addon.selected===false)continue;const key=addon.id||addon.name||"other",qty=money(addon.qty||1),amount=qty*money(addon.price),row=groups.get(key)||{name:addon.name||key,qty:0,total:0};row.qty+=qty;row.total+=amount;groups.set(key,row)}const rows=[...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,"th")).map((row,index)=>({no:index+1,...row,unitPrice:row.qty?row.total/row.qty:0}));return{date,type:"equipment_summary",title:"รายงานรวมยอดอุปกรณ์",purpose:"รายการเบิกอุปกรณ์ประจำวัน",rows,equipmentTotals:{qty:rows.reduce((sum,row)=>sum+row.qty,0),amount:rows.reduce((sum,row)=>sum+row.total,0)},summary:{bookings:daily.length,pax:rows.reduce((sum,row)=>sum+row.qty,0)}}}
+
+export function buildPrintCenterReport({bookings=[],financialRows=[],paymentMethods=[],date,toDate,type}){
   const active=bookings.filter(activeBooking);
   toDate=toDate||(type==="management"?isoDate(date,6):date);
   const selectedDays=reportDays(date,toDate),entries=selectedDays.flatMap(day=>movements(active,day).map(row=>({...row,date:day})));
   const arrivals=entries.filter(row=>row.movement==="arrival");
+  if(type==="register_summary")return dailyRegisterSummary(active,date);
+  if(type==="receipt_summary")return dailyReceiptSummary(active,date,paymentMethods);
+  if(type==="equipment_summary")return dailyEquipmentSummary(active,date);
   if(type==="management")return{date,type,...managementReport(active,financialRows,date,toDate)};
 
   let title="",purpose="",rows=[],insuranceSummary=null;

@@ -39,6 +39,16 @@ test("management report supports custom ranges and transposed income categories"
   assert.ok(report.incomeMatrix.some(row=>row.category==="รวมรายได้"));
 });
 
+test("daily register receipt and equipment summaries calculate operational totals",()=>{
+  const daily=[{bookingCode:"R1",travelDate:"2026-07-23",returnDate:"2026-07-25",leaderFirstName:"Leader",agentName:"Agent A",status:"confirmed",depositAmount:1000,depositPaymentMethod:"Cash",creditAmount:500,creditPaymentMethod:"Bank",paymentMethod:"Bank",totalAmount:3000,passengers:[{passengerType:"adult",program:{name:"3 days 2 nights"},preAddOns:[{id:"fin",name:"Fin",selected:true,qty:2,price:100}]},{passengerType:"child",program:{name:"3 days 2 nights"},preAddOns:[{id:"fin",name:"Fin",selected:true,qty:1,price:150}]}]}];
+  const register=buildPrintCenterReport({bookings:daily,date:"2026-07-23",type:"register_summary"});
+  assert.deepEqual(register.registerTotals,{adult:1,child:1,infant:0,foc:0});assert.equal(register.rows[0].program,"3D2N");
+  const receipt=buildPrintCenterReport({bookings:daily,paymentMethods:[{method_name:"Cash",payment_type:"cash"},{method_name:"Bank",payment_type:"transfer"}],date:"2026-07-23",type:"receipt_summary"});
+  assert.equal(receipt.receiptTotals.depositCash,1000);assert.equal(receipt.receiptTotals.creditTransfer,500);assert.equal(receipt.receiptTotals.balanceTransfer,1500);assert.equal(receipt.receiptTotals.grandTotal,3000);
+  const equipment=buildPrintCenterReport({bookings:daily,date:"2026-07-23",type:"equipment_summary"});
+  assert.equal(equipment.rows[0].qty,3);assert.equal(equipment.rows[0].total,350);assert.equal(equipment.equipmentTotals.amount,350);
+});
+
 test("credit transport and nationality migration is idempotent and numeric",()=>{
   const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260808_016_credit_transport_nationality_reporting.sql"),"utf8");
   for(const field of ["credit_amount numeric(14,2)","deposit_payment_method","credit_payment_method","nationality_type","pickup_location","transportation_amount numeric(14,2)","default_price numeric(14,2)","upsert_booking_v8","list_bookings_json_v7"])assert.match(sql,new RegExp(field.replace(/[()]/g,"\\$&"),"i"));
