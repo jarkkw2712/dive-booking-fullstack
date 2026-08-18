@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.08\.18-5/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260818-5`));
+  assert.match(html,/Version 2026\.08\.18-6/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260818-6`));
 });
 test("booking draft fields allow minimum leader contact without travel dates",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
@@ -160,7 +160,7 @@ test("five document profiles follow the receipt visibility matrix",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
   for(const type of ["REGISTER","MONEY_RECEIPT","EQUIPMENT_SLIP","VAN_RECEIPT","BOAT_TICKET"]){assert.match(html,new RegExp(`printSelectedReceipt\\('${type}'\\)`));assert.match(app,new RegExp(`${type}:\\{`))}
   assert.match(app,/REGISTER:\{[^}]*contact:true[^}]*source:true[^}]*agent:true[^}]*transport:true/);assert.match(app,/EQUIPMENT_SLIP:\{[^}]*equipment:true/);assert.match(app,/VAN_RECEIPT:\{[^}]*van:true/);assert.match(app,/BOAT_TICKET:\{[^}]*program:true/);assert.match(app,/จัดทำโดย/);assert.match(app,/ข้อมูลแพ้อาหาร/);
-  assert.match(app,/function documentPaxMatrix/);for(const label of ["ผู้ใหญ่ \(ไทย\)","ผู้ใหญ่ \(ต่างชาติ\)","เด็ก \(ไทย\)","เด็ก \(ต่างชาติ\)","ทารก \(ไทย\)","FOC \(ไทย\)"])assert.match(app,new RegExp(label));assert.match(app,/<th>รวม<\/th>/);
+  assert.match(app,/function documentPaxMatrix/);for(const label of ["ผู้ใหญ่ (ไทย)","ผู้ใหญ่ (ต่างชาติ)","เด็ก (ไทย)","เด็ก (ต่างชาติ)","ทารก (ไทย)","FOC (ไทย)"])assert.equal(app.includes(label),true);assert.match(app,/<th>รวม<\/th>/);
   assert.match(html,/พิมพ์ใบยืนยันการจอง/);assert.match(app,/printCurrentReceipt=function\(\).*renderReceipt\(booking,"REGISTER"\)/);
   assert.match(app,/profile\.title==="ใบเสร็จรถตู้"/);assert.match(app,/รถตู้ - \$\{type\} \(\$\{nationality\}\)/);assert.match(app,/const rank=name=>/);
   const css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");assert.match(css,/@page\{size:A4 portrait;margin:8mm\}/);for(const name of ["money_receipt","van_receipt","boat_ticket"])assert.match(css,new RegExp(`document-${name} \\.document-pax-table`));
@@ -175,7 +175,12 @@ test("credit is hidden on Register and transportation visibility is master-drive
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_021_transport_document_visibility.sql"),"utf8");
   assert.match(css,/document-register \.document-total-row:last-child\{display:none\}/);
   assert.match(app,/function transportationVisibleOnDocument/);assert.match(app,/master\.transportationMethods/);assert.match(app,/transportationVisibleOnDocument\(person,booking,profile\)/);
-  assert.match(route,/\["addons","transportation_methods"\]\.includes\(category\)/);assert.match(sql,/alter table if exists master_transportation_methods/);assert.match(sql,/show_van_receipt boolean not null default true/);
+  assert.match(route,/\["addons","transportation_methods","accommodations"\]\.includes\(category\)/);assert.match(sql,/alter table if exists master_transportation_methods/);assert.match(sql,/show_van_receipt boolean not null default true/);
+});
+test("accommodation master controls non-revenue document visibility",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_022_accommodation_document_visibility.sql"),"utf8");
+  assert.match(app,/\["addons","transportation_methods","accommodations"\]\.includes\(mdCat\)/);assert.match(app,/function accommodationVisibleOnDocument/);assert.match(app,/ไม่รวมรายได้/);assert.match(app,/unit:0,total:0/);
+  assert.match(route,/\["addons","transportation_methods","accommodations"\]\.includes\(category\)/);assert.match(sql,/alter table if exists master_accommodations/);assert.match(sql,/show_register boolean not null default true/);assert.doesNotMatch(sql,/delete from/i);
 });
 test("passenger editor records non-revenue park accommodation",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");

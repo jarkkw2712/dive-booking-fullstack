@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-08-18 - Accommodation document visibility
+
+- Added the five document-visibility checkboxes to Accommodation Master Data.
+- Printed grouped accommodation arrangements only on selected documents and explicitly kept their value out of revenue totals.
+
 ## 2026-08-18 - Horizontal passenger summary
 
 - Replaced the vertical passenger summary with a one-row matrix grouped by passenger type and Thai/foreign nationality.
