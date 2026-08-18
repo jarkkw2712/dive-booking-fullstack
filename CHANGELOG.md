@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-08-18 - A4 document layout and passenger-specific transport tickets
+
+- Changed the Add Booking print action to Booking Confirmation (Register).
+- Compacted all booking documents for A4 portrait printing and hid passenger-summary blocks where they are not required.
+- Limited van receipts to passengers with transport purchases and grouped van and boat lines by passenger type and nationality.
+- Standardized item order as program, transportation, equipment/services, then refund credit.
+
 ## 2026-08-18 - Five purpose-built booking documents
 
 - Replaced the generic receipt variants with Register, money receipt, equipment slip, van receipt, and boat ticket profiles.

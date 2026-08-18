@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.08\.18-1/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260818-1`));
+  assert.match(html,/Version 2026\.08\.18-2/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260818-2`));
 });
 test("booking draft fields allow minimum leader contact without travel dates",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
@@ -160,6 +160,9 @@ test("five document profiles follow the receipt visibility matrix",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
   for(const type of ["REGISTER","MONEY_RECEIPT","EQUIPMENT_SLIP","VAN_RECEIPT","BOAT_TICKET"]){assert.match(html,new RegExp(`printSelectedReceipt\\('${type}'\\)`));assert.match(app,new RegExp(`${type}:\\{`))}
   assert.match(app,/REGISTER:\{[^}]*contact:true[^}]*source:true[^}]*agent:true[^}]*transport:true/);assert.match(app,/EQUIPMENT_SLIP:\{[^}]*equipment:true/);assert.match(app,/VAN_RECEIPT:\{[^}]*van:true/);assert.match(app,/BOAT_TICKET:\{[^}]*program:true/);assert.match(app,/จัดทำโดย/);assert.match(app,/ข้อมูลแพ้อาหาร/);
+  assert.match(html,/พิมพ์ใบยืนยันการจอง/);assert.match(app,/printCurrentReceipt=function\(\).*renderReceipt\(booking,"REGISTER"\)/);
+  assert.match(app,/profile\.title==="ใบเสร็จรถตู้"/);assert.match(app,/รถตู้ - \$\{type\} \(\$\{nationality\}\)/);assert.match(app,/const rank=name=>/);
+  const css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");assert.match(css,/@page\{size:A4 portrait;margin:8mm\}/);for(const name of ["money_receipt","van_receipt","boat_ticket"])assert.match(css,new RegExp(`document-${name} \\.document-pax-table`));
 });
 test("passenger editor records non-revenue park accommodation",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
