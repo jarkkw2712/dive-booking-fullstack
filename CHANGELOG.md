@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-18 - Credit and transportation document rules
+
+- Hid credit-sale details from Register while preserving them on the money receipt.
+- Added the five document-visibility checkboxes to transportation methods, including van receipt control.
+- Applied transportation visibility rules to Register and passenger-specific van receipt lines.
+
 ## 2026-08-18 - Per-document Add-on visibility
 
 - Added five Master Data checkboxes that control whether each Add-on appears on Register, money receipt, equipment slip, van receipt, and boat ticket.
