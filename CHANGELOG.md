@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-08-18 - Horizontal passenger summary
+
+- Replaced the vertical passenger summary with a one-row matrix grouped by passenger type and Thai/foreign nationality.
+- Added a computed total column and retained zero-value categories for consistent document reading.
+
 ## 2026-08-18 - Credit and transportation document rules
 
 - Hid credit-sale details from Register while preserving them on the money receipt.
