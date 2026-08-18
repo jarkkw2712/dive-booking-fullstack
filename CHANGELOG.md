@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-18 - Five purpose-built booking documents
+
+- Replaced the generic receipt variants with Register, money receipt, equipment slip, van receipt, and boat ticket profiles.
+- Each document now enforces its own visibility rules for contact, trip, status, price, program, transport, equipment, notes, and allergy information.
+- Added grouped passenger totals without individual passenger names, correct receipt references, audit print metadata, and signature areas.
+
 ## 2026-08-12 - Excel creator and Agent correction
 
 - Replaced the Excel `ต้นฉบับ` value with the authenticated User who originally created the Booking.

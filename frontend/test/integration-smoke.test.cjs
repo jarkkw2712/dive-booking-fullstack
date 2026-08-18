@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.08\.12-4/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260812-4`));
+  assert.match(html,/Version 2026\.08\.18-1/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260818-1`));
 });
 test("booking draft fields allow minimum leader contact without travel dates",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
@@ -153,8 +153,13 @@ test("booking list owns flexible document search while print center remains date
   assert.match(app,/b\.travelDate===d\|\|b\.returnDate===d/);
   for(const field of ["bookingCode","receiptBookNo","manualReceiptNo","leaderFirstName","leaderLastName","phone","contactEmail"])assert.match(app,new RegExp(field));
   assert.match(app,/if\(!date\)return alert/);
-  assert.match(html,/Booking Confirmation/);
+  assert.match(html,/ใบยืนยันการจอง/);
   assert.doesNotMatch(html,/Voucher/i);
+});
+test("five document profiles follow the receipt visibility matrix",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  for(const type of ["REGISTER","MONEY_RECEIPT","EQUIPMENT_SLIP","VAN_RECEIPT","BOAT_TICKET"]){assert.match(html,new RegExp(`printSelectedReceipt\\('${type}'\\)`));assert.match(app,new RegExp(`${type}:\\{`))}
+  assert.match(app,/REGISTER:\{[^}]*contact:true[^}]*source:true[^}]*agent:true[^}]*transport:true/);assert.match(app,/EQUIPMENT_SLIP:\{[^}]*equipment:true/);assert.match(app,/VAN_RECEIPT:\{[^}]*van:true/);assert.match(app,/BOAT_TICKET:\{[^}]*program:true/);assert.match(app,/จัดทำโดย/);assert.match(app,/ข้อมูลแพ้อาหาร/);
 });
 test("passenger editor records non-revenue park accommodation",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
