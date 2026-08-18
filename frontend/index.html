@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sabina Tour Booking</title>
-  <link rel="stylesheet" href="css/style.css?v=20260818-6">
+  <link rel="stylesheet" href="css/style.css?v=20260818-7">
 </head>
 <body>
 <div id="globalSavingIndicator" class="saving-indicator hidden" role="status" aria-live="polite">
@@ -44,12 +44,12 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
-    <div id="appVersion" class="app-version">Version 2026.08.18-6</div>
+    <div id="appVersion" class="app-version">Version 2026.08.18-7</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
     <button onclick="showPage('bookingListPage')">Booking List</button>
-    <button data-any-permission="printCounterReport,printBoatReport,printDailyReport,addIslandAddOn" onclick="showPage('printCenterPage')">Print Center</button>
+    <button data-any-permission="printCounterReport,printBoatReport,printDailyReport,printInsuranceReport,addIslandAddOn" onclick="showPage('printCenterPage')">Print Center</button>
     <button data-permission="viewFinancial" onclick="showPage('financialPage')">Financial</button>
     <button data-permission="editMasterData" onclick="showPage('companyPage')">Company Profile</button>
     <button data-permission="editMasterData" onclick="showPage('masterDataPage')">Master Data</button>
@@ -172,7 +172,7 @@
       </div>
     </section>
 
-    <section id="printCenterPage" class="page" data-any-permission="printCounterReport,printBoatReport,printDailyReport,addIslandAddOn">
+    <section id="printCenterPage" class="page" data-any-permission="printCounterReport,printBoatReport,printDailyReport,printInsuranceReport,addIslandAddOn">
       <h1>Print Center</h1>
       <div class="card">
         <h2>รายงานรวมตามวันที่</h2>
@@ -180,7 +180,7 @@
           <div><label>รูปแบบช่วงเวลา</label><select id="pcPeriod" onchange="applyReportPeriod()"><option value="day">รายวัน</option><option value="week">รายสัปดาห์</option><option value="month">รายเดือน</option><option value="custom">กำหนดช่วงเอง</option></select></div>
           <div><label>วันที่เริ่มต้น</label><input id="pcDate" type="date" onchange="applyReportPeriod()"></div>
           <div><label>วันที่สิ้นสุด</label><input id="pcToDate" type="date"></div>
-          <div><label>Report</label><select id="pcType"><option value="counter" data-any-permission="printCounterReport,printDailyReport">Counter — รายการจองประจำวัน</option><option value="boat" data-any-permission="printBoatReport,printDailyReport">Boat — รายชื่อผู้โดยสารเรือ</option><option value="island" data-any-permission="addIslandAddOn,printBoatReport,printDailyReport">Island — ผู้ลงเกาะ/ขึ้นจากเกาะ</option><option value="insurance" data-any-permission="printCounterReport,printDailyReport">Insurance — ข้อมูลทำประกัน</option><option value="driver" data-any-permission="printCounterReport,printDailyReport">Driver — รายการรับส่ง</option><option value="management" data-any-permission="printDailyReport">CEO / Management — สรุปวันนี้และ 7 วัน</option></select></div>
+          <div><label>Report</label><select id="pcType"><option value="counter" data-any-permission="printCounterReport,printDailyReport">Counter — รายการจองประจำวัน</option><option value="boat" data-any-permission="printBoatReport,printDailyReport">Boat — รายชื่อผู้โดยสารเรือ</option><option value="island" data-any-permission="addIslandAddOn,printBoatReport,printDailyReport">Island — ผู้ลงเกาะ/ขึ้นจากเกาะ</option><option value="insurance" data-any-permission="printInsuranceReport">ใบส่งประกัน</option><option value="driver" data-any-permission="printCounterReport,printDailyReport">Driver — รายการรับส่ง</option><option value="management" data-any-permission="printDailyReport">CEO / Management — สรุปวันนี้และ 7 วัน</option></select></div>
         </div>
         <button class="btn primary" onclick="generatePrintCenterReport()">สร้างรายงาน</button>
         <button class="btn soft" onclick="exportBookingExcel()">ดาวน์โหลด Excel</button>
@@ -337,10 +337,10 @@
   </div>
 </div>
 
-<script src="js/api.js?v=20260818-6"></script>
-<script src="js/smartPaste.js?v=20260818-6"></script>
-<script src="js/csvImport.js?v=20260818-6"></script>
-<script src="js/app.js?v=20260818-6"></script>
-<script src="js/financial.js?v=20260818-6"></script>
+<script src="js/api.js?v=20260818-7"></script>
+<script src="js/smartPaste.js?v=20260818-7"></script>
+<script src="js/csvImport.js?v=20260818-7"></script>
+<script src="js/app.js?v=20260818-7"></script>
+<script src="js/financial.js?v=20260818-7"></script>
 </body>
 </html>

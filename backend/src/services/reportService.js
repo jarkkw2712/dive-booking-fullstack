@@ -125,7 +125,7 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],date,toDate
   const arrivals=entries.filter(row=>row.movement==="arrival");
   if(type==="management")return{date,type,...managementReport(active,financialRows,date,toDate)};
 
-  let title="",purpose="",rows=[];
+  let title="",purpose="",rows=[],insuranceSummary=null;
   if(type==="counter"){
     title="Counter Daily Booking Report";
     purpose="ตรวจรายการจอง ติดต่อผู้โดยสาร และติดตามสถานะหน้าเคาน์เตอร์";
@@ -137,8 +137,6 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],date,toDate
       totalAmount:money(booking.totalAmount),depositAmount:money(booking.depositAmount),
       depositPaymentMethod:booking.depositPaymentMethod||booking.paymentMethod||"",creditAmount:money(booking.creditAmount),creditPaymentMethod:booking.creditPaymentMethod||"",
       balanceAmount:Math.max(money(booking.totalAmount)-money(booking.depositAmount)-money(booking.creditAmount),0),
-      receiptBookNo:booking.receiptBookNo||"",manualReceiptNo:booking.manualReceiptNo||"",
-      boatTicketBookNo:booking.boatTicketBookNo||"",boatTicketNo:booking.boatTicketNo||"",
       agent:booking.agentName||booking.source||""
     }));
   }else if(type==="boat"){
@@ -150,9 +148,12 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],date,toDate
     purpose="รายชื่อผู้ลงเกาะและผู้ขึ้นจากเกาะสำหรับพนักงานประจำเกาะ";
     rows=passengerRows(entries,{includeHealth:true});
   }else if(type==="insurance"){
-    title="Passenger Insurance Report";
-    purpose="ข้อมูลผู้โดยสารขาไปสำหรับจัดทำประกันและตรวจข้อมูลสุขภาพ";
-    rows=passengerRows(arrivals,{includeHealth:true});
+    title="ใบส่งประกัน";
+    purpose="รายชื่อผู้เดินทางสำหรับส่งทำประกัน แยกตามหัวหน้าทริป";
+    const people=arrivals.flatMap(({booking})=>passengersOf(booking));
+    const titleCounts=people.reduce((counts,person)=>{const title=person.title||"ไม่ระบุคำนำหน้า";counts[title]=(counts[title]||0)+1;return counts},{});
+    insuranceSummary={adult:people.filter(person=>(person.passengerType||"adult")==="adult").length,child:people.filter(person=>person.passengerType==="child").length,infant:people.filter(person=>person.passengerType==="infant").length,foc:people.filter(person=>person.passengerType==="foc").length,total:people.length,titleCounts};
+    rows=arrivals.flatMap(({booking})=>passengersOf(booking).map((person,index)=>({leader:index===0?leaderName(booking):"",passenger:personName(person)})));
   }else if(type==="driver"){
     title="Driver Transfer Report";
     purpose="รายการรับส่งหัวหน้ากลุ่ม เบอร์ติดต่อ และจำนวนผู้โดยสาร";
@@ -171,7 +172,7 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],date,toDate
   const reportBookings=type==="counter"?active.filter(booking=>booking.travelDate>=date&&booking.travelDate<=toDate):[...uniqueBookings.values()];
   const reportPax=["counter","driver"].includes(type)?reportBookings.reduce((sum,booking)=>sum+passengersOf(booking).length,0):rows.length;
   return{
-    date,type,title,purpose,range:{from:date,to:toDate},rows,equipment:equipmentSummary(arrivals),accommodation:accommodationSummary(arrivals),
+    date,type,title,purpose,range:{from:date,to:toDate},rows,equipment:equipmentSummary(arrivals),accommodation:accommodationSummary(arrivals),insuranceSummary,
     summary:{
       bookings:reportBookings.length,
       pax:reportPax,

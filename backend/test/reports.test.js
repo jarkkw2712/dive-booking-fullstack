@@ -103,14 +103,21 @@ test("simplified accommodation migration provides editable master data and manua
   assert.match(sql,/list_bookings_json_v3/);
 });
 
-test("counter report exposes email, deposit, balance and manual receipt reference",()=>{
+test("counter report exposes email, deposit and balance without document references",()=>{
   const booking={bookingCode:"DRAFT1",travelDate:"2026-07-23",leaderFirstName:"Draft",phone:"081",contactEmail:"guest@example.com",status:"pending",totalAmount:3000,depositAmount:500,receiptBookNo:"1",manualReceiptNo:"15",passengers:[]};
   const row=buildPrintCenterReport({bookings:[booking],date:"2026-07-23",type:"counter"}).rows[0];
   assert.equal(row.email,"guest@example.com");
   assert.equal(row.depositAmount,500);
   assert.equal(row.balanceAmount,2500);
-  assert.equal(row.receiptBookNo,"1");
-  assert.equal(row.manualReceiptNo,"15");
+  assert.equal("receiptBookNo" in row,false);
+  assert.equal("manualReceiptNo" in row,false);
+});
+
+test("insurance submission groups leader and passenger names with title and age summaries",()=>{
+  const booking={bookingCode:"INS1",travelDate:"2026-07-23",leaderTitle:"นาย",leaderFirstName:"A",status:"confirmed",passengers:[{title:"นาย",firstName:"A",passengerType:"adult"},{title:"เด็กชาย",firstName:"B",passengerType:"child"},{title:"เด็กหญิง",firstName:"C",passengerType:"infant"}]};
+  const report=buildPrintCenterReport({bookings:[booking],date:"2026-07-23",type:"insurance"});
+  assert.equal(report.title,"ใบส่งประกัน");assert.deepEqual(report.rows,[{leader:"นาย A",passenger:"นาย A"},{leader:"",passenger:"เด็กชาย B"},{leader:"",passenger:"เด็กหญิง C"}]);
+  assert.deepEqual({adult:report.insuranceSummary.adult,child:report.insuranceSummary.child,infant:report.insuranceSummary.infant,total:report.insuranceSummary.total},{adult:1,child:1,infant:1,total:3});assert.equal(report.insuranceSummary.titleCounts["เด็กชาย"],1);
 });
 
 test("draft booking migration is idempotent and preserves financial history",()=>{

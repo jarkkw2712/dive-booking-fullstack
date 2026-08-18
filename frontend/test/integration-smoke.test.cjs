@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.08\.18-6/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260818-6`));
+  assert.match(html,/Version 2026\.08\.18-7/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260818-7`));
 });
 test("booking draft fields allow minimum leader contact without travel dates",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
@@ -181,6 +181,11 @@ test("accommodation master controls non-revenue document visibility",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_022_accommodation_document_visibility.sql"),"utf8");
   assert.match(app,/\["addons","transportation_methods","accommodations"\]\.includes\(mdCat\)/);assert.match(app,/function accommodationVisibleOnDocument/);assert.match(app,/ไม่รวมรายได้/);assert.match(app,/unit:0,total:0/);
   assert.match(route,/\["addons","transportation_methods","accommodations"\]\.includes\(category\)/);assert.match(sql,/alter table if exists master_accommodations/);assert.match(sql,/show_register boolean not null default true/);assert.doesNotMatch(sql,/delete from/i);
+});
+test("insurance submission has a dedicated permission and receipt references follow document rules",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),routes=fs.readFileSync(path.resolve(root,"../backend/src/routes/reports.js"),"utf8"),service=fs.readFileSync(path.resolve(root,"../backend/src/services/reportService.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_023_insurance_report_permission.sql"),"utf8");
+  assert.match(html,/value="insurance" data-any-permission="printInsuranceReport">ใบส่งประกัน/);assert.match(routes,/insurance:\["printInsuranceReport"\]/);assert.match(sql,/'printInsuranceReport'/);assert.match(sql,/from app_roles/);
+  assert.match(service,/title="ใบส่งประกัน"/);assert.match(service,/leader:index===0\?leaderName\(booking\):""/);assert.match(app,/type==="MONEY_RECEIPT"\?`<div>เล่มที่ \(ตั๋วเรือ\)/);assert.match(app,/report-\$\{escapeHtml\(type\)\}/);
 });
 test("passenger editor records non-revenue park accommodation",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");

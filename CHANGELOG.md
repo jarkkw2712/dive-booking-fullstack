@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-18 - Insurance submission report and document references
+
+- Added a dedicated `printInsuranceReport` Permission Matrix key and a grouped insurance submission report with date, passenger-type totals, title totals, trip leaders, and passenger names.
+- Removed receipt book/number references from printed documents and operational reports.
+- Limited boat-ticket book/number display to the money receipt only.
+
 ## 2026-08-18 - Accommodation document visibility
 
 - Added the five document-visibility checkboxes to Accommodation Master Data.
