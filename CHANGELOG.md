@@ -6,6 +6,9 @@
 - Added per-passenger outbound date, return date, transportation method, and destination sourced from Transportation Method Master Data.
 - Added removal controls for Island Add-ons and safely consolidates historical passenger Add-ons onto the leader when editing.
 - Enforced strict print-document line boundaries so Register excludes transport and equipment charges, while equipment, van, boat, and money documents only receive their intended line types.
+- Positioned nationality immediately after each passenger surname and split the route into editable outbound/return dates and destinations, defaulting to the Booking dates.
+- Added leader-to-passenger and Apply-to-all travel copying.
+- Replaced prompt-based Island Add-ons with inline editable rows, deletion, payment selection, and per-document visibility stored with each Booking.
 
 ## 2026-08-18 - Receipt totals and payment-account presentation
 

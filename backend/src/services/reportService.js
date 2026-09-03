@@ -46,7 +46,7 @@ function passengerRows(entries,{includeHealth=false}={}){
     nationality:person.nationalityType==="foreign"?"ต่างชาติ":"ไทย",
     age:person.age||"",
     phone:person.phone||booking.phone||"",
-    pickupLocation:person.pickupLocation||"",transportationMethod:person.transportationMethod||booking.transportationMethod||"",transportationAmount:money(person.transportationAmount),passengerTravelDate:person.passengerTravelDate||booking.travelDate||"",passengerReturnDate:person.passengerReturnDate||booking.returnDate||"",transportationDestination:person.transportationDestination||person.pickupLocation||"",
+    pickupLocation:person.pickupLocation||"",transportationMethod:person.transportationMethod||booking.transportationMethod||"",transportationAmount:money(person.transportationAmount),passengerTravelDate:person.passengerTravelDate||booking.travelDate||"",outboundDestination:person.outboundDestination||person.transportationDestination||person.pickupLocation||"",passengerReturnDate:person.passengerReturnDate||booking.returnDate||"",returnDestination:person.returnDestination||"",
     program:person.program?.name||"",
     island:person.island||"",
     accommodation:person.accommodationName||accommodationLabel[person.parkAccommodationType||"none"]||"",
