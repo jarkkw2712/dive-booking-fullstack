@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-03 - Group-level purchases and passenger travel
+
+- Centralized Program controls, accommodation, Pre Add-ons, and Island Add-ons on the trip leader while retaining automatic adult/child/infant/FOC pricing.
+- Added per-passenger outbound date, return date, transportation method, and destination sourced from Transportation Method Master Data.
+- Added removal controls for Island Add-ons and safely consolidates historical passenger Add-ons onto the leader when editing.
+- Enforced strict print-document line boundaries so Register excludes transport and equipment charges, while equipment, van, boat, and money documents only receive their intended line types.
+
 ## 2026-08-18 - Receipt totals and payment-account presentation
 
 - Removed tent-refund credit from active booking totals, documents, reports, invoice generation, and the passenger editor while preserving historical database columns.

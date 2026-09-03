@@ -8,10 +8,10 @@ const normalizeName = value => String(value || "").normalize("NFC").replace(/\s+
 const normalizePhone = value => String(value || "").replace(/\D/g, "").replace(/^66/, "0");
 async function bookingRpc(primary,fallback,args){const result=await supabaseAdmin.rpc(primary,args);return result.error&&fallback?supabaseAdmin.rpc(fallback,args):result}
 
-router.get("/",async(req,res)=>{const {data,error}=await bookingRpc("list_bookings_json_v12","list_bookings_json_v11");if(error)return res.status(500).json({error:error.message});res.json(data||[])});
+router.get("/",async(req,res)=>{const {data,error}=await bookingRpc("list_bookings_json_v13","list_bookings_json_v12");if(error)return res.status(500).json({error:error.message});res.json(data||[])});
 router.post("/check-duplicate",async(req,res)=>{
   const booking=req.body||{};
-  const {data,error}=await bookingRpc("list_bookings_json_v12","list_bookings_json_v11");
+  const {data,error}=await bookingRpc("list_bookings_json_v13","list_bookings_json_v12");
   if(error)return res.status(500).json({error:error.message});
   const candidates=(data||[]).filter(row=>(!booking.travelDate||row.travelDate===booking.travelDate)&&row.bookingCode!==booking.bookingCode&&row.status!=="cancelled");
   const names=new Set((booking.passengers||[]).map(person=>normalizeName(`${person.title||""}${person.firstName||""}${person.lastName||""}`)).filter(Boolean));
@@ -24,8 +24,8 @@ router.post("/check-duplicate",async(req,res)=>{
   }
   res.json({duplicates:[...found.values()]});
 });
-router.post("/",requirePermission("createBooking"),async(req,res)=>{const {data,error}=await bookingRpc("upsert_booking_v11","upsert_booking_v10",{p_booking:{...req.body,createdBy:req.user.username}});if(error)return res.status(500).json({error:error.message});res.json(data)});
-router.put("/:code",requirePermission("editBooking"),async(req,res)=>{const {data,error}=await bookingRpc("upsert_booking_v11","upsert_booking_v10",{p_booking:{...req.body,bookingCode:req.params.code,createdBy:req.user.username}});if(error)return res.status(500).json({error:error.message});res.json(data)});
+router.post("/",requirePermission("createBooking"),async(req,res)=>{const {data,error}=await bookingRpc("upsert_booking_v12","upsert_booking_v11",{p_booking:{...req.body,createdBy:req.user.username}});if(error)return res.status(500).json({error:error.message});res.json(data)});
+router.put("/:code",requirePermission("editBooking"),async(req,res)=>{const {data,error}=await bookingRpc("upsert_booking_v12","upsert_booking_v11",{p_booking:{...req.body,bookingCode:req.params.code,createdBy:req.user.username}});if(error)return res.status(500).json({error:error.message});res.json(data)});
 router.post("/:code/cancel",requirePermission("cancelBooking"),async(req,res)=>{if(!String(req.body.reason||"").trim())return res.status(400).json({error:"Cancellation reason is required"});const {data,error}=await supabaseAdmin.rpc("cancel_booking_by_code",{p_booking_code:req.params.code,p_reason:req.body.reason});if(error)return res.status(500).json({error:error.message});res.json(data)});
 router.get("/:code/timeline",async(req,res)=>{const {data,error}=await supabaseAdmin.from("audit_logs").select("*").eq("booking_code",req.params.code).order("changed_at",{ascending:true});if(error)return res.status(500).json({error:error.message});res.json(data||[])});
 export default router;

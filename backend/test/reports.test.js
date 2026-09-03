@@ -65,7 +65,7 @@ test("booking export exposes immutable creation date",()=>{
 });
 test("booking creator comes from authenticated server user and remains immutable",()=>{
   const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260812_019_booking_creator_export.sql"),"utf8"),route=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8");
-  assert.match(sql,/created_by=coalesce\(created_by/);assert.match(sql,/list_bookings_json_v10/);assert.match(route,/createdBy:req\.user\.username/);assert.match(route,/upsert_booking_v10/);
+  assert.match(sql,/created_by=coalesce\(created_by/);assert.match(sql,/list_bookings_json_v10/);assert.match(route,/createdBy:req\.user\.username/);assert.match(route,/upsert_booking_v12/);
 });
 
 test("island report includes both arrivals and departures on the selected date",()=>{
@@ -145,6 +145,12 @@ test("draft booking migration is idempotent and preserves financial history",()=
 test("payment breakdown migration is idempotent and preserves financial history",()=>{
   const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260818_025_booking_payment_breakdown.sql"),"utf8");
   assert.match(sql,/add column if not exists payment_breakdown jsonb/);assert.match(sql,/upsert_booking_v11/);assert.match(sql,/list_bookings_json_v11/);assert.doesNotMatch(sql,/delete from|truncate/i);
+});
+
+test("passenger travel migration preserves old bookings and exposes per-person dates and destination",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260903_027_passenger_travel_details.sql"),"utf8");
+  for(const field of ["passenger_travel_date","passenger_return_date","transportation_destination","upsert_booking_v12","list_bookings_json_v13"])assert.match(sql,new RegExp(field));
+  assert.match(sql,/add column if not exists/);assert.match(sql,/coalesce\(p\.passenger_travel_date,b\.travel_date\)/);assert.doesNotMatch(sql,/delete from|truncate/i);
 });
 
 test("booking dropdown migration adds editable masters and transportation snapshot",()=>{
