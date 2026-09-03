@@ -12,6 +12,7 @@
 - Fixed Island Add-on printing so booking-level document selections take precedence over the shared `other` Master Data row and remain attached to the correct item after saving.
 - Added a selectable monthly Dashboard chart with daily Booking bars, projected-revenue line, value labels, hover details, monthly totals, and a highlighted current day.
 - Redesigned the CEO report as structured, paginated A4 landscape sheets for executive KPIs, daily outlook, operations, and seven-day revenue-table segments.
+- Consolidated the CEO report to a maximum of two balanced A4 pages, summarizing long-range revenue by category instead of producing extra sheets.
 
 ## 2026-08-18 - Receipt totals and payment-account presentation
 
