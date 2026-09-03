@@ -65,7 +65,7 @@ test("booking export exposes immutable creation date",()=>{
 });
 test("booking creator comes from authenticated server user and remains immutable",()=>{
   const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260812_019_booking_creator_export.sql"),"utf8"),route=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8");
-  assert.match(sql,/created_by=coalesce\(created_by/);assert.match(sql,/list_bookings_json_v10/);assert.match(route,/createdBy:req\.user\.username/);assert.match(route,/upsert_booking_v13/);
+  assert.match(sql,/created_by=coalesce\(created_by/);assert.match(sql,/list_bookings_json_v10/);assert.match(route,/createdBy:req\.user\.username/);assert.match(route,/upsert_booking_v14/);
 });
 
 test("island report includes both arrivals and departures on the selected date",()=>{
@@ -156,6 +156,10 @@ test("separate destinations and Island Add-on document choices are persisted",()
   const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260903_028_passenger_destinations_island_documents.sql"),"utf8");
   for(const field of ["outbound_destination","return_destination","show_register","show_money_receipt","show_equipment_slip","show_van_receipt","show_boat_ticket","upsert_booking_v13","list_bookings_json_v14","documentVisibility"])assert.match(sql,new RegExp(field));
   assert.match(sql,/add column if not exists/);assert.doesNotMatch(sql,/delete from|truncate/i);
+});
+test("Island Add-on visibility is matched to the correct saved row",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260903_029_fix_island_document_visibility.sql"),"utf8");
+  assert.match(sql,/upsert_booking_v14/);assert.match(sql,/addon_name_snapshot/);assert.match(sql,/addon_row_id<>all\(v_used\)/);assert.match(sql,/array_append/);assert.doesNotMatch(sql,/delete from|truncate/i);
 });
 
 test("booking dropdown migration adds editable masters and transportation snapshot",()=>{

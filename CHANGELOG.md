@@ -9,6 +9,7 @@
 - Positioned nationality immediately after each passenger surname and split the route into editable outbound/return dates and destinations, defaulting to the Booking dates.
 - Added leader-to-passenger and Apply-to-all travel copying.
 - Replaced prompt-based Island Add-ons with inline editable rows, deletion, payment selection, and per-document visibility stored with each Booking.
+- Fixed Island Add-on printing so booking-level document selections take precedence over the shared `other` Master Data row and remain attached to the correct item after saving.
 
 ## 2026-08-18 - Receipt totals and payment-account presentation
 
