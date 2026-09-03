@@ -45,14 +45,20 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.03-4/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260903-4`));
+  assert.match(html,/Version 2026\.09\.03-5/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260903-5`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
   for(const id of ["dashboardMonth","dashboardMonthSummary","dashboardChart"])assert.match(html,new RegExp(`id=["']${id}["']`));
   for(const name of ["renderMonthlyDashboardChart","dashboardChartTooltip","hideDashboardChartTooltip"])assert.match(app,new RegExp(`function ${name}`));
   assert.match(app,/booking\.status!=="cancelled"&&booking\.travelDate===date/);assert.match(app,/Booking \$\{day\.bookingCount\} รายการ/);assert.match(app,/dashboard-today/);assert.match(css,/dashboard-revenue-line/);
+});
+test("CEO report is paginated into structured A4 landscape sections",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
+  for(const name of ["managementReportHtml","managementPageHeader","managementForecastTable"])assert.match(app,new RegExp(`function ${name}`));
+  for(const section of ["ภาพรวมสำหรับผู้บริหาร","แนวโน้มการเดินทางและรายได้","ภาพรวมการดำเนินงาน","ตารางสรุปรายได้"])assert.match(app,new RegExp(section));
+  assert.match(app,/chunks\(matrixDates,7\)/);assert.match(app,/if\(type==="management"\)/);assert.match(css,/\.ceo-report-page/);assert.match(css,/page:report/);assert.match(css,/break-after:page/);
 });
 test("booking draft fields allow minimum leader contact without travel dates",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
