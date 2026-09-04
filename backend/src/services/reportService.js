@@ -101,8 +101,13 @@ function managementReport(bookings,financialRows,expenseRows,date,toDate=date){
   const today=rows[0]||{};
   const categoryNames=["ค่าตั๋วเรือ","มัดจำ","ขายเชื่อ","ค่าน้ำ","ค่าน้ำเกาะ","หน้ากาก","ชูชีพ","ฟิน","น้ำแข็ง","เต็นท์","เหมาเรือ","ค่าระวาง","อื่นๆ","รวมรายได้"];
   const incomeMatrix=categoryNames.map(category=>({category,values:Object.fromEntries(days.map(day=>{const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===day);let amount=0;if(category==="ค่าตั๋วเรือ")amount=daily.flatMap(passengersOf).reduce((sum,p)=>sum+money(p.program?.qty||1)*money(p.program?.price),0);else if(category==="มัดจำ")amount=daily.reduce((sum,b)=>sum+money(b.depositAmount),0);else if(category==="ขายเชื่อ")amount=daily.reduce((sum,b)=>sum+money(b.creditAmount),0);else if(category==="รวมรายได้")amount=daily.reduce((sum,b)=>sum+money(b.totalAmount),0);else amount=daily.flatMap(passengersOf).flatMap(p=>[...(p.preAddOns||[]).filter(a=>a.selected),...(p.islandAddOns||[])]).filter(a=>incomeCategory(a.name)===category).reduce((sum,a)=>sum+money(a.qty||1)*money(a.price),0);return[day,amount]}))}));
-  const expenseCategories=[...new Set((expenseRows||[]).map(item=>item.category_name_snapshot||item.categoryName).filter(Boolean))];
-  const expenseMatrix=expenseCategories.map(category=>({category,values:Object.fromEntries(days.map(day=>[day,(expensesByDay.get(day)||[]).filter(item=>(item.category_name_snapshot||item.categoryName)===category).reduce((sum,item)=>sum+money(item.amount),0)]))}));
+  const standardExpenseCategories=[
+    {code:"boat_fee",name:"ค่าธรรมเนียมเรือ"},{code:"thai_adult_fee",name:"คนไทย - ผู้ใหญ่"},{code:"thai_child_fee",name:"คนไทย - เด็ก"},
+    {code:"foreign_adult_fee",name:"ต่างชาติ - ผู้ใหญ่"},{code:"foreign_child_fee",name:"ต่างชาติ - เด็ก"},{code:"tent_fee",name:"ค่าธรรมเนียมกางเต็นท์ (ยอดรวม)"},{code:"ice",name:"ค่าน้ำแข็งประจำวัน"}
+  ];
+  const knownCodes=new Set(standardExpenseCategories.map(item=>item.code)),customExpenseCategories=[];
+  for(const item of expenseRows||[]){const code=item.category_code||item.categoryCode||"other",name=item.category_name_snapshot||item.categoryName||"ค่าใช้จ่ายอื่น";if(!knownCodes.has(code)&&!customExpenseCategories.some(row=>row.code===code&&row.name===name))customExpenseCategories.push({code,name})}
+  const expenseMatrix=[...standardExpenseCategories,...customExpenseCategories].map(category=>({category:category.name,values:Object.fromEntries(days.map(day=>[day,(expensesByDay.get(day)||[]).filter(item=>(item.category_code||item.categoryCode||"other")===category.code&&(knownCodes.has(category.code)||(item.category_name_snapshot||item.categoryName||"ค่าใช้จ่ายอื่น")===category.name)).reduce((sum,item)=>sum+money(item.amount),0)]))}));
   return{
     title:"Management / CEO Daily & 7-Day Forecast",
     purpose:"สรุปภาพรวมสำหรับ CEO และผู้บริหาร พร้อมประมาณการ 7 วัน",

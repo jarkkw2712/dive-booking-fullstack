@@ -48,6 +48,8 @@ test("management report supports custom ranges and transposed income categories"
   assert.ok(report.incomeMatrix.some(row=>row.category==="ค่าตั๋วเรือ"));
   assert.ok(report.incomeMatrix.some(row=>row.category==="ขายเชื่อ"));
   assert.ok(report.incomeMatrix.some(row=>row.category==="รวมรายได้"));
+  assert.equal(report.expenseMatrix.length,7);
+  assert.ok(report.expenseMatrix.every(row=>Object.values(row.values).every(value=>value===0)));
 });
 
 test("daily register receipt and equipment summaries calculate operational totals",()=>{
@@ -173,8 +175,8 @@ test("Island Add-on visibility is matched to the correct saved row",()=>{
   assert.match(sql,/upsert_booking_v14/);assert.match(sql,/addon_name_snapshot/);assert.match(sql,/addon_row_id<>all\(v_used\)/);assert.match(sql,/array_append/);assert.doesNotMatch(sql,/delete from|truncate/i);
 });
 test("CEO operating expenses reduce daily net without rewriting prior revisions",()=>{
-  const report=buildPrintCenterReport({bookings,financialRows:[],expenseRows:[{expense_date:"2026-07-23",category_name_snapshot:"ค่าธรรมเนียมเรือ",amount:100},{expense_date:"2026-07-23",category_name_snapshot:"ค่าน้ำแข็ง",amount:500}],date:"2026-07-23",toDate:"2026-07-24",type:"management"});
-  assert.equal(report.rows[0].operatingExpenses,600);assert.equal(report.rows[0].netAfterExpenses,report.rows[0].expectedRevenue-600);assert.equal(report.expenseMatrix.length,2);assert.equal(report.expenseDetails.length,2);assert.equal(report.summary.totalOperatingExpenses,600);
+  const report=buildPrintCenterReport({bookings,financialRows:[],expenseRows:[{expense_date:"2026-07-23",category_code:"boat_fee",category_name_snapshot:"ค่าธรรมเนียมเรือ",amount:100},{expense_date:"2026-07-23",category_code:"ice",category_name_snapshot:"ค่าน้ำแข็ง",amount:500}],date:"2026-07-23",toDate:"2026-07-24",type:"management"});
+  assert.equal(report.rows[0].operatingExpenses,600);assert.equal(report.rows[0].netAfterExpenses,report.rows[0].expectedRevenue-600);assert.equal(report.expenseMatrix.length,7);assert.equal(report.expenseDetails.length,2);assert.equal(report.summary.totalOperatingExpenses,600);
 });
 
 test("booking dropdown migration adds editable masters and transportation snapshot",()=>{
