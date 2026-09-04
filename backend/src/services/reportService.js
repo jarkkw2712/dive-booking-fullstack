@@ -70,6 +70,7 @@ function managementReport(bookings,financialRows,expenseRows,date,toDate=date){
   const days=reportDays(date,toDate);
   const rows=days.map(day=>{
     const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===day);
+    const dailyPeople=daily.flatMap(passengersOf);
     const dailyArrivals=daily.map(booking=>({booking,direction:"ลงเกาะ",movement:"arrival"}));
     const lodging=accommodationSummary(dailyArrivals);
     const expectedRevenue=daily.reduce((sum,booking)=>sum+money(booking.totalAmount),0);
@@ -79,7 +80,12 @@ function managementReport(bookings,financialRows,expenseRows,date,toDate=date){
     return{
       date:day,
       bookings:daily.length,
-      pax:daily.reduce((sum,booking)=>sum+passengersOf(booking).length,0),
+      pax:dailyPeople.length,
+      adult:dailyPeople.filter(person=>(person.passengerType||"adult")==="adult").length,
+      child:dailyPeople.filter(person=>person.passengerType==="child").length,
+      infant:dailyPeople.filter(person=>person.passengerType==="infant").length,
+      foreign:dailyPeople.filter(person=>person.nationalityType==="foreign").length,
+      foc:dailyPeople.filter(person=>person.passengerType==="foc").length,
       pending:daily.filter(booking=>booking.status==="pending").length,
       confirmed:daily.filter(booking=>booking.status==="confirmed").length,
       checkedIn:daily.filter(booking=>booking.status==="checked-in").length,

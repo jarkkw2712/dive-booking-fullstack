@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.04-2/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260904-2`));
+  assert.match(html,/Version 2026\.09\.04-3/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260904-3`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -59,6 +59,8 @@ test("CEO report is paginated into structured A4 landscape sections",()=>{
   for(const name of ["managementReportHtml","managementPageHeader","managementForecastTable"])assert.match(app,new RegExp(`function ${name}`));
   for(const section of ["ภาพรวมสำหรับผู้บริหาร","แนวโน้มการเดินทางและรายได้","รายได้และภาพรวมการดำเนินงาน","รายได้แยกตามหมวดและรายวัน"])assert.match(app,new RegExp(section));
   assert.match(app,/managementCombinedMatrix/);assert.match(app,/ceo-bottom-operations/);assert.match(app,/firstPage\}\$\{secondPage/);assert.match(app,/if\(type==="management"\)/);assert.match(css,/\.ceo-report-page/);assert.match(css,/page:report/);assert.match(css,/break-after:page/);
+  assert.match(app,/function ceoShortDate/);assert.match(app,/weekdays=\["อา","จ","อ","พ","พฤ","ศ","ส"\]/);assert.match(app,/ceoShortDate\(date\)/);
+  for(const field of ["row.adult","row.child","row.infant","row.foreign","row.foc"])assert.match(app,new RegExp(field.replace(".","\\.")));
 });
 test("CEO expenses are revisioned and Island purchase order is permission controlled",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),api=fs.readFileSync(path.join(root,"js","api.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/operatingExpenses.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260904_030_ceo_expenses_and_island_purchase_order.sql"),"utf8");

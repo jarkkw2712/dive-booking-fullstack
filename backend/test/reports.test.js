@@ -30,6 +30,17 @@ test("management report summarizes today and forecasts seven days without cancel
   assert.equal(report.rows[0].equipmentUnits,2);
 });
 
+test("management daily rows separate age, foreign nationality and FOC counts",()=>{
+  const categorized=[{bookingCode:"PEOPLE",travelDate:"2026-09-04",status:"confirmed",totalAmount:0,passengers:[
+    {passengerType:"adult",nationalityType:"thai"},
+    {passengerType:"child",nationalityType:"foreign"},
+    {passengerType:"infant",nationalityType:"thai"},
+    {passengerType:"foc",nationalityType:"foreign"}
+  ]}];
+  const row=buildPrintCenterReport({bookings:categorized,date:"2026-09-04",type:"management"}).rows[0];
+  assert.deepEqual({adult:row.adult,child:row.child,infant:row.infant,foreign:row.foreign,foc:row.foc,pax:row.pax},{adult:1,child:1,infant:1,foreign:2,foc:1,pax:4});
+});
+
 test("management report supports custom ranges and transposed income categories",()=>{
   const report=buildPrintCenterReport({bookings,date:"2026-07-23",toDate:"2026-07-24",type:"management"});
   assert.equal(report.rows.length,2);
