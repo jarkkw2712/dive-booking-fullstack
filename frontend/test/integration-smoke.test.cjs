@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.04-1/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260904-1`));
+  assert.match(html,/Version 2026\.09\.04-2/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260904-2`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -66,6 +66,7 @@ test("CEO expenses are revisioned and Island purchase order is permission contro
   for(const fn of ["defaultDailyExpenses","loadDailyExpenses","saveDailyExpenses","managementCombinedMatrix","renderIslandPurchaseOrder"])assert.match(app,new RegExp(`function ${fn}`));
   for(const field of ["show_island_purchase_order","save_daily_operating_expenses","daily_expense_batches","daily_expense_items","upsert_booking_v15","list_bookings_json_v15","manageOperatingExpenses","printIslandPurchaseOrder"])assert.match(sql,new RegExp(field));
   assert.match(api,/saveOperatingExpenses/);assert.match(route,/requirePermission\("manageOperatingExpenses"\)/);assert.match(sql,/on delete restrict/);assert.doesNotMatch(sql,/delete from|truncate/i);
+  for(const label of ["1. ค่าธรรมเนียมเรือ","2. ค่าธรรมเนียมบุคคล","3. ค่าธรรมเนียมกางเต็นท์","4. ค่าน้ำแข็ง","5. ค่าใช้จ่ายอื่น ๆ","ผลลัพธ์"])assert.match(app,new RegExp(label.replace(".","\\.")));
 });
 test("booking draft fields allow minimum leader contact without travel dates",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");

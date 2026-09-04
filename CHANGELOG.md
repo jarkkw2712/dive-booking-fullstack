@@ -15,6 +15,7 @@
 - Consolidated the CEO report to a maximum of two balanced A4 pages, summarizing long-range revenue by category instead of producing extra sheets.
 - Restored daily columns in the CEO revenue-category matrix and placed equipment and park accommodation in two balanced boxes beneath it.
 - Added revision-preserving daily operating expenses with CEO net-income reporting, current-day highlighting, and a permission-controlled Island Purchase Order with payment methods.
+- Grouped CEO expense entry into boat, Thai/foreign adult/child, park tent, daily ice, and flexible other-cost sections with explicit quantity, unit price, and result columns.
 
 ## 2026-08-18 - Receipt totals and payment-account presentation
 
