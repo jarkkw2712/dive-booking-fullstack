@@ -64,7 +64,7 @@ function financeMap(financialRows){
 
 const reportDays=(from,to)=>{const days=[];for(let day=from;day<=to&&days.length<366;day=isoDate(day,1))days.push(day);return days};
 const incomeCategory=name=>{const value=String(name||"").toLowerCase();if(value.includes("น้ำแข็ง"))return"น้ำแข็ง";if(value.includes("น้ำเกาะ"))return"ค่าน้ำเกาะ";if(value.includes("น้ำ"))return"ค่าน้ำ";if(value.includes("หน้ากาก"))return"หน้ากาก";if(value.includes("ชูชีพ"))return"ชูชีพ";if(value.includes("ฟิน")||value.includes("ตีนกบ"))return"ฟิน";if(value.includes("เต็นท์"))return"เต็นท์";if(value.includes("เหมาเรือ"))return"เหมาเรือ";if(value.includes("ระวาง"))return"ค่าระวาง";return"อื่นๆ"};
-function managementReport(bookings,financialRows,expenseRows,date,toDate=date){
+function managementReport(bookings,financialRows,expenseRows,date,toDate=date,masterAddOns=[],masterAccommodations=[]){
   const finances=financeMap(financialRows);
   const expensesByDay=new Map();for(const expense of expenseRows||[]){const day=expense.expense_date||expense.expenseDate,current=expensesByDay.get(day)||[];current.push(expense);expensesByDay.set(day,current)}
   const days=reportDays(date,toDate);
@@ -108,6 +108,9 @@ function managementReport(bookings,financialRows,expenseRows,date,toDate=date){
   const knownCodes=new Set(standardExpenseCategories.map(item=>item.code)),customExpenseCategories=[];
   for(const item of expenseRows||[]){const code=item.category_code||item.categoryCode||"other",name=item.category_name_snapshot||item.categoryName||"ค่าใช้จ่ายอื่น";if(!knownCodes.has(code)&&!customExpenseCategories.some(row=>row.code===code&&row.name===name))customExpenseCategories.push({code,name})}
   const expenseMatrix=[...standardExpenseCategories,...customExpenseCategories].map(category=>({category:category.name,values:Object.fromEntries(days.map(day=>[day,(expensesByDay.get(day)||[]).filter(item=>(item.category_code||item.categoryCode||"other")===category.code&&(knownCodes.has(category.code)||(item.category_name_snapshot||item.categoryName||"ค่าใช้จ่ายอื่น")===category.name)).reduce((sum,item)=>sum+money(item.amount),0)]))}));
+  const arrivalEntries=movements(bookings,date).filter(row=>row.movement==="arrival"),usedEquipment=equipmentSummary(arrivalEntries),equipmentByCode=new Map(usedEquipment.map(item=>[item.code,item]));
+  const equipment=[...(masterAddOns||[]).map(item=>equipmentByCode.get(item.addon_id)||{code:item.addon_id,name:item.addon_name,qty:0}),...usedEquipment.filter(item=>!(masterAddOns||[]).some(master=>master.addon_id===item.code))];
+  const arrivalPeople=arrivalEntries.flatMap(({booking})=>passengersOf(booking)),accommodationItems=(masterAccommodations||[]).map(item=>({code:item.accommodation_id,name:item.accommodation_name,qty:arrivalPeople.filter(person=>person.accommodationId===item.accommodation_id).length}));
   return{
     title:"Management / CEO Daily & 7-Day Forecast",
     purpose:"สรุปภาพรวมสำหรับ CEO และผู้บริหาร พร้อมประมาณการ 7 วัน",
@@ -124,8 +127,8 @@ function managementReport(bookings,financialRows,expenseRows,date,toDate=date){
       sevenDayExpected:rows.reduce((sum,row)=>sum+row.expectedRevenue,0),operatingExpenses:today.operatingExpenses||0,netAfterExpenses:today.netAfterExpenses||0,totalOperatingExpenses:rows.reduce((sum,row)=>sum+row.operatingExpenses,0),totalNetAfterExpenses:rows.reduce((sum,row)=>sum+row.netAfterExpenses,0),
     },
     range:{from:date,to:toDate},incomeMatrix,expenseMatrix,expenseDetails:(expenseRows||[]).map(item=>({date:item.expense_date||item.expenseDate,name:item.category_name_snapshot||item.categoryName||"ค่าใช้จ่าย",qty:Number(item.qty||0),unitPrice:money(item.unit_price??item.unitPrice),amount:money(item.amount)})),
-    equipment:equipmentSummary(movements(bookings,date).filter(row=>row.movement==="arrival")),
-    accommodation:accommodationSummary(movements(bookings,date).filter(row=>row.movement==="arrival"))
+    equipment,
+    accommodation:accommodationSummary(arrivalEntries),accommodationItems
   };
 }
 
@@ -145,7 +148,7 @@ function dailyReceiptSummary(bookings,date,paymentMethods){
 }
 function dailyEquipmentSummary(bookings,date){const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===date),groups=new Map();for(const booking of daily)for(const person of passengersOf(booking))for(const addon of person.preAddOns||[]){if(addon.selected===false)continue;const key=addon.id||addon.name||"other",qty=money(addon.qty||1),amount=qty*money(addon.price),row=groups.get(key)||{name:addon.name||key,qty:0,total:0};row.qty+=qty;row.total+=amount;groups.set(key,row)}const rows=[...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,"th")).map((row,index)=>({no:index+1,...row,unitPrice:row.qty?row.total/row.qty:0}));return{date,type:"equipment_summary",title:"รายงานรวมยอดอุปกรณ์",purpose:"รายการเบิกอุปกรณ์ประจำวัน",rows,equipmentTotals:{qty:rows.reduce((sum,row)=>sum+row.qty,0),amount:rows.reduce((sum,row)=>sum+row.total,0)},summary:{bookings:daily.length,pax:rows.reduce((sum,row)=>sum+row.qty,0)}}}
 
-export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows=[],paymentMethods=[],date,toDate,type}){
+export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows=[],paymentMethods=[],masterAddOns=[],masterAccommodations=[],date,toDate,type}){
   const active=bookings.filter(activeBooking);
   toDate=toDate||(type==="management"?isoDate(date,6):date);
   const selectedDays=reportDays(date,toDate),entries=selectedDays.flatMap(day=>movements(active,day).map(row=>({...row,date:day})));
@@ -153,7 +156,7 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows
   if(type==="register_summary")return dailyRegisterSummary(active,date);
   if(type==="receipt_summary")return dailyReceiptSummary(active,date,paymentMethods);
   if(type==="equipment_summary")return dailyEquipmentSummary(active,date);
-  if(type==="management")return{date,type,...managementReport(active,financialRows,expenseRows,date,toDate)};
+  if(type==="management")return{date,type,...managementReport(active,financialRows,expenseRows,date,toDate,masterAddOns,masterAccommodations)};
 
   let title="",purpose="",rows=[],insuranceSummary=null;
   if(type==="counter"){

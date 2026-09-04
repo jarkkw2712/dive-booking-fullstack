@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.04-7/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260904-7`));
+  assert.match(html,/Version 2026\.09\.04-8/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260904-8`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -54,11 +54,11 @@ test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   for(const name of ["renderMonthlyDashboardChart","dashboardChartTooltip","hideDashboardChartTooltip"])assert.match(app,new RegExp(`function ${name}`));
   assert.match(app,/booking\.status!=="cancelled"&&booking\.travelDate===date/);assert.match(app,/barHeight=\(day\.pax\/maxPax\)/);assert.match(app,/ผู้ใหญ่ \$\{day\.adult\}/);assert.match(app,/ค่าใช้จ่ายรวม \$\{money\(day\.expenses\)\}/);assert.match(app,/รายได้สุทธิ \$\{money\(day\.netRevenue\)\}/);assert.match(app,/dashboard-today/);assert.match(css,/dashboard-revenue-line/);
 });
-test("CEO report is paginated into structured A4 landscape sections",()=>{
+test("CEO report is paginated into structured A4 portrait sections",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
   for(const name of ["managementReportHtml","managementPageHeader","managementForecastTable"])assert.match(app,new RegExp(`function ${name}`));
   for(const section of ["ภาพรวมสำหรับผู้บริหาร","แนวโน้มการเดินทางและรายได้","รายได้และภาพรวมการดำเนินงาน","รายได้แยกตามหมวดและรายวัน"])assert.match(app,new RegExp(section));
-  assert.match(app,/managementCombinedMatrix/);assert.match(app,/ceo-bottom-operations/);assert.match(app,/firstPage\}\$\{secondPage/);assert.match(app,/if\(type==="management"\)/);assert.match(css,/\.ceo-report-page/);assert.match(css,/page:report/);assert.match(css,/break-after:page/);
+  assert.match(app,/managementCombinedMatrix/);assert.match(app,/managementOperationsHtml/);assert.match(app,/ceo-first-page-operations/);assert.match(app,/firstPage\}\$\{secondPage/);assert.match(app,/if\(type==="management"\)/);assert.match(css,/\.ceo-report-page/);assert.match(css,/page:report-portrait/);assert.match(css,/break-after:page/);
   assert.match(app,/function ceoShortDate/);assert.match(app,/weekdays=\["อา","จ","อ","พ","พฤ","ศ","ส"\]/);assert.match(app,/ceoShortDate\(date(?:,matrixDates\.length<=7)?\)/);
   for(const field of ["row.adult","row.child","row.infant","row.foreign","row.foc"])assert.match(app,new RegExp(field.replace(".","\\.")));
   assert.match(app,/category:row\.category/);assert.doesNotMatch(app,/category:`รายจ่าย:/);assert.match(app,/\.\.\.expenses,expenseTotal,net/);assert.match(app,/matrixDates\.length<=7/);

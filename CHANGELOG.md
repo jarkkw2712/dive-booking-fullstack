@@ -21,6 +21,7 @@
 - Changed Dashboard bars from Booking count to passenger count and expanded daily hover details with passenger categories, gross revenue, expenses, and net revenue.
 - Kept every CEO expense category inside the primary daily matrix before expense totals and net revenue so A4 clipping cannot hide the breakdown.
 - Always shows the seven standard CEO expense rows even when they are zero and identifies them by red styling without a repeated expense prefix.
+- Changed the two-page CEO report to A4 portrait and moved Master Data-backed equipment and park-accommodation usage onto page one.
 
 ## 2026-08-18 - Receipt totals and payment-account presentation
 

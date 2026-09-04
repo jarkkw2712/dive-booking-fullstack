@@ -52,6 +52,12 @@ test("management report supports custom ranges and transposed income categories"
   assert.ok(report.expenseMatrix.every(row=>Object.values(row.values).every(value=>value===0)));
 });
 
+test("management operations list active master data even when usage is zero",()=>{
+  const report=buildPrintCenterReport({bookings:[],masterAddOns:[{addon_id:"mask",addon_name:"หน้ากาก"}],masterAccommodations:[{accommodation_id:"park_house",accommodation_name:"บ้านพักอุทยาน"}],date:"2026-09-04",type:"management"});
+  assert.deepEqual(report.equipment,[{code:"mask",name:"หน้ากาก",qty:0}]);
+  assert.deepEqual(report.accommodationItems,[{code:"park_house",name:"บ้านพักอุทยาน",qty:0}]);
+});
+
 test("daily register receipt and equipment summaries calculate operational totals",()=>{
   const daily=[{bookingCode:"R1",travelDate:"2026-07-23",returnDate:"2026-07-25",leaderFirstName:"Leader",agentName:"Agent A",status:"confirmed",depositAmount:1000,depositPaymentMethod:"Cash",creditAmount:500,creditPaymentMethod:"Bank",paymentMethod:"Bank",totalAmount:3000,passengers:[{passengerType:"adult",program:{name:"3 days 2 nights"},preAddOns:[{id:"fin",name:"Fin",selected:true,qty:2,price:100}]},{passengerType:"child",program:{name:"3 days 2 nights"},preAddOns:[{id:"fin",name:"Fin",selected:true,qty:1,price:150}]}]}];
   const register=buildPrintCenterReport({bookings:daily,date:"2026-07-23",type:"register_summary"});
