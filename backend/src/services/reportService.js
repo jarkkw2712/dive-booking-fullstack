@@ -118,7 +118,7 @@ function managementReport(bookings,financialRows,expenseRows,date,toDate=date){
       outstanding:today.outstanding,
       sevenDayExpected:rows.reduce((sum,row)=>sum+row.expectedRevenue,0),operatingExpenses:today.operatingExpenses||0,netAfterExpenses:today.netAfterExpenses||0,totalOperatingExpenses:rows.reduce((sum,row)=>sum+row.operatingExpenses,0),totalNetAfterExpenses:rows.reduce((sum,row)=>sum+row.netAfterExpenses,0),
     },
-    range:{from:date,to:toDate},incomeMatrix,expenseMatrix,
+    range:{from:date,to:toDate},incomeMatrix,expenseMatrix,expenseDetails:(expenseRows||[]).map(item=>({date:item.expense_date||item.expenseDate,name:item.category_name_snapshot||item.categoryName||"ค่าใช้จ่าย",qty:Number(item.qty||0),unitPrice:money(item.unit_price??item.unitPrice),amount:money(item.amount)})),
     equipment:equipmentSummary(movements(bookings,date).filter(row=>row.movement==="arrival")),
     accommodation:accommodationSummary(movements(bookings,date).filter(row=>row.movement==="arrival"))
   };
