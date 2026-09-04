@@ -18,6 +18,7 @@
 - Grouped CEO expense entry into boat, Thai/foreign adult/child, park tent, daily ice, and flexible other-cost sections with explicit quantity, unit price, and result columns.
 - Expanded CEO daily reporting with adult, child, infant, foreign, FOC, and total passenger counts, plus Thai weekday date labels such as `ศ 4/9/26`.
 - Auto-loads saved CEO expenses when opening the report or changing its date, prints itemized expense calculations, and shortens crowded date headings to prevent overlap.
+- Changed Dashboard bars from Booking count to passenger count and expanded daily hover details with passenger categories, gross revenue, expenses, and net revenue.
 
 ## 2026-08-18 - Receipt totals and payment-account presentation
 

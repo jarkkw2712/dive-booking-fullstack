@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sabina Tour Booking</title>
-  <link rel="stylesheet" href="css/style.css?v=20260904-4">
+  <link rel="stylesheet" href="css/style.css?v=20260904-5">
 </head>
 <body>
 <div id="globalSavingIndicator" class="saving-indicator hidden" role="status" aria-live="polite">
@@ -44,7 +44,7 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
-    <div id="appVersion" class="app-version">Version 2026.09.04-4</div>
+    <div id="appVersion" class="app-version">Version 2026.09.04-5</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
@@ -72,10 +72,10 @@
       <div class="card dashboard-chart-card">
         <div class="dashboard-chart-header">
           <div>
-            <h2>Booking และรายได้รายเดือน</h2>
+            <h2>จำนวนผู้เดินทางและรายได้รายเดือน</h2>
             <p class="muted">อ้างอิงตามวันเดินทางไป และไม่รวม Booking ที่ยกเลิก</p>
           </div>
-          <div class="dashboard-month-control"><label for="dashboardMonth">เลือกเดือน / ปี</label><input id="dashboardMonth" type="month" onchange="renderMonthlyDashboardChart()"></div>
+          <div class="dashboard-month-control"><label for="dashboardMonth">เลือกเดือน / ปี</label><input id="dashboardMonth" type="month" onchange="loadDashboardMonthChart()"></div>
         </div>
         <div id="dashboardMonthSummary" class="dashboard-month-summary"></div>
         <div id="dashboardChart" class="dashboard-chart" aria-live="polite"></div>
@@ -368,10 +368,10 @@
   </div>
 </div>
 
-<script src="js/api.js?v=20260904-4"></script>
-<script src="js/smartPaste.js?v=20260904-4"></script>
-<script src="js/csvImport.js?v=20260904-4"></script>
-<script src="js/app.js?v=20260904-4"></script>
-<script src="js/financial.js?v=20260904-4"></script>
+<script src="js/api.js?v=20260904-5"></script>
+<script src="js/smartPaste.js?v=20260904-5"></script>
+<script src="js/csvImport.js?v=20260904-5"></script>
+<script src="js/app.js?v=20260904-5"></script>
+<script src="js/financial.js?v=20260904-5"></script>
 </body>
 </html>
