@@ -64,8 +64,9 @@ function financeMap(financialRows){
 
 const reportDays=(from,to)=>{const days=[];for(let day=from;day<=to&&days.length<366;day=isoDate(day,1))days.push(day);return days};
 const incomeCategory=name=>{const value=String(name||"").toLowerCase();if(value.includes("น้ำแข็ง"))return"น้ำแข็ง";if(value.includes("น้ำเกาะ"))return"ค่าน้ำเกาะ";if(value.includes("น้ำ"))return"ค่าน้ำ";if(value.includes("หน้ากาก"))return"หน้ากาก";if(value.includes("ชูชีพ"))return"ชูชีพ";if(value.includes("ฟิน")||value.includes("ตีนกบ"))return"ฟิน";if(value.includes("เต็นท์"))return"เต็นท์";if(value.includes("เหมาเรือ"))return"เหมาเรือ";if(value.includes("ระวาง"))return"ค่าระวาง";return"อื่นๆ"};
-function managementReport(bookings,financialRows,date,toDate=date){
+function managementReport(bookings,financialRows,expenseRows,date,toDate=date){
   const finances=financeMap(financialRows);
+  const expensesByDay=new Map();for(const expense of expenseRows||[]){const day=expense.expense_date||expense.expenseDate,current=expensesByDay.get(day)||[];current.push(expense);expensesByDay.set(day,current)}
   const days=reportDays(date,toDate);
   const rows=days.map(day=>{
     const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===day);
@@ -74,6 +75,7 @@ function managementReport(bookings,financialRows,date,toDate=date){
     const expectedRevenue=daily.reduce((sum,booking)=>sum+money(booking.totalAmount),0);
     const deposits=daily.reduce((sum,booking)=>sum+money(booking.depositAmount),0);
     const actualReceived=daily.reduce((sum,booking)=>sum+money(finances.get(booking.bookingCode)?.net_cash_received),0);
+    const operatingExpenses=(expensesByDay.get(day)||[]).reduce((sum,item)=>sum+money(item.amount),0);
     return{
       date:day,
       bookings:daily.length,
@@ -87,12 +89,14 @@ function managementReport(bookings,financialRows,date,toDate=date){
       expectedRevenue,
       deposits,
       actualReceived,
-      outstanding:Math.max(expectedRevenue-actualReceived,0)
+      outstanding:Math.max(expectedRevenue-actualReceived,0),operatingExpenses,netAfterExpenses:expectedRevenue-operatingExpenses
     };
   });
   const today=rows[0]||{};
   const categoryNames=["ค่าตั๋วเรือ","มัดจำ","ขายเชื่อ","ค่าน้ำ","ค่าน้ำเกาะ","หน้ากาก","ชูชีพ","ฟิน","น้ำแข็ง","เต็นท์","เหมาเรือ","ค่าระวาง","อื่นๆ","รวมรายได้"];
   const incomeMatrix=categoryNames.map(category=>({category,values:Object.fromEntries(days.map(day=>{const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===day);let amount=0;if(category==="ค่าตั๋วเรือ")amount=daily.flatMap(passengersOf).reduce((sum,p)=>sum+money(p.program?.qty||1)*money(p.program?.price),0);else if(category==="มัดจำ")amount=daily.reduce((sum,b)=>sum+money(b.depositAmount),0);else if(category==="ขายเชื่อ")amount=daily.reduce((sum,b)=>sum+money(b.creditAmount),0);else if(category==="รวมรายได้")amount=daily.reduce((sum,b)=>sum+money(b.totalAmount),0);else amount=daily.flatMap(passengersOf).flatMap(p=>[...(p.preAddOns||[]).filter(a=>a.selected),...(p.islandAddOns||[])]).filter(a=>incomeCategory(a.name)===category).reduce((sum,a)=>sum+money(a.qty||1)*money(a.price),0);return[day,amount]}))}));
+  const expenseCategories=[...new Set((expenseRows||[]).map(item=>item.category_name_snapshot||item.categoryName).filter(Boolean))];
+  const expenseMatrix=expenseCategories.map(category=>({category,values:Object.fromEntries(days.map(day=>[day,(expensesByDay.get(day)||[]).filter(item=>(item.category_name_snapshot||item.categoryName)===category).reduce((sum,item)=>sum+money(item.amount),0)]))}));
   return{
     title:"Management / CEO Daily & 7-Day Forecast",
     purpose:"สรุปภาพรวมสำหรับ CEO และผู้บริหาร พร้อมประมาณการ 7 วัน",
@@ -106,9 +110,9 @@ function managementReport(bookings,financialRows,date,toDate=date){
       deposits:today.deposits,
       actualReceived:today.actualReceived,
       outstanding:today.outstanding,
-      sevenDayExpected:rows.reduce((sum,row)=>sum+row.expectedRevenue,0),
+      sevenDayExpected:rows.reduce((sum,row)=>sum+row.expectedRevenue,0),operatingExpenses:today.operatingExpenses||0,netAfterExpenses:today.netAfterExpenses||0,totalOperatingExpenses:rows.reduce((sum,row)=>sum+row.operatingExpenses,0),totalNetAfterExpenses:rows.reduce((sum,row)=>sum+row.netAfterExpenses,0),
     },
-    range:{from:date,to:toDate},incomeMatrix,
+    range:{from:date,to:toDate},incomeMatrix,expenseMatrix,
     equipment:equipmentSummary(movements(bookings,date).filter(row=>row.movement==="arrival")),
     accommodation:accommodationSummary(movements(bookings,date).filter(row=>row.movement==="arrival"))
   };
@@ -130,7 +134,7 @@ function dailyReceiptSummary(bookings,date,paymentMethods){
 }
 function dailyEquipmentSummary(bookings,date){const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===date),groups=new Map();for(const booking of daily)for(const person of passengersOf(booking))for(const addon of person.preAddOns||[]){if(addon.selected===false)continue;const key=addon.id||addon.name||"other",qty=money(addon.qty||1),amount=qty*money(addon.price),row=groups.get(key)||{name:addon.name||key,qty:0,total:0};row.qty+=qty;row.total+=amount;groups.set(key,row)}const rows=[...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,"th")).map((row,index)=>({no:index+1,...row,unitPrice:row.qty?row.total/row.qty:0}));return{date,type:"equipment_summary",title:"รายงานรวมยอดอุปกรณ์",purpose:"รายการเบิกอุปกรณ์ประจำวัน",rows,equipmentTotals:{qty:rows.reduce((sum,row)=>sum+row.qty,0),amount:rows.reduce((sum,row)=>sum+row.total,0)},summary:{bookings:daily.length,pax:rows.reduce((sum,row)=>sum+row.qty,0)}}}
 
-export function buildPrintCenterReport({bookings=[],financialRows=[],paymentMethods=[],date,toDate,type}){
+export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows=[],paymentMethods=[],date,toDate,type}){
   const active=bookings.filter(activeBooking);
   toDate=toDate||(type==="management"?isoDate(date,6):date);
   const selectedDays=reportDays(date,toDate),entries=selectedDays.flatMap(day=>movements(active,day).map(row=>({...row,date:day})));
@@ -138,7 +142,7 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],paymentMeth
   if(type==="register_summary")return dailyRegisterSummary(active,date);
   if(type==="receipt_summary")return dailyReceiptSummary(active,date,paymentMethods);
   if(type==="equipment_summary")return dailyEquipmentSummary(active,date);
-  if(type==="management")return{date,type,...managementReport(active,financialRows,date,toDate)};
+  if(type==="management")return{date,type,...managementReport(active,financialRows,expenseRows,date,toDate)};
 
   let title="",purpose="",rows=[],insuranceSummary=null;
   if(type==="counter"){

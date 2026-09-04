@@ -65,7 +65,7 @@ test("booking export exposes immutable creation date",()=>{
 });
 test("booking creator comes from authenticated server user and remains immutable",()=>{
   const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260812_019_booking_creator_export.sql"),"utf8"),route=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8");
-  assert.match(sql,/created_by=coalesce\(created_by/);assert.match(sql,/list_bookings_json_v10/);assert.match(route,/createdBy:req\.user\.username/);assert.match(route,/upsert_booking_v14/);
+  assert.match(sql,/created_by=coalesce\(created_by/);assert.match(sql,/list_bookings_json_v10/);assert.match(route,/createdBy:req\.user\.username/);assert.match(route,/upsert_booking_v15/);
 });
 
 test("island report includes both arrivals and departures on the selected date",()=>{
@@ -160,6 +160,10 @@ test("separate destinations and Island Add-on document choices are persisted",()
 test("Island Add-on visibility is matched to the correct saved row",()=>{
   const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260903_029_fix_island_document_visibility.sql"),"utf8");
   assert.match(sql,/upsert_booking_v14/);assert.match(sql,/addon_name_snapshot/);assert.match(sql,/addon_row_id<>all\(v_used\)/);assert.match(sql,/array_append/);assert.doesNotMatch(sql,/delete from|truncate/i);
+});
+test("CEO operating expenses reduce daily net without rewriting prior revisions",()=>{
+  const report=buildPrintCenterReport({bookings,financialRows:[],expenseRows:[{expense_date:"2026-07-23",category_name_snapshot:"ค่าธรรมเนียมเรือ",amount:100},{expense_date:"2026-07-23",category_name_snapshot:"ค่าน้ำแข็ง",amount:500}],date:"2026-07-23",toDate:"2026-07-24",type:"management"});
+  assert.equal(report.rows[0].operatingExpenses,600);assert.equal(report.rows[0].netAfterExpenses,report.rows[0].expectedRevenue-600);assert.equal(report.expenseMatrix.length,2);assert.equal(report.summary.totalOperatingExpenses,600);
 });
 
 test("booking dropdown migration adds editable masters and transportation snapshot",()=>{

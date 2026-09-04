@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sabina Tour Booking</title>
-  <link rel="stylesheet" href="css/style.css?v=20260903-7">
+  <link rel="stylesheet" href="css/style.css?v=20260904-1">
 </head>
 <body>
 <div id="globalSavingIndicator" class="saving-indicator hidden" role="status" aria-live="polite">
@@ -44,7 +44,7 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
-    <div id="appVersion" class="app-version">Version 2026.09.03-7</div>
+    <div id="appVersion" class="app-version">Version 2026.09.04-1</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
@@ -154,6 +154,7 @@
             <button class="btn soft full-btn" onclick="printCurrentDocument('EQUIPMENT_SLIP')">ใบอุปกรณ์</button>
             <button class="btn soft full-btn" onclick="printCurrentDocument('VAN_RECEIPT')">ใบเสร็จรถตู้</button>
             <button class="btn soft full-btn" onclick="printCurrentDocument('BOAT_TICKET')">ตั๋วเรือ</button>
+            <button class="btn soft full-btn" data-permission="printIslandPurchaseOrder" onclick="printCurrentDocument('ISLAND_PURCHASE_ORDER')">ใบสั่งซื้อจากเกาะ</button>
           </div>
           <button class="btn danger full-btn" onclick="cancelBooking()">ยกเลิก Booking</button>
         </div>
@@ -185,6 +186,7 @@
             <button class="btn soft" onclick="printSelectedReceipt('EQUIPMENT_SLIP')">ใบอุปกรณ์</button>
             <button class="btn soft" onclick="printSelectedReceipt('VAN_RECEIPT')">ใบเสร็จรถตู้</button>
             <button class="btn soft" onclick="printSelectedReceipt('BOAT_TICKET')">ตั๋วเรือ</button>
+            <button class="btn soft" data-permission="printIslandPurchaseOrder" onclick="printSelectedReceipt('ISLAND_PURCHASE_ORDER')">ใบสั่งซื้อจากเกาะ</button>
             <button class="btn soft" onclick="loadTimeline()">Timeline</button>
           </div>
           <div id="timelineRoot"></div>
@@ -204,6 +206,14 @@
         </div>
         <button class="btn primary" onclick="generatePrintCenterReport()">สร้างรายงาน</button>
         <button class="btn soft" onclick="exportBookingExcel()">ดาวน์โหลด Excel</button>
+      </div>
+      <div id="ceoExpenseEditor" class="card permission-hidden" data-permission="manageOperatingExpenses">
+        <div class="section-title-row"><div><h2>ค่าใช้จ่ายประจำวันสำหรับรายงาน CEO</h2><p class="muted">บันทึกตามวันที่เริ่มต้นด้านบน ระบบเก็บ revision เดิมไว้ตรวจสอบย้อนหลัง</p></div><button class="btn soft" onclick="loadDailyExpenses()">โหลดค่าเดิม</button></div>
+        <div id="ceoExpenseRows"></div>
+        <button class="btn soft" onclick="addDailyExpenseRow()">+ เพิ่มค่าใช้จ่ายอื่น</button>
+        <div class="form-grid one"><div><label>หมายเหตุค่าใช้จ่าย</label><input id="ceoExpenseNote"></div></div>
+        <button class="btn primary" onclick="saveDailyExpenses()">บันทึกค่าใช้จ่ายของวันนี้</button>
+        <div id="ceoExpenseStatus" class="muted"></div>
       </div>
       <div id="printCenterOutput" class="card print-doc"></div>
     </section>
@@ -272,7 +282,7 @@
           <div><label>Sort</label><input id="mdpSort" type="number" value="0"></div>
           <div class="full"><label>Description</label><input id="mdpDescription"></div>
           <div><label>Active</label><select id="mdpActive"><option value="true">ใช้งาน</option><option value="false">ปิดใช้งาน</option></select></div>
-          <div id="mdpDocumentVisibility" class="full hidden"><label>แสดงรายการนี้ในเอกสาร</label><div class="document-visibility-options"><label><input id="mdpShowRegister" type="checkbox"> ใบยืนยันการจอง</label><label><input id="mdpShowMoneyReceipt" type="checkbox"> ใบสำคัญรับเงิน</label><label><input id="mdpShowEquipmentSlip" type="checkbox"> ใบอุปกรณ์</label><label><input id="mdpShowVanReceipt" type="checkbox"> ใบเสร็จรถตู้</label><label><input id="mdpShowBoatTicket" type="checkbox"> ตั๋วเรือ</label></div><small class="muted">เลือกได้ว่ารายการ Add-on หรือวิธีการเดินทางนี้ต้องแสดงในเอกสารใดบ้าง</small></div>
+          <div id="mdpDocumentVisibility" class="full hidden"><label>แสดงรายการนี้ในเอกสาร</label><div class="document-visibility-options"><label><input id="mdpShowRegister" type="checkbox"> ใบยืนยันการจอง</label><label><input id="mdpShowMoneyReceipt" type="checkbox"> ใบสำคัญรับเงิน</label><label><input id="mdpShowEquipmentSlip" type="checkbox"> ใบอุปกรณ์</label><label><input id="mdpShowVanReceipt" type="checkbox"> ใบเสร็จรถตู้</label><label><input id="mdpShowBoatTicket" type="checkbox"> ตั๋วเรือ</label><label id="mdpIslandPurchaseVisibility"><input id="mdpShowIslandPurchaseOrder" type="checkbox"> ใบสั่งซื้อจากเกาะ</label></div><small class="muted">เลือกได้ว่ารายการ Add-on หรือวิธีการเดินทางนี้ต้องแสดงในเอกสารใดบ้าง</small></div>
           <div id="mdpPaymentSettings" class="full hidden"><label>ตั้งค่าช่องทางรับเงิน</label><div class="document-visibility-options"><label>ประเภท <select id="mdpPaymentType"><option value="cash">เงินสด</option><option value="transfer">โอนธนาคาร</option></select></label><label><input id="mdpShowOnMoneyReceipt" type="checkbox" checked> แสดงบัญชีนี้ในใบสำคัญรับเงิน</label></div><small class="muted">ใบยืนยันการจองจะแสดงเพียง “เงินสด” หรือ “โอนธนาคาร” โดยไม่เปิดเผยชื่อบัญชี</small></div>
         </div>
         <button class="btn primary" onclick="saveMasterDataProItem()">Save</button>
@@ -358,10 +368,10 @@
   </div>
 </div>
 
-<script src="js/api.js?v=20260903-7"></script>
-<script src="js/smartPaste.js?v=20260903-7"></script>
-<script src="js/csvImport.js?v=20260903-7"></script>
-<script src="js/app.js?v=20260903-7"></script>
-<script src="js/financial.js?v=20260903-7"></script>
+<script src="js/api.js?v=20260904-1"></script>
+<script src="js/smartPaste.js?v=20260904-1"></script>
+<script src="js/csvImport.js?v=20260904-1"></script>
+<script src="js/app.js?v=20260904-1"></script>
+<script src="js/financial.js?v=20260904-1"></script>
 </body>
 </html>

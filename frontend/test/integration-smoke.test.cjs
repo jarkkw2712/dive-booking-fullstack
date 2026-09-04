@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.03-7/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260903-7`));
+  assert.match(html,/Version 2026\.09\.04-1/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260904-1`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -58,7 +58,14 @@ test("CEO report is paginated into structured A4 landscape sections",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
   for(const name of ["managementReportHtml","managementPageHeader","managementForecastTable"])assert.match(app,new RegExp(`function ${name}`));
   for(const section of ["ภาพรวมสำหรับผู้บริหาร","แนวโน้มการเดินทางและรายได้","รายได้และภาพรวมการดำเนินงาน","รายได้แยกตามหมวดและรายวัน"])assert.match(app,new RegExp(section));
-  assert.match(app,/matrixDates\.map/);assert.match(app,/ceo-bottom-operations/);assert.match(app,/firstPage\}\$\{secondPage/);assert.match(app,/if\(type==="management"\)/);assert.match(css,/\.ceo-report-page/);assert.match(css,/page:report/);assert.match(css,/break-after:page/);
+  assert.match(app,/managementCombinedMatrix/);assert.match(app,/ceo-bottom-operations/);assert.match(app,/firstPage\}\$\{secondPage/);assert.match(app,/if\(type==="management"\)/);assert.match(css,/\.ceo-report-page/);assert.match(css,/page:report/);assert.match(css,/break-after:page/);
+});
+test("CEO expenses are revisioned and Island purchase order is permission controlled",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),api=fs.readFileSync(path.join(root,"js","api.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/operatingExpenses.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260904_030_ceo_expenses_and_island_purchase_order.sql"),"utf8");
+  for(const id of ["ceoExpenseEditor","ceoExpenseRows","ceoExpenseNote","mdpShowIslandPurchaseOrder"])assert.match(html,new RegExp(`id=["']${id}["']`));
+  for(const fn of ["defaultDailyExpenses","loadDailyExpenses","saveDailyExpenses","managementCombinedMatrix","renderIslandPurchaseOrder"])assert.match(app,new RegExp(`function ${fn}`));
+  for(const field of ["show_island_purchase_order","save_daily_operating_expenses","daily_expense_batches","daily_expense_items","upsert_booking_v15","list_bookings_json_v15","manageOperatingExpenses","printIslandPurchaseOrder"])assert.match(sql,new RegExp(field));
+  assert.match(api,/saveOperatingExpenses/);assert.match(route,/requirePermission\("manageOperatingExpenses"\)/);assert.match(sql,/on delete restrict/);assert.doesNotMatch(sql,/delete from|truncate/i);
 });
 test("booking draft fields allow minimum leader contact without travel dates",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");

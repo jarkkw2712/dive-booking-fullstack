@@ -8,5 +8,6 @@ Financial history must not be hard-deleted during rollback.
 4. Leave financial tables and events in Supabase intact for audit and recovery.
 5. If a PostgreSQL function causes a problem, restore only that function from the prior database backup or replace it with a corrected migration. Do not drop invoice, payment, receipt, refund, allocation, or event tables.
 6. Restore the full database backup only for a confirmed database-wide incident and only after preserving post-backup financial records for reconciliation.
+7. For the CEO-expense/Island Purchase Order release, disable `manageOperatingExpenses` and `printIslandPurchaseOrder`, then roll back frontend/backend. Keep `daily_expense_batches` and `daily_expense_items`; they are revision history and must not be dropped or deleted.
 
 The schema migrations intentionally have no destructive automatic down migration.

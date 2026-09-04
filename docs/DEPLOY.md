@@ -37,6 +37,7 @@ Migration 016 adds booking credit/payment-method snapshots, per-passenger nation
 Migration 017 adds separate boat-ticket book and serial references. Run it after migration 016 before deploying version 2026.08.08-2.
 Migration 018 exposes the immutable booking creation timestamp for Excel exports. Run it after migration 017 before deploying version 2026.08.12-1.
 Migration 019 records the authenticated Booking creator once and backfills historical creators from the earliest available audit entry. Run it after migration 018 before deploying version 2026.08.12-4.
+Migration 030 adds revision-preserving daily operating expenses, CEO net reporting support, Island Purchase Order visibility, and two new permissions. Run `20260904_030_ceo_expenses_and_island_purchase_order.sql` after migration 029 and before deploying version 2026.09.04-1. Users must sign in again after the migration so their JWT contains the new permissions.
 
 ## 3. Render
 
