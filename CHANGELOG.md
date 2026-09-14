@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09-14 - Booking edit reliability
+
+- Added visible success and failure feedback to Booking updates, prevents duplicate clicks while saving, refreshes saved data, and hides edit actions from users without `editBooking` permission.
+
 ## 2026-09-03 - Group-level purchases and passenger travel
 
 - Centralized Program controls, accommodation, Pre Add-ons, and Island Add-ons on the trip leader while retaining automatic adult/child/infant/FOC pricing.

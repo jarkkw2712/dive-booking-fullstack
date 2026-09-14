@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sabina Tour Booking</title>
-  <link rel="stylesheet" href="css/style.css?v=20260904-8">
+  <link rel="stylesheet" href="css/style.css?v=20260914-1">
 </head>
 <body>
 <div id="globalSavingIndicator" class="saving-indicator hidden" role="status" aria-live="polite">
@@ -44,7 +44,7 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
-    <div id="appVersion" class="app-version">Version 2026.09.04-8</div>
+    <div id="appVersion" class="app-version">Version 2026.09.14-1</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
@@ -144,7 +144,7 @@
           <div id="summary"></div>
           <h2>รวม <span id="grandTotal">0</span> บาท</h2>
           <button id="saveNewBtn" class="btn primary full-btn" onclick="saveBooking()">บันทึก Booking ใหม่</button>
-          <button id="saveEditBtn" class="btn primary full-btn hidden" onclick="updateBooking()">บันทึกการแก้ไข</button>
+          <button id="saveEditBtn" class="btn primary full-btn hidden" data-permission="editBooking" onclick="updateBooking()">บันทึกการแก้ไข</button>
           <button class="btn soft full-btn" onclick="startNewBooking()">+ เริ่ม Booking ใหม่</button>
           <button id="newBookingPrintButton" class="btn soft full-btn" onclick="printCurrentReceipt()">พิมพ์ใบยืนยันการจอง</button>
           <div id="editBookingPrintActions" class="hidden edit-booking-print-actions">
@@ -179,8 +179,8 @@
           <h2>Booking Detail</h2>
           <div id="bookingDetail">เลือก Booking ทางซ้าย</div>
           <div class="btn-row">
-            <button class="btn primary" onclick="editSelectedBooking()">เปิดแก้ไข Booking</button>
-            <button class="btn soft" onclick="backToBookingEditor()">ย้อนกลับไปหน้าแก้ไข</button>
+            <button class="btn primary" data-permission="editBooking" onclick="editSelectedBooking()">เปิดแก้ไข Booking</button>
+            <button class="btn soft" data-permission="editBooking" onclick="backToBookingEditor()">ย้อนกลับไปหน้าแก้ไข</button>
             <button class="btn soft" onclick="printSelectedReceipt('REGISTER')">ใบยืนยันการจอง</button>
             <button class="btn soft" onclick="printSelectedReceipt('MONEY_RECEIPT')">ใบสำคัญรับเงิน</button>
             <button class="btn soft" onclick="printSelectedReceipt('EQUIPMENT_SLIP')">ใบอุปกรณ์</button>
@@ -368,10 +368,10 @@
   </div>
 </div>
 
-<script src="js/api.js?v=20260904-8"></script>
-<script src="js/smartPaste.js?v=20260904-8"></script>
-<script src="js/csvImport.js?v=20260904-8"></script>
-<script src="js/app.js?v=20260904-8"></script>
-<script src="js/financial.js?v=20260904-8"></script>
+<script src="js/api.js?v=20260914-1"></script>
+<script src="js/smartPaste.js?v=20260914-1"></script>
+<script src="js/csvImport.js?v=20260914-1"></script>
+<script src="js/app.js?v=20260914-1"></script>
+<script src="js/financial.js?v=20260914-1"></script>
 </body>
 </html>

@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.04-8/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260904-8`));
+  assert.match(html,/Version 2026\.09\.14-1/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260914-1`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -103,6 +103,12 @@ test("booking dropdowns are master-driven and new booking fully resets edit stat
   assert.match(app,/function startNewBooking\(\)\{editingCode=null;selectedBooking=null/);
   for(const field of ["travelDate","returnDate","leaderFirstName","phone","contactEmail","receiptBookNo","manualReceiptNo","bookingNote","passengerText"])assert.match(app,new RegExp(field));
   for(const table of ["master_customer_sources","master_transportation_methods","master_payment_methods"])assert.match(masterRoute,new RegExp(table));
+});
+test("booking edit gives reliable feedback and respects edit permission",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  assert.match(html,/id="saveEditBtn"[^>]*data-permission="editBooking"/);
+  assert.match(html,/data-permission="editBooking" onclick="editSelectedBooking\(\)"/);
+  assert.match(app,/async function updateBooking\(\).*hasPermission\("editBooking"\).*button\.disabled=true.*try\{.*API\.updateBooking.*bookings=await API\.bookings\(\).*catch\(error\).*บันทึกการแก้ไขไม่สำเร็จ.*finally/s);
 });
 test("passenger composition auto-builds adult child infant and FOC placeholders",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
