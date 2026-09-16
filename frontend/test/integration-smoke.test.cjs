@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.16-3/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260916-3`));
+  assert.match(html,/Version 2026\.09\.16-4/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260916-4`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -195,6 +195,14 @@ test("five document profiles follow the receipt visibility matrix",()=>{
   assert.match(html,/id="editBookingPrintActions"/);for(const type of ["REGISTER","MONEY_RECEIPT","EQUIPMENT_SLIP","VAN_RECEIPT","BOAT_TICKET"])assert.match(html,new RegExp(`printCurrentDocument\\('${type}'\\)`));assert.match(app,/function toggleEditBookingPrintActions/);
   assert.match(app,/profile\.title==="ใบเสร็จรถตู้"/);assert.match(app,/รถตู้ - \$\{type\} \(\$\{nationality\}\)/);assert.match(app,/const rank=name=>/);
   const css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");assert.match(css,/@page\{size:A4 portrait;margin:8mm\}/);for(const name of ["money_receipt","van_receipt","boat_ticket"])assert.match(css,new RegExp(`document-${name} \\.document-pax-table`));
+});
+test("print document headers keep company and title in balanced A4 columns",()=>{
+  const css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
+  assert.match(css,/grid-template-columns:minmax\(0,1fr\) minmax\(0,1\.12fr\)/);
+  assert.match(css,/\.document-company>div\{[^}]*min-width:0[^}]*line-height:1\.42/s);
+  assert.match(css,/\.document-title h1\{[^}]*white-space:nowrap/s);
+  assert.match(css,/\.document-register \.document-title h1\{font-size:30px\}/);
+  assert.match(css,/@media print\{[\s\S]*\.document-register \.document-title h1\{font-size:25px\}/);
 });
 test("Add-on master data controls visibility across all five documents",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_020_addon_document_visibility.sql"),"utf8");
