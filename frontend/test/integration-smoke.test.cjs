@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.16-2/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260916-2`));
+  assert.match(html,/Version 2026\.09\.16-3/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260916-3`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -260,7 +260,7 @@ test("simple accommodation fields follow Program Tour and use editable master da
 test("payment masters drive receipt accounts and booking totals use one source",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_024_payment_method_receipt_settings.sql"),"utf8");
   for(const id of ["mdpPaymentSettings","mdpPaymentType","mdpShowOnMoneyReceipt"])assert.match(html,new RegExp(`id=["']${id}["']`));assert.match(route,/payload\.payment_type/);assert.match(route,/payload\.show_on_money_receipt/);assert.match(sql,/payment_type text not null default 'transfer'/);assert.match(sql,/show_on_money_receipt boolean not null default true/);
-  assert.match(app,/function documentFinancialSummary/);assert.match(app,/ยอดรวมรายการในเอกสาร/);assert.match(app,/ยอดสุทธิ/);assert.match(app,/documentGroupedItems\(booking,profile\)\.reduce/);assert.match(app,/function moneyReceiptAllocationTable\(booking,documentTotal\)/);assert.match(app,/paymentTypeLabel/);assert.match(app,/documentGroupedItemsWithoutTentRefund/);
+  assert.match(app,/function documentFinancialSummary/);assert.match(app,/<span>ยอดรวม<\/span>/);assert.doesNotMatch(app,/รายการในเอกสาร/);assert.match(app,/ยอดสุทธิ/);assert.match(app,/documentGroupedItems\(booking,profile\)\.reduce/);assert.match(app,/function moneyReceiptAllocationTable\(booking,documentTotal\)/);assert.match(app,/paymentTypeLabel/);assert.match(app,/documentGroupedItemsWithoutTentRefund/);
   assert.match(html,/id="paymentBreakdownEditor"/);assert.match(app,/paymentBreakdown=structuredClone/);assert.match(app,/paymentBreakdownSum/);assert.match(app,/ยอดแบ่งบัญชีแถว/);
 });
 test("active HTML does not contain known Thai mojibake markers",()=>{
