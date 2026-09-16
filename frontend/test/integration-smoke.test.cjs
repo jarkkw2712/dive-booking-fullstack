@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.16-4/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260916-4`));
+  assert.match(html,/Version 2026\.09\.16-5/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260916-5`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -203,6 +203,15 @@ test("print document headers keep company and title in balanced A4 columns",()=>
   assert.match(css,/\.document-title h1\{[^}]*white-space:nowrap/s);
   assert.match(css,/\.document-register \.document-title h1\{font-size:30px\}/);
   assert.match(css,/@media print\{[\s\S]*\.document-register \.document-title h1\{font-size:25px\}/);
+});
+test("every printable booking document has an immediate cached Sabina company header",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  for(const value of ["Sabina Tour Surin Islands","369 ม.3 ต.คุระ อ.คุระบุรี จ.พังงา 82150","081 737 2625","เลขประจำตัวผู้เสียภาษี","เล่มที่ (ตั๋วเรือ)","เลขที่ (ตั๋วเรือ)"])assert.equal(app.includes(value),true);
+  assert.match(app,/function refreshCompanySettings/);assert.match(app,/function cacheCompanyLogo/);assert.match(app,/company_logo_cache/);
+  assert.match(app,/function clearSessionPreservingCompany/);
+  assert.match(app,/Promise\.all\(\[loadMaster\(\),refreshCompanySettings\(\)\]\)/);
+  assert.match(app,/function standardDocumentHeader/);assert.match(app,/renderReceiptWithStandardHeader/);
+  assert.match(app,/document\.fonts.*document\.images/s);
 });
 test("Add-on master data controls visibility across all five documents",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_020_addon_document_visibility.sql"),"utf8");

@@ -5,6 +5,7 @@
 - Made the “แสดงรายการนี้ในเอกสาร” selections the single source of truth for Add-ons, transportation, accommodation, and Island Add-ons across Booking summaries and printable documents.
 - Removed legacy document-name filters that silently hid selected items, and added a Booking summary of selected lines with their target documents.
 - Rebalanced printable document headers into spacious company and document-title columns for cleaner A4 output.
+- Added an immediate Sabina company-profile fallback, startup profile refresh, cached logo data, and image-ready printing so every booking document consistently includes the full company and boat-ticket reference header.
 
 ## 2026-09-16 - Per-passenger programs and document totals
 
