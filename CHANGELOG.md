@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-16 - Per-passenger programs and document totals
+
+- Restored editable Program, quantity, and price controls for every passenger while keeping group purchases on the leader and providing explicit Apply Program/price-to-all controls.
+- Changed printable document totals and money-receipt remaining allocations to calculate from the exact line items visible on each document instead of the stored Booking total.
+
 ## 2026-09-14 - Booking edit reliability
 
 - Added visible success and failure feedback to Booking updates, prevents duplicate clicks while saving, refreshes saved data, and hides edit actions from users without `editBooking` permission.

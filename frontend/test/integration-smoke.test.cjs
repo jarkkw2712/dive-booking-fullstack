@@ -25,7 +25,7 @@ test("large groups support apply-all and CSV preview import",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
   for(const id of ["csvImportModal","csvPassengerFile","csvImportSummary","csvImportPreview","csvImportMode","confirmCsvImportBtn"])assert.match(html,new RegExp(`id=["']${id}["']`));
   for(const name of ["copyLeaderPackageToAll","previewPassengerCsv","confirmPassengerCsvImport","downloadPassengerCsvTemplate"])assert.match(app,new RegExp(`function ${name}`));
-  assert.match(app,/function applyLeaderPackageToPassenger/);assert.match(app,/person\.program\.price=Number\(leader\.program\?\.price/);assert.match(app,/person\.preAddOns=structuredClone\(leader\.preAddOns/);assert.match(app,/แทนที่รายชื่อเดิม|csvImportMode/);
+  assert.match(app,/function applyLeaderPackageToPassenger/);assert.match(app,/person\.program\.price=Number\(leader\.program\?\.price/);assert.doesNotMatch(app,/person\.preAddOns=structuredClone\(leader\.preAddOns/);assert.match(app,/Apply Program\/ราคาให้ผู้โดยสารทุกคน/);assert.match(app,/แทนที่รายชื่อเดิม|csvImportMode/);
 });
 test("Excel export uses immutable creator User and a separate Agent column",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.14-1/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260914-1`));
+  assert.match(html,/Version 2026\.09\.16-1/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260916-1`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -206,6 +206,7 @@ test("group purchases stay on the leader and passenger travel remains per person
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/bookings.js"),"utf8");
   for(const field of ["passengerTravelDate","passengerReturnDate","transportationDestination"])assert.match(app,new RegExp(field));
   assert.match(app,/function centralizeGroupPurchases/);assert.match(app,/function applyGroupBookingUi/);assert.match(app,/function removeIslandAddon/);assert.match(app,/leader\.islandAddOns\.splice/);
+  assert.match(app,/section\.classList\.toggle\("hidden",title!=="Program"\)/);assert.match(app,/const targets=\[passengers\[pi\]\]/);assert.match(app,/copy-leader-package-all.*remove\("hidden"\)/);
   assert.match(app,/title\.includes\("Register"\).*ค่าอุปกรณ์\|ค่ารถตู้\|ค่าเดินทาง/);assert.match(route,/upsert_booking_v14/);assert.match(route,/list_bookings_json_v14/);
   for(const fn of ["copyLeaderTravelDetails","applyLeaderTravelDetailsToAll","addIslandAddonRow","updateIslandAddon","islandAddonEditor"])assert.match(app,new RegExp(`function ${fn}`));for(const field of ["outboundDestination","returnDestination","documentVisibility"])assert.match(app,new RegExp(field));
   const visibilityFunction=app.slice(app.indexOf("function addonVisibleOnDocument"),app.indexOf("function transportationVisibleOnDocument"));assert.ok(visibilityFunction.indexOf("item.documentVisibility")<visibilityFunction.indexOf("master.addOns"));
@@ -250,7 +251,7 @@ test("simple accommodation fields follow Program Tour and use editable master da
 test("payment masters drive receipt accounts and booking totals use one source",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_024_payment_method_receipt_settings.sql"),"utf8");
   for(const id of ["mdpPaymentSettings","mdpPaymentType","mdpShowOnMoneyReceipt"])assert.match(html,new RegExp(`id=["']${id}["']`));assert.match(route,/payload\.payment_type/);assert.match(route,/payload\.show_on_money_receipt/);assert.match(sql,/payment_type text not null default 'transfer'/);assert.match(sql,/show_on_money_receipt boolean not null default true/);
-  assert.match(app,/function documentFinancialSummary/);assert.match(app,/ยอดทั้งหมด/);assert.match(app,/ยอดสุทธิ/);assert.match(app,/function moneyReceiptAllocationTable/);assert.match(app,/paymentTypeLabel/);assert.match(app,/documentGroupedItemsWithoutTentRefund/);
+  assert.match(app,/function documentFinancialSummary/);assert.match(app,/ยอดรวมรายการในเอกสาร/);assert.match(app,/ยอดสุทธิ/);assert.match(app,/documentGroupedItems\(booking,profile\)\.reduce/);assert.match(app,/function moneyReceiptAllocationTable\(booking,documentTotal\)/);assert.match(app,/paymentTypeLabel/);assert.match(app,/documentGroupedItemsWithoutTentRefund/);
   assert.match(html,/id="paymentBreakdownEditor"/);assert.match(app,/paymentBreakdown=structuredClone/);assert.match(app,/paymentBreakdownSum/);assert.match(app,/ยอดแบ่งบัญชีแถว/);
 });
 test("active HTML does not contain known Thai mojibake markers",()=>{
