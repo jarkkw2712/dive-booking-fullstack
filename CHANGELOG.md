@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-16 - Master Data document visibility
+
+- Made the “แสดงรายการนี้ในเอกสาร” selections the single source of truth for Add-ons, transportation, accommodation, and Island Add-ons across Booking summaries and printable documents.
+- Removed legacy document-name filters that silently hid selected items, and added a Booking summary of selected lines with their target documents.
+
 ## 2026-09-16 - Per-passenger programs and document totals
 
 - Restored editable Program, quantity, and price controls for every passenger while keeping group purchases on the leader and providing explicit Apply Program/price-to-all controls.
