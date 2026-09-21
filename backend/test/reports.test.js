@@ -94,7 +94,7 @@ test("booking export exposes immutable creation date",()=>{
 });
 test("booking creator comes from authenticated server user and remains immutable",()=>{
   const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260812_019_booking_creator_export.sql"),"utf8"),route=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8");
-  assert.match(sql,/created_by=coalesce\(created_by/);assert.match(sql,/list_bookings_json_v10/);assert.match(route,/createdBy:req\.user\.username/);assert.match(route,/upsert_booking_v19/);
+  assert.match(sql,/created_by=coalesce\(created_by/);assert.match(sql,/list_bookings_json_v10/);assert.match(route,/createdBy:req\.user\.username/);assert.match(route,/upsert_booking_v20/);
 });
 
 test("island report includes both arrivals and departures on the selected date",()=>{
@@ -240,4 +240,33 @@ test("program age-price migration preserves adult price and initializes child an
   assert.match(sql,/infant_price=coalesce\(infant_price,default_price,0\)/);
   assert.match(sql,/check\(default_price>=0 and child_price>=0 and infant_price>=0\)/);
   assert.doesNotMatch(sql,/delete from/i);
+});
+
+test("reference reports follow travel date, stable payment codes and fixed tent fee",()=>{
+  const paymentMethods=[
+    {method_id:"cash",method_name:"เงินสด",payment_type:"cash"},
+    {method_id:"bank_transfer_naruemon",method_name:"นฤมล",payment_type:"transfer",default_general:true},
+    {method_id:"bank_transfer_rueangroj",method_name:"เรืองโรจน์",payment_type:"transfer",default_island:true},
+    {method_id:"bank_transfer_rungruedee",method_name:"รุ่งฤดี",payment_type:"transfer"},
+    {method_id:"bank_transfer_laddawan",method_name:"ลัดดาวรรณ์",payment_type:"transfer",default_equipment:true,default_transport:true},
+    {method_id:"bank_transfer_rujiroj",method_name:"รุจิโรจน์",payment_type:"transfer"}
+  ];
+  const referenceBookings=[{bookingCode:"REF1",travelDate:"2026-09-21",returnDate:"2026-09-23",leaderFirstName:"หัวหน้า",leaderLastName:"ทริป",phone:"081",status:"confirmed",paymentMethod:"นฤมล",depositAmount:100,depositPaymentMethod:"รุจิโรจน์",creditAmount:200,passengers:[{program:{programId:"boat_ticket",name:"ตั๋วเรือ",qty:1,price:1000},preAddOns:[{id:"tent",name:"เต็นท์",selected:true,qty:2,price:300,paymentMethod:"เงินสด"}],islandAddOns:[{id:"dive",name:"ดำน้ำ",qty:1,price:400,paymentMethod:"เรืองโรจน์"}],transportationMethod:"รถตู้",transportationAmount:500,transportationPaymentMethod:"ลัดดาวรรณ์",passengerTravelDate:"2026-09-21",outboundDestination:"บขส.",returnTransportationMethod:"รถตู้",returnTransportationAmount:600,returnTransportationPaymentMethod:"เงินสด",passengerReturnDate:"2026-09-23",returnDestination:"สนามบิน"}]}];
+  const tour=buildPrintCenterReport({bookings:referenceBookings,paymentMethods,date:"2026-09-21",toDate:"2026-09-21",type:"tour_expense_reference"});
+  assert.equal(tour.rows[0].boatTransfer,1000);assert.equal(tour.rows[0].tentCash,600);assert.equal(tour.rows[0].deposit,100);assert.equal(tour.rows[0].credit,200);assert.equal(tour.rows[0].totalRevenue,3100);assert.equal(tour.rows[0].rujirojDepositTransfer,100);assert.equal(tour.totals.accounts["นฤมล"],1000);assert.equal(tour.totals.accounts["เรืองโรจน์"],400);assert.equal(tour.totals.accounts["ลัดดาวรรณ์"],500);
+  const tent=buildPrintCenterReport({bookings:referenceBookings,date:"2026-09-21",toDate:"2026-09-21",type:"tent_fee_reference"});
+  assert.equal(tent.rows[0].nights,2);assert.equal(tent.rows[0].people,2);assert.equal(tent.rows[0].rate,80);assert.equal(tent.rows[0].total,320);
+  const van=buildPrintCenterReport({bookings:referenceBookings,paymentMethods,date:"2026-09-21",toDate:"2026-09-21",type:"van_daily_reference"});
+  assert.deepEqual(van.rows[0],{date:"2026-09-21",cash:600,transfer:500,total:1100});
+  const work=buildPrintCenterReport({bookings:referenceBookings,paymentMethods,date:"2026-09-21",toDate:"2026-09-23",type:"van_work_order_reference"});
+  assert.equal(work.rows.length,2);assert.equal(work.rows[0].location,"บขส.");assert.equal(work.rows[1].location,"สนามบิน");
+  const monthly=buildPrintCenterReport({bookings:referenceBookings,paymentMethods,date:"2026-09-01",toDate:"2026-09-30",type:"tour_monthly_reference"});
+  assert.deepEqual(monthly.rows[0],{month:"2026-09",cash:1200,transfer:1900,deposit:100,credit:200,rungruedeeTransfer:0});assert.equal("remaining" in monthly.rows[0],false);assert.equal("withdrawal" in monthly.rows[0],false);
+});
+
+test("payment defaults and per-leg transportation migration is idempotent and non-destructive",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260921_035_payment_defaults_transport_methods.sql"),"utf8");
+  for(const field of ["default_general","default_equipment","default_island","default_transport","transportation_payment_method","return_transportation_payment_method","upsert_booking_v20","list_bookings_json_v20"])assert.match(sql,new RegExp(field));
+  for(const name of ["นฤมล","เรืองโรจน์","รุ่งฤดี","ลัดดาวรรณ์","รุจิโรจน์"])assert.ok(sql.includes(name));
+  assert.match(sql,/add column if not exists/);assert.match(sql,/where not exists/);assert.match(sql,/position\('bank_transfer'/);assert.doesNotMatch(sql,/delete from|truncate/i);
 });

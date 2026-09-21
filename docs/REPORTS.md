@@ -10,6 +10,24 @@ All reports exclude cancelled bookings. The selected date is interpreted as the 
 | Insurance | Counter/operations | Outbound passenger identity, age, contact, program, island, allergies, and medical notes |
 | Driver | Counter/transport | Group leader, phone, passenger count, program, island, direction, and booking note |
 | Management / CEO | Management and CEO | Selected-day KPIs plus a seven-day daily forecast of bookings, passengers, statuses, expected revenue, actual receipts, and outstanding |
+| รายงานทัวร์และค่าใช้จ่าย | Counter / accounting | Daily boat-ticket, package and tent income split by cash/transfer, with deposits, credit and named-account references |
+| รายงานค่าธรรมเนียมเต็นท์ | Operations / accounting | Tent equipment quantity multiplied by trip nights and the fixed 80-baht person-night fee |
+| รายงานรถตู้ (เฉพาะรถตู้) | Transport / accounting | Daily van income split by cash and transfer |
+| ใบงานรับ-ส่งรถตู้ | Driver / operations | Outbound and return van jobs using each passenger leg date, destination, leader and phone |
+
+The four reports above are in the Print/PDF section and are formatted for A4. The Excel section also contains `รายงานสรุปรายการทัวร์` and `รายงานสรุปรายการรถตู้`, grouped by month for the selected date range.
+
+## Reference report data sources
+
+- The report date is the Booking outbound travel date, except van work orders, which use the individual outbound or return leg date.
+- Boat tickets are Program code `boat_ticket`; all other Programs are packages.
+- Tent rows are selected equipment whose code is exactly `tent` after lowercasing.
+- Payment type comes from Payment Method code: exact `cash` is cash; a code containing `bank_transfer` is transfer. The saved type remains a compatibility fallback for older/custom methods.
+- Program/boat uses the main Booking payment method. Equipment, Island Add-on, outbound transport and return transport use their own saved payment methods.
+- Default receiving accounts are general=`นฤมล`, Island/dive=`เรืองโรจน์`, equipment and van=`ลัดดาวรรณ์`. Administrators can change one default per category in Payment Method Master Data.
+- Named-account summaries recognize `นฤมล`, `เรืองโรจน์`, `รุ่งฤดี`, `ลัดดาวรรณ์`, and `รุจิโรจน์` from the Payment Method display name.
+- Deposits and credit are reference columns and are not added again to revenue, preventing double counting.
+- The monthly tour Excel columns are Month, Cash, Transfer, Deposit, Credit and Transfer-Rung Ruedee. `เบิกทัวร์` and `คงเหลือ` are intentionally excluded.
 
 ## Equipment issue totals
 

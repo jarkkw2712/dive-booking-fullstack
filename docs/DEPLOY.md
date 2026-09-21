@@ -22,6 +22,27 @@ Run these files once, in order, with Supabase SQL Editor:
 12. `database/migrations/20260731_012_flexible_booking_contact.sql`
 13. `database/migrations/20260731_013_passenger_categories.sql`
 14. `database/migrations/20260731_014_program_age_prices.sql`
+15. `database/migrations/20260801_015_comprehensive_audit.sql`
+16. `database/migrations/20260808_016_credit_transport_nationality_reporting.sql`
+17. `database/migrations/20260808_017_boat_ticket_book_numbers.sql`
+18. `database/migrations/20260812_018_booking_created_date_export.sql`
+19. `database/migrations/20260812_019_booking_creator_export.sql`
+20. `database/migrations/20260818_020_addon_document_visibility.sql`
+21. `database/migrations/20260818_021_transport_document_visibility.sql`
+22. `database/migrations/20260818_022_accommodation_document_visibility.sql`
+23. `database/migrations/20260818_023_insurance_report_permission.sql`
+24. `database/migrations/20260818_024_payment_method_receipt_settings.sql`
+25. `database/migrations/20260818_025_booking_payment_breakdown.sql`
+26. `database/migrations/20260818_026_restore_historical_booking_addons.sql`
+27. `database/migrations/20260903_027_passenger_travel_details.sql`
+28. `database/migrations/20260903_028_passenger_destinations_island_documents.sql`
+29. `database/migrations/20260903_029_fix_island_document_visibility.sql`
+30. `database/migrations/20260904_030_ceo_expenses_and_island_purchase_order.sql`
+31. `database/migrations/20260921_031_passenger_return_transportation.sql`
+32. `database/migrations/20260921_032_passenger_return_transportation_amount.sql`
+33. `database/migrations/20260921_033_booking_original_master.sql`
+34. `database/migrations/20260921_034_island_addon_master_and_dive_receipt.sql`
+35. `database/migrations/20260921_035_payment_defaults_transport_methods.sql`
 
 The stabilization and table migrations are idempotent and do not delete existing records. Function/view migrations use `CREATE OR REPLACE`.
 Migration 007 defaults existing passengers to no overnight stay and does not create revenue or financial entries.
@@ -38,6 +59,9 @@ Migration 017 adds separate boat-ticket book and serial references. Run it after
 Migration 018 exposes the immutable booking creation timestamp for Excel exports. Run it after migration 017 before deploying version 2026.08.12-1.
 Migration 019 records the authenticated Booking creator once and backfills historical creators from the earliest available audit entry. Run it after migration 018 before deploying version 2026.08.12-4.
 Migration 030 adds revision-preserving daily operating expenses, CEO net reporting support, Island Purchase Order visibility, and two new permissions. Run `20260904_030_ceo_expenses_and_island_purchase_order.sql` after migration 029 and before deploying version 2026.09.04-1. Users must sign in again after the migration so their JWT contains the new permissions.
+Migration 035 adds category-specific Payment Method defaults and the separate outbound/return transportation payment snapshots used by the new reports. It also seeds the five named transfer accounts only when the same display name is absent. Run it after migration 034 and before deploying frontend version `20260921-10` and the matching backend.
+
+For rollback, redeploy the previous backend/frontend revision. Do not drop the migration 035 columns or named payment methods: they are backward-compatible and may already contain booking history. Disable unwanted seeded methods in Master Data instead of deleting them.
 
 ## 3. Render
 
