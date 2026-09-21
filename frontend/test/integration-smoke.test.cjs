@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.21-2/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260921-2`));
+  assert.match(html,/Version 2026\.09\.21-3/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260921-3`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -228,13 +228,21 @@ test("group purchases stay on the leader and passenger travel remains per person
   for(const fn of ["copyLeaderTravelDetails","applyLeaderTravelDetailsToAll","addIslandAddonRow","updateIslandAddon","islandAddonEditor"])assert.match(app,new RegExp(`function ${fn}`));for(const field of ["outboundDestination","returnDestination","documentVisibility"])assert.match(app,new RegExp(field));
   const visibilityFunction=app.slice(app.indexOf("function addonConfiguration"),app.indexOf("function transportationConfiguration"));assert.ok(visibilityFunction.indexOf("item.documentVisibility")<visibilityFunction.indexOf("master.addOns"));
 });
-test("passenger travel has six outbound and return inputs with free-text destinations",()=>{
+test("passenger travel has outbound and return methods, prices, dates and destinations",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/bookings.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260921_031_passenger_return_transportation.sql"),"utf8");
   for(const label of ["วิธีการเดินทางไป","วันไป","จุดหมายไป","วิธีการเดินทางกลับ","วันกลับ","จุดหมายกลับ"])assert.match(app,new RegExp(label));
   assert.match(app,/returnTransportationMethod/);assert.match(app,/travelDetailFields=\[[^\]]*returnTransportationMethod/);
   assert.match(app,/จุดหมายไป<\/label><input type="text"/);assert.match(app,/จุดหมายกลับ<\/label><input type="text"/);
   assert.match(sql,/add column if not exists return_transportation_method text/);assert.match(sql,/update passengers[\s\S]*return_transportation_method=transportation_method/);
   assert.match(sql,/upsert_booking_v16/);assert.match(sql,/list_bookings_json_v16/);assert.match(route,/upsert_booking_v16/);assert.match(route,/list_bookings_json_v16/);
+});
+test("outbound and return transportation prices persist and contribute to every financial view",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),financial=fs.readFileSync(path.join(root,"js","financial.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/bookings.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260921_032_passenger_return_transportation_amount.sql"),"utf8");
+  for(const label of ["ราคาขาไป","ราคาขากลับ","ค่าเดินทางไป","ค่าเดินทางกลับ"])assert.match(app,new RegExp(label));
+  assert.match(app,/personTotal\(p\)[^{]*\{[^}]*returnTransportationAmount/);assert.match(app,/documentGroupedItemsWithReturnTravel/);
+  assert.match(financial,/sourceType:"transport_outbound"/);assert.match(financial,/sourceType:"transport_return"/);
+  assert.match(sql,/return_transportation_amount numeric\(14,2\)/);assert.match(sql,/upsert_booking_v17/);assert.match(sql,/list_bookings_json_v17/);
+  assert.match(route,/upsert_booking_v17/);assert.match(route,/list_bookings_json_v17/);
 });
 test("credit is hidden on Register and transportation visibility is master-driven",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_021_transport_document_visibility.sql"),"utf8");
