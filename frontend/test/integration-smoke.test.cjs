@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.21-7/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260921-7`));
+  assert.match(html,/Version 2026\.09\.21-8/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260921-8`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -224,7 +224,7 @@ test("group purchases stay on the leader and passenger travel remains per person
   for(const field of ["passengerTravelDate","passengerReturnDate","transportationDestination"])assert.match(app,new RegExp(field));
   assert.match(app,/function centralizeGroupPurchases/);assert.match(app,/function applyGroupBookingUi/);assert.match(app,/function removeIslandAddon/);assert.match(app,/leader\.islandAddOns\.splice/);
   assert.match(app,/section\.classList\.toggle\("hidden",title!=="Program"\)/);assert.match(app,/const targets=\[passengers\[pi\]\]/);assert.match(app,/copy-leader-package-all.*remove\("hidden"\)/);
-  assert.doesNotMatch(app,/title\.includes\("Register"\).*ค่าอุปกรณ์\|ค่ารถตู้\|ค่าเดินทาง/);assert.match(route,/upsert_booking_v18/);assert.match(route,/list_bookings_json_v18/);
+  assert.doesNotMatch(app,/title\.includes\("Register"\).*ค่าอุปกรณ์\|ค่ารถตู้\|ค่าเดินทาง/);assert.match(route,/upsert_booking_v19/);assert.match(route,/list_bookings_json_v19/);
   for(const fn of ["copyLeaderTravelDetails","applyLeaderTravelDetailsToAll","addIslandAddonRow","updateIslandAddon","islandAddonEditor"])assert.match(app,new RegExp(`function ${fn}`));for(const field of ["outboundDestination","returnDestination","documentVisibility"])assert.match(app,new RegExp(field));
   const visibilityFunction=app.slice(app.indexOf("function addonConfiguration"),app.indexOf("function transportationConfiguration"));assert.ok(visibilityFunction.indexOf("item.documentVisibility")<visibilityFunction.indexOf("master.addOns"));
 });
@@ -235,7 +235,7 @@ test("passenger travel has outbound and return methods, prices, dates and destin
   assert.match(app,/สถานที่ให้ไปรับ<\/label><input type="text"/);assert.match(app,/สถานที่ให้ไปรับ \(ขากลับ\)<\/label><input type="text"/);
   assert.match(app,/passenger-travel-outbound/);assert.match(app,/passenger-travel-return/);assert.match(css,/passenger-travel-section\+\.passenger-travel-section/);
   assert.match(sql,/add column if not exists return_transportation_method text/);assert.match(sql,/update passengers[\s\S]*return_transportation_method=transportation_method/);
-  assert.match(sql,/upsert_booking_v16/);assert.match(sql,/list_bookings_json_v16/);assert.match(route,/upsert_booking_v18/);assert.match(route,/list_bookings_json_v18/);
+  assert.match(sql,/upsert_booking_v16/);assert.match(sql,/list_bookings_json_v16/);assert.match(route,/upsert_booking_v19/);assert.match(route,/list_bookings_json_v19/);
 });
 test("outbound and return transportation prices persist and contribute to every financial view",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),financial=fs.readFileSync(path.join(root,"js","financial.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/bookings.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260921_032_passenger_return_transportation_amount.sql"),"utf8");
@@ -243,7 +243,7 @@ test("outbound and return transportation prices persist and contribute to every 
   assert.match(app,/personTotal\(p\)[^{]*\{[^}]*returnTransportationAmount/);assert.match(app,/documentGroupedItemsWithReturnTravel/);
   assert.match(financial,/sourceType:"transport_outbound"/);assert.match(financial,/sourceType:"transport_return"/);
   assert.match(sql,/return_transportation_amount numeric\(14,2\)/);assert.match(sql,/upsert_booking_v17/);assert.match(sql,/list_bookings_json_v17/);
-  assert.match(route,/upsert_booking_v18/);assert.match(route,/list_bookings_json_v18/);
+  assert.match(route,/upsert_booking_v19/);assert.match(route,/list_bookings_json_v19/);
 });
 test("booking original master persists and Excel separates passenger counts, boat references and deposit type",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),feature=fs.readFileSync(path.join(root,"js","bookingOriginal.js"),"utf8"),masterRoute=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260921_033_booking_original_master.sql"),"utf8");
@@ -251,11 +251,19 @@ test("booking original master persists and Excel separates passenger counts, boa
   for(const heading of ["ต้นฉบับ","ผู้ใหญ่","เด็ก","ทารก","FOC","มัดจำเงินสด","มัดจำโอน","สถานที่รับ","สถานที่กลับ"])assert.ok(feature.includes(heading));assert.ok(feature.includes("เล่มที่ (ตั๋วเรือ)"));assert.ok(feature.includes("เลขที่ (ตั๋วเรือ)"));
   assert.match(feature,/counts\.adult,counts\.child,counts\.infant,counts\.foc/);assert.match(feature,/payment_type===type/);assert.match(sql,/upsert_booking_v18/);assert.match(sql,/list_bookings_json_v18/);
 });
+test("Island Add-on uses dedicated master data and prints an isolated dive receipt",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),feature=fs.readFileSync(path.join(root,"js","islandAddonMaster.js"),"utf8"),financial=fs.readFileSync(path.join(root,"js","financial.js"),"utf8"),reportService=fs.readFileSync(path.resolve(root,"../backend/src/services/reportService.js"),"utf8"),masterRoute=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),bookingRoute=fs.readFileSync(path.resolve(root,"../backend/src/routes/bookings.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260921_034_island_addon_master_and_dive_receipt.sql"),"utf8");
+  assert.match(html,/loadMasterDataPro\('island_addons'\)/);assert.match(html,/printCurrentDocument\('DIVE_RECEIPT'\)/);assert.match(html,/printSelectedReceipt\('DIVE_RECEIPT'\)/);assert.match(html,/ใบเสร็จอุปกรณ์/);
+  assert.match(feature,/master\.islandAddOns/);assert.match(feature,/DIVE_RECEIPT/);assert.match(feature,/diveOnly/);assert.match(feature,/show_dive_receipt/);assert.match(feature,/รายการจาก Master Data/);assert.match(feature,/\?islandDocumentVisibility\(item\):addonConfigurationBeforeIslandMaster/);
+  assert.match(app,/\(p\.islandAddOns\|\|\[\]\)\.reduce/);assert.match(financial,/sourceType:"island_addon"/);assert.match(reportService,/\.\.\.\(p\.islandAddOns\|\|\[\]\)/);
+  assert.match(masterRoute,/master_island_addons/);assert.match(sql,/create table if not exists master_island_addons/);assert.match(sql,/printDiveReceipt/);assert.match(sql,/upsert_booking_v19/);assert.match(sql,/list_bookings_json_v19/);assert.match(bookingRoute,/upsert_booking_v19/);
+  assert.match(sql,/numeric\(14,2\)/);assert.match(sql,/update booking_addons set show_dive_receipt=true where addon_source='island'/);assert.doesNotMatch(sql,/delete from/i);
+});
 test("credit is hidden on Register and transportation visibility is master-driven",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_021_transport_document_visibility.sql"),"utf8");
   assert.match(css,/document-register>\.document-total:not\(\.document-financial-summary\)/);
   assert.match(app,/function transportationVisibleOnDocument/);assert.match(app,/master\.transportationMethods/);assert.match(app,/transportationVisibleOnDocument\(person,booking,profile\)/);
-  assert.match(route,/\["addons","transportation_methods","accommodations"\]\.includes\(category\)/);assert.match(sql,/alter table if exists master_transportation_methods/);assert.match(sql,/show_van_receipt boolean not null default true/);
+  assert.match(route,/\["addons","island_addons","transportation_methods","accommodations"\]\.includes\(category\)/);assert.match(sql,/alter table if exists master_transportation_methods/);assert.match(sql,/show_van_receipt boolean not null default true/);
 });
 test("selected items and printed lines use Master Data document visibility as the source of truth",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
@@ -269,7 +277,7 @@ test("selected items and printed lines use Master Data document visibility as th
 test("accommodation master controls non-revenue document visibility",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_022_accommodation_document_visibility.sql"),"utf8");
   assert.match(app,/\["addons","transportation_methods","accommodations"\]\.includes\(mdCat\)/);assert.match(app,/function accommodationVisibleOnDocument/);assert.match(app,/ไม่รวมรายได้/);assert.match(app,/unit:0,total:0/);
-  assert.match(route,/\["addons","transportation_methods","accommodations"\]\.includes\(category\)/);assert.match(sql,/alter table if exists master_accommodations/);assert.match(sql,/show_register boolean not null default true/);assert.doesNotMatch(sql,/delete from/i);
+  assert.match(route,/\["addons","island_addons","transportation_methods","accommodations"\]\.includes\(category\)/);assert.match(sql,/alter table if exists master_accommodations/);assert.match(sql,/show_register boolean not null default true/);assert.doesNotMatch(sql,/delete from/i);
 });
 test("insurance submission has a dedicated permission and receipt references follow document rules",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8"),routes=fs.readFileSync(path.resolve(root,"../backend/src/routes/reports.js"),"utf8"),service=fs.readFileSync(path.resolve(root,"../backend/src/services/reportService.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_023_insurance_report_permission.sql"),"utf8");

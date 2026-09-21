@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sabina Tour Booking</title>
-  <link rel="stylesheet" href="css/style.css?v=20260921-7">
+  <link rel="stylesheet" href="css/style.css?v=20260921-8">
 </head>
 <body>
 <div id="globalSavingIndicator" class="saving-indicator hidden" role="status" aria-live="polite">
@@ -44,7 +44,7 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
-    <div id="appVersion" class="app-version">Version 2026.09.21-7</div>
+    <div id="appVersion" class="app-version">Version 2026.09.21-8</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
@@ -152,7 +152,8 @@
             <h3>พิมพ์เอกสาร Booking นี้</h3>
             <button class="btn soft full-btn" onclick="printCurrentDocument('REGISTER')">ใบยืนยันการจอง</button>
             <button class="btn soft full-btn" onclick="printCurrentDocument('MONEY_RECEIPT')">ใบสำคัญรับเงิน</button>
-            <button class="btn soft full-btn" onclick="printCurrentDocument('EQUIPMENT_SLIP')">ใบอุปกรณ์</button>
+            <button class="btn soft full-btn" onclick="printCurrentDocument('EQUIPMENT_SLIP')">ใบเสร็จอุปกรณ์</button>
+            <button class="btn soft full-btn" data-permission="printDiveReceipt" onclick="printCurrentDocument('DIVE_RECEIPT')">ใบเสร็จดำน้ำ</button>
             <button class="btn soft full-btn" onclick="printCurrentDocument('VAN_RECEIPT')">ใบเสร็จรถตู้</button>
             <button class="btn soft full-btn" onclick="printCurrentDocument('BOAT_TICKET')">ตั๋วเรือ</button>
             <button class="btn soft full-btn" data-permission="printIslandPurchaseOrder" onclick="printCurrentDocument('ISLAND_PURCHASE_ORDER')">ใบสั่งซื้อจากเกาะ</button>
@@ -184,7 +185,8 @@
             <button class="btn soft" data-permission="editBooking" onclick="backToBookingEditor()">ย้อนกลับไปหน้าแก้ไข</button>
             <button class="btn soft" onclick="printSelectedReceipt('REGISTER')">ใบยืนยันการจอง</button>
             <button class="btn soft" onclick="printSelectedReceipt('MONEY_RECEIPT')">ใบสำคัญรับเงิน</button>
-            <button class="btn soft" onclick="printSelectedReceipt('EQUIPMENT_SLIP')">ใบอุปกรณ์</button>
+            <button class="btn soft" onclick="printSelectedReceipt('EQUIPMENT_SLIP')">ใบเสร็จอุปกรณ์</button>
+            <button class="btn soft" data-permission="printDiveReceipt" onclick="printSelectedReceipt('DIVE_RECEIPT')">ใบเสร็จดำน้ำ</button>
             <button class="btn soft" onclick="printSelectedReceipt('VAN_RECEIPT')">ใบเสร็จรถตู้</button>
             <button class="btn soft" onclick="printSelectedReceipt('BOAT_TICKET')">ตั๋วเรือ</button>
             <button class="btn soft" data-permission="printIslandPurchaseOrder" onclick="printSelectedReceipt('ISLAND_PURCHASE_ORDER')">ใบสั่งซื้อจากเกาะ</button>
@@ -262,7 +264,8 @@
         <div class="master-tabs">
           <button class="btn soft" onclick="loadMasterDataPro('programs')">Programs</button>
           <button class="btn soft" onclick="loadMasterDataPro('accommodations')">ที่พัก</button>
-          <button class="btn soft" onclick="loadMasterDataPro('addons')">Add-ons</button>
+          <button class="btn soft" onclick="loadMasterDataPro('addons')">อุปกรณ์ / Add-ons</button>
+          <button class="btn soft" onclick="loadMasterDataPro('island_addons')">Island Add-on / ดำน้ำ</button>
           <button class="btn soft" onclick="loadMasterDataPro('agents')">Agents</button>
           <button class="btn soft" onclick="loadMasterDataPro('booking_originals')">ต้นฉบับ</button>
           <button class="btn soft" onclick="loadMasterDataPro('customer_sources')">ช่องทางลูกค้า</button>
@@ -293,7 +296,7 @@
           <div><label>Sort</label><input id="mdpSort" type="number" value="0"></div>
           <div class="full"><label>Description</label><input id="mdpDescription"></div>
           <div><label>Active</label><select id="mdpActive"><option value="true">ใช้งาน</option><option value="false">ปิดใช้งาน</option></select></div>
-          <div id="mdpDocumentVisibility" class="full hidden"><label>แสดงรายการนี้ในเอกสาร</label><div class="document-visibility-options"><label><input id="mdpShowRegister" type="checkbox"> ใบยืนยันการจอง</label><label><input id="mdpShowMoneyReceipt" type="checkbox"> ใบสำคัญรับเงิน</label><label><input id="mdpShowEquipmentSlip" type="checkbox"> ใบอุปกรณ์</label><label><input id="mdpShowVanReceipt" type="checkbox"> ใบเสร็จรถตู้</label><label><input id="mdpShowBoatTicket" type="checkbox"> ตั๋วเรือ</label><label id="mdpIslandPurchaseVisibility"><input id="mdpShowIslandPurchaseOrder" type="checkbox"> ใบสั่งซื้อจากเกาะ</label></div><small class="muted">เลือกได้ว่ารายการ Add-on หรือวิธีการเดินทางนี้ต้องแสดงในเอกสารใดบ้าง</small></div>
+          <div id="mdpDocumentVisibility" class="full hidden"><label>แสดงรายการนี้ในเอกสาร</label><div class="document-visibility-options"><label><input id="mdpShowRegister" type="checkbox"> ใบยืนยันการจอง</label><label><input id="mdpShowMoneyReceipt" type="checkbox"> ใบสำคัญรับเงิน</label><label><input id="mdpShowEquipmentSlip" type="checkbox"> ใบเสร็จอุปกรณ์</label><label><input id="mdpShowVanReceipt" type="checkbox"> ใบเสร็จรถตู้</label><label><input id="mdpShowBoatTicket" type="checkbox"> ตั๋วเรือ</label><label id="mdpIslandPurchaseVisibility"><input id="mdpShowIslandPurchaseOrder" type="checkbox"> ใบสั่งซื้อจากเกาะ</label><label id="mdpDiveReceiptVisibility"><input id="mdpShowDiveReceipt" type="checkbox"> ใบเสร็จดำน้ำ</label></div><small class="muted">เลือกได้ว่ารายการนี้ต้องแสดงในเอกสารใดบ้าง</small></div>
           <div id="mdpPaymentSettings" class="full hidden"><label>ตั้งค่าช่องทางรับเงิน</label><div class="document-visibility-options"><label>ประเภท <select id="mdpPaymentType"><option value="cash">เงินสด</option><option value="transfer">โอนธนาคาร</option></select></label><label><input id="mdpShowOnMoneyReceipt" type="checkbox" checked> แสดงบัญชีนี้ในใบสำคัญรับเงิน</label></div><small class="muted">ใบยืนยันการจองจะแสดงเพียง “เงินสด” หรือ “โอนธนาคาร” โดยไม่เปิดเผยชื่อบัญชี</small></div>
         </div>
         <button class="btn primary" onclick="saveMasterDataProItem()">Save</button>
@@ -379,11 +382,12 @@
   </div>
 </div>
 
-<script src="js/api.js?v=20260921-7"></script>
-<script src="js/smartPaste.js?v=20260921-7"></script>
-<script src="js/csvImport.js?v=20260921-7"></script>
-<script src="js/app.js?v=20260921-7"></script>
-<script src="js/bookingOriginal.js?v=20260921-7"></script>
-<script src="js/financial.js?v=20260921-7"></script>
+<script src="js/api.js?v=20260921-8"></script>
+<script src="js/smartPaste.js?v=20260921-8"></script>
+<script src="js/csvImport.js?v=20260921-8"></script>
+<script src="js/app.js?v=20260921-8"></script>
+<script src="js/bookingOriginal.js?v=20260921-8"></script>
+<script src="js/islandAddonMaster.js?v=20260921-8"></script>
+<script src="js/financial.js?v=20260921-8"></script>
 </body>
 </html>
