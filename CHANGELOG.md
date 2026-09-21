@@ -4,6 +4,8 @@
 
 - Fixed Booking updates being blocked by stale hidden payment-allocation values after totals, deposits, credits, or payment methods changed.
 - Booking validation now checks the freshly calculated allocation saved with the Booking and synchronizes the in-memory state immediately.
+- Expanded per-passenger travel to six outbound/return fields, including separate Master Data-driven travel methods and free-text destinations, while migrating historical travel methods forward.
+- Increased automatic inactivity logout from 15 to 30 minutes.
 
 ## 2026-09-16 - Master Data document visibility
 

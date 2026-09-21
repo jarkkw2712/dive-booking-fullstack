@@ -176,6 +176,14 @@ test("separate destinations and Island Add-on document choices are persisted",()
   for(const field of ["outbound_destination","return_destination","show_register","show_money_receipt","show_equipment_slip","show_van_receipt","show_boat_ticket","upsert_booking_v13","list_bookings_json_v14","documentVisibility"])assert.match(sql,new RegExp(field));
   assert.match(sql,/add column if not exists/);assert.doesNotMatch(sql,/delete from|truncate/i);
 });
+test("return transportation migration preserves existing passenger travel",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260921_031_passenger_return_transportation.sql"),"utf8");
+  assert.match(sql,/add column if not exists return_transportation_method text/);
+  assert.match(sql,/return_transportation_method=transportation_method/);
+  assert.match(sql,/returnTransportationMethod/);
+  assert.match(sql,/upsert_booking_v16/);assert.match(sql,/list_bookings_json_v16/);
+  assert.doesNotMatch(sql,/delete from|truncate/i);
+});
 test("Island Add-on visibility is matched to the correct saved row",()=>{
   const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260903_029_fix_island_document_visibility.sql"),"utf8");
   assert.match(sql,/upsert_booking_v14/);assert.match(sql,/addon_name_snapshot/);assert.match(sql,/addon_row_id<>all\(v_used\)/);assert.match(sql,/array_append/);assert.doesNotMatch(sql,/delete from|truncate/i);
