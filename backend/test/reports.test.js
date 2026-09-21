@@ -68,6 +68,16 @@ test("daily register receipt and equipment summaries calculate operational total
   assert.equal(equipment.rows[0].qty,3);assert.equal(equipment.rows[0].total,350);assert.equal(equipment.equipmentTotals.amount,350);
 });
 
+test("register summary supports an inclusive custom date range",()=>{
+  const bookings=[
+    {bookingCode:"R1",travelDate:"2026-07-23",returnDate:"2026-07-25",leaderFirstName:"A",status:"confirmed",passengers:[{passengerType:"adult",program:{name:"3 days 2 nights"}}]},
+    {bookingCode:"R2",travelDate:"2026-07-25",returnDate:"2026-07-26",leaderFirstName:"B",status:"confirmed",passengers:[{passengerType:"child",program:{name:"ตั๋วเรือ"}}]},
+    {bookingCode:"R3",travelDate:"2026-07-26",leaderFirstName:"Outside",status:"confirmed",passengers:[{passengerType:"adult"}]}
+  ];
+  const report=buildPrintCenterReport({bookings,date:"2026-07-23",toDate:"2026-07-25",type:"register_summary_range"});
+  assert.equal(report.rows.length,2);assert.equal(report.rows[1].travelDate,"2026-07-25");assert.deepEqual(report.registerTotals,{adult:1,child:1,infant:0,foc:0});assert.deepEqual(report.range,{from:"2026-07-23",to:"2026-07-25"});
+});
+
 test("credit transport and nationality migration is idempotent and numeric",()=>{
   const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260808_016_credit_transport_nationality_reporting.sql"),"utf8");
   for(const field of ["credit_amount numeric(14,2)","deposit_payment_method","credit_payment_method","nationality_type","pickup_location","transportation_amount numeric(14,2)","default_price numeric(14,2)","upsert_booking_v8","list_bookings_json_v7"])assert.match(sql,new RegExp(field.replace(/[()]/g,"\\$&"),"i"));
