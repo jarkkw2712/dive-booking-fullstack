@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sabina Tour Booking</title>
-  <link rel="stylesheet" href="css/style.css?v=20260921-5">
+  <link rel="stylesheet" href="css/style.css?v=20260921-6">
 </head>
 <body>
 <div id="globalSavingIndicator" class="saving-indicator hidden" role="status" aria-live="polite">
@@ -44,7 +44,7 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
-    <div id="appVersion" class="app-version">Version 2026.09.21-5</div>
+    <div id="appVersion" class="app-version">Version 2026.09.21-6</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
@@ -106,7 +106,8 @@
               <div><label>ทารก</label><input id="infantCount" type="number" min="0" value="0" onchange="syncPassengerComposition()"></div>
               <div><label>Free of Charge (FOC)</label><input id="focCount" type="number" min="0" value="0" onchange="syncPassengerComposition()"></div>
               <div><label>จำนวนผู้เดินทางรวม</label><input id="paxCount" type="number" value="1" readonly></div>
-              <div><label>ช่องทางลูกค้า</label><select id="source"></select></div>
+              <div><label>ต้นฉบับ</label><select id="bookingOriginal"></select></div>
+              <div><label>ช่องทางลูกค้า / จองในงาน</label><select id="source"></select></div>
               <div><label>Agent / ผู้แนะนำ</label><input id="agentName"></div>
               <div><label>วิธีการเดินทาง</label><select id="transportationMethod"></select></div>
               <div><label>สถานะ</label><select id="status"><option>pending</option><option selected>confirmed</option><option>checked-in</option><option>completed</option><option>cancelled</option></select></div>
@@ -254,6 +255,7 @@
           <button class="btn soft" onclick="loadMasterDataPro('accommodations')">ที่พัก</button>
           <button class="btn soft" onclick="loadMasterDataPro('addons')">Add-ons</button>
           <button class="btn soft" onclick="loadMasterDataPro('agents')">Agents</button>
+          <button class="btn soft" onclick="loadMasterDataPro('booking_originals')">ต้นฉบับ</button>
           <button class="btn soft" onclick="loadMasterDataPro('customer_sources')">ช่องทางลูกค้า</button>
           <button class="btn soft" onclick="loadMasterDataPro('transportation_methods')">วิธีการเดินทาง</button>
           <button class="btn soft" onclick="loadMasterDataPro('boats')">Boats</button>
@@ -368,10 +370,11 @@
   </div>
 </div>
 
-<script src="js/api.js?v=20260921-5"></script>
-<script src="js/smartPaste.js?v=20260921-5"></script>
-<script src="js/csvImport.js?v=20260921-5"></script>
-<script src="js/app.js?v=20260921-5"></script>
-<script src="js/financial.js?v=20260921-5"></script>
+<script src="js/api.js?v=20260921-6"></script>
+<script src="js/smartPaste.js?v=20260921-6"></script>
+<script src="js/csvImport.js?v=20260921-6"></script>
+<script src="js/app.js?v=20260921-6"></script>
+<script src="js/bookingOriginal.js?v=20260921-6"></script>
+<script src="js/financial.js?v=20260921-6"></script>
 </body>
 </html>
