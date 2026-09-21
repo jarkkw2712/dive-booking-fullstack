@@ -25,7 +25,7 @@ The four reports above are in the Print/PDF section and are formatted for A4. Th
 - Payment type comes from Payment Method code: exact `cash` is cash; a code containing `bank_transfer` is transfer. The saved type remains a compatibility fallback for older/custom methods.
 - Program/boat uses the main Booking payment method. Equipment, Island Add-on, outbound transport and return transport use their own saved payment methods.
 - Default receiving accounts are general=`นฤมล`, Island/dive=`เรืองโรจน์`, equipment and van=`ลัดดาวรรณ์`. Administrators can change one default per category in Payment Method Master Data.
-- Named-account summaries recognize `นฤมล`, `เรืองโรจน์`, `รุ่งฤดี`, `ลัดดาวรรณ์`, and `รุจิโรจน์` from the Payment Method display name.
+- Named-account summaries recognize `นฤมล`, `เรืองโรจน์`, `รุ่งฤดี`, `ลัดดาวรรณ์`, and `รุจิโรจน์` from the Payment Method display name. They include both matching service lines and deposits using `depositPaymentMethod`.
 - Deposits and credit are reference columns and are not added again to revenue, preventing double counting.
 - The monthly tour Excel columns are Month, Cash, Transfer, Deposit, Credit and Transfer-Rung Ruedee. `เบิกทัวร์` and `คงเหลือ` are intentionally excluded.
 

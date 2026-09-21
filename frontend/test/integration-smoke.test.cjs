@@ -46,7 +46,7 @@ test("frontend assets are cache-busted and expose a visible deployment version",
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
   assert.match(html,/Version 2026\.09\.21-9/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260921-10`));
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260921-11`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -320,6 +320,7 @@ test("reference reports and category payment defaults are wired end to end",()=>
   for(const field of ["default_general","default_equipment","default_island","default_transport"]){assert.ok(app.includes(field));assert.ok(masterRoute.includes(field));assert.ok(sql.includes(field))}
   for(const name of ["นฤมล","เรืองโรจน์","รุ่งฤดี","ลัดดาวรรณ์","รุจิโรจน์"])assert.ok(sql.includes(name));
   assert.match(app,/function exportReferenceExcelReport/);assert.match(app,/function referencePrintReportHtml/);assert.match(app,/คืนละ \(บาท\)/);assert.match(app,/const headers=\["เดือน","สด","โอน","มัดจำ","ขายเชื่อ","โอนรุ่งฤดี"\]/);const monthlyExport=app.slice(app.indexOf("async function exportReferenceExcelReport"),app.indexOf("async function generatePrintCenterReport"));assert.doesNotMatch(monthlyExport,/"เบิกทัวร์"|"คงเหลือ"/);
+  assert.doesNotMatch(app,/แหล่งข้อมูลและวิธีคำนวณ/);assert.match(css,/reference-tour-table\{font-size:9px/);
   assert.match(app,/transportationPaymentMethod/);assert.match(app,/returnTransportationPaymentMethod/);assert.match(app,/function setEquipmentPaymentMethod/);assert.match(feature,/setIslandPaymentMethod/);assert.match(feature,/groupPaymentHeader/);assert.doesNotMatch(feature.slice(feature.indexOf("islandAddonEditor=function"),feature.indexOf("const groupedItemsBeforeDiveReceipt")),/updateIslandAddon\([^)]*'paymentMethod'/);
   assert.match(css,/passenger-travel-grid\{grid-template-columns:repeat\(5/);assert.match(css,/\.reference-report-portrait\{page:report-portrait/);assert.match(css,/\.reference-report-landscape\{page:report/);
   assert.match(bookingRoute,/upsert_booking_v20/);assert.match(bookingRoute,/list_bookings_json_v20/);assert.match(sql,/numeric|payment_method/);assert.doesNotMatch(sql,/delete from|truncate/i);
