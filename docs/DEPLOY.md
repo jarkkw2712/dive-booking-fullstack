@@ -59,7 +59,7 @@ Migration 017 adds separate boat-ticket book and serial references. Run it after
 Migration 018 exposes the immutable booking creation timestamp for Excel exports. Run it after migration 017 before deploying version 2026.08.12-1.
 Migration 019 records the authenticated Booking creator once and backfills historical creators from the earliest available audit entry. Run it after migration 018 before deploying version 2026.08.12-4.
 Migration 030 adds revision-preserving daily operating expenses, CEO net reporting support, Island Purchase Order visibility, and two new permissions. Run `20260904_030_ceo_expenses_and_island_purchase_order.sql` after migration 029 and before deploying version 2026.09.04-1. Users must sign in again after the migration so their JWT contains the new permissions.
-Migration 035 adds category-specific Payment Method defaults and the separate outbound/return transportation payment snapshots used by the new reports. It also seeds the five named transfer accounts only when the same display name is absent. Run it after migration 034 and before deploying frontend version `20260921-11` and the matching backend.
+Migration 035 adds category-specific Payment Method defaults and the separate outbound/return transportation payment snapshots used by the new reports. It also seeds the five named transfer accounts only when the same display name is absent. Run it after migration 034 and before deploying frontend version `20260921-12` and the matching backend.
 
 For rollback, redeploy the previous backend/frontend revision. Do not drop the migration 035 columns or named payment methods: they are backward-compatible and may already contain booking history. Disable unwanted seeded methods in Master Data instead of deleting them.
 

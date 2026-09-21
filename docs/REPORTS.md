@@ -15,7 +15,7 @@ All reports exclude cancelled bookings. The selected date is interpreted as the 
 | รายงานรถตู้ (เฉพาะรถตู้) | Transport / accounting | Daily van income split by cash and transfer |
 | ใบงานรับ-ส่งรถตู้ | Driver / operations | Outbound and return van jobs using each passenger leg date, destination, leader and phone |
 
-The four reports above are in the Print/PDF section and are formatted for A4. The Excel section also contains `รายงานสรุปรายการทัวร์` and `รายงานสรุปรายการรถตู้`, grouped by month for the selected date range.
+The four reports above are in the Print/PDF section and are formatted for A4. `รายงานสรุปรายการทัวร์` is appended to the tour/expense PDF and `รายงานสรุปรายการรถตู้` is appended to the van PDF; both group the same selected range by month and include a final total row. The Excel section contains only the detailed Booking export.
 
 ## Reference report data sources
 
