@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sabina Tour Booking</title>
-  <link rel="stylesheet" href="css/style.css?v=20260921-8">
+  <link rel="stylesheet" href="css/style.css?v=20260921-9">
 </head>
 <body>
 <div id="globalSavingIndicator" class="saving-indicator hidden" role="status" aria-live="polite">
@@ -44,7 +44,7 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
-    <div id="appVersion" class="app-version">Version 2026.09.21-8</div>
+    <div id="appVersion" class="app-version">Version 2026.09.21-9</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
@@ -92,36 +92,63 @@
         <div>
           <div class="card">
             <div class="section-title-row"><h2>ข้อมูล Booking หลัก</h2><button type="button" class="btn soft" onclick="openCsvImport()">Upload CSV รายชื่อ</button></div>
-            <div class="form-grid">
-              <div><label>ประเภทการเดินทาง</label><select id="tripType" onchange="toggleReturnDate()"><option value="one_way">ครั้งเดียว</option><option value="round_trip">Round Trip</option></select></div>
-              <div><label>วันเดินทางไป</label><input id="travelDate" type="date"></div>
-              <div><label>วันเดินทางกลับ</label><input id="returnDate" type="date" disabled></div>
-              <div><label>คำนำหน้า</label><select id="leaderTitle"><option></option><option>นาย</option><option>นาง</option><option>นางสาว</option><option>เด็กชาย</option><option>เด็กหญิง</option></select></div>
-              <div><label>ชื่อหัวหน้าทริป</label><input id="leaderFirstName"></div>
-              <div><label>นามสกุลหัวหน้าทริป</label><input id="leaderLastName"></div>
-              <div><label>เบอร์โทร</label><input id="phone"></div>
-              <div><label>ติดต่อได้จาก</label><input id="contactEmail" type="text" placeholder="เช่น LINE ID, Facebook, อีเมล หรือช่องทางอื่น"></div>
-              <div><label>ผู้ใหญ่</label><input id="adultCount" type="number" min="1" value="1" onchange="syncPassengerComposition()"></div>
-              <div><label>เด็ก</label><input id="childCount" type="number" min="0" value="0" onchange="syncPassengerComposition()"></div>
-              <div><label>ทารก</label><input id="infantCount" type="number" min="0" value="0" onchange="syncPassengerComposition()"></div>
-              <div><label>Free of Charge (FOC)</label><input id="focCount" type="number" min="0" value="0" onchange="syncPassengerComposition()"></div>
-              <div><label>จำนวนผู้เดินทางรวม</label><input id="paxCount" type="number" value="1" readonly></div>
-              <div><label>ต้นฉบับ</label><select id="bookingOriginal"></select></div>
-              <div><label>ช่องทางลูกค้า / จองในงาน</label><select id="source"></select></div>
-              <div><label>Agent / ผู้แนะนำ</label><input id="agentName"></div>
-              <div><label>วิธีการเดินทาง</label><select id="transportationMethod"></select></div>
-              <div><label>สถานะ</label><select id="status"><option>pending</option><option selected>confirmed</option><option>checked-in</option><option>completed</option><option>cancelled</option></select></div>
-              <div><label>ชำระเงิน</label><select id="paymentMethod"></select></div>
-              <div><label>มัดจำ</label><input id="depositAmount" type="number" min="0" step="0.01" value="0" oninput="ensurePaymentMethod('depositPaymentMethod');refreshSummary()"></div>
-              <div><label>ช่องทางมัดจำ</label><select id="depositPaymentMethod"></select></div>
-              <div><label>ขายเชื่อ</label><input id="creditAmount" type="number" min="0" step="0.01" value="0" oninput="ensurePaymentMethod('creditPaymentMethod');refreshSummary()"></div>
-              <div><label>ช่องทางรับชำระยอดเชื่อ</label><select id="creditPaymentMethod"></select></div>
-              <div id="paymentBreakdownEditor" class="hidden" aria-hidden="true"></div>
-              <div><label>เล่มที่</label><input id="receiptBookNo"></div>
-              <div><label>เลขที่</label><input id="manualReceiptNo"></div>
-              <div><label>เล่มที่ (ตั๋วเรือ)</label><input id="boatTicketBookNo"></div>
-              <div><label>เลขที่ (ตั๋วเรือ)</label><input id="boatTicketNo"></div>
-              <div class="full"><label>หมายเหตุ Booking</label><textarea id="bookingNote"></textarea></div>
+            <div class="booking-form-section first">
+              <h3>กำหนดการและสถานะ</h3>
+              <div class="form-grid">
+                <div><label>ประเภทการเดินทาง</label><select id="tripType" onchange="toggleReturnDate()"><option value="one_way">ครั้งเดียว</option><option value="round_trip">Round Trip</option></select></div>
+                <div><label>วันเดินทางไป</label><input id="travelDate" type="date"></div>
+                <div><label>วันเดินทางกลับ</label><input id="returnDate" type="date" disabled></div>
+                <div><label>สถานะ</label><select id="status"><option>pending</option><option selected>confirmed</option><option>checked-in</option><option>completed</option><option>cancelled</option></select></div>
+              </div>
+            </div>
+            <div class="booking-form-section">
+              <h3>ข้อมูลผู้จอง</h3>
+              <div class="form-grid">
+                <div><label>คำนำหน้า</label><select id="leaderTitle"><option></option><option>นาย</option><option>นาง</option><option>นางสาว</option><option>เด็กชาย</option><option>เด็กหญิง</option></select></div>
+                <div><label>ชื่อหัวหน้าทริป</label><input id="leaderFirstName"></div>
+                <div><label>นามสกุลหัวหน้าทริป</label><input id="leaderLastName"></div>
+                <div><label>เบอร์โทร</label><input id="phone"></div>
+                <div class="full"><label>ติดต่อได้จาก</label><input id="contactEmail" type="text" placeholder="เช่น LINE ID, Facebook, อีเมล หรือช่องทางอื่น"></div>
+              </div>
+            </div>
+            <div class="booking-form-section">
+              <h3>จำนวนผู้เดินทาง</h3>
+              <div class="form-grid booking-count-grid">
+                <div><label>ผู้ใหญ่</label><input id="adultCount" type="number" min="1" value="1" onchange="syncPassengerComposition()"></div>
+                <div><label>เด็ก</label><input id="childCount" type="number" min="0" value="0" onchange="syncPassengerComposition()"></div>
+                <div><label>ทารก</label><input id="infantCount" type="number" min="0" value="0" onchange="syncPassengerComposition()"></div>
+                <div><label>Free of Charge (FOC)</label><input id="focCount" type="number" min="0" value="0" onchange="syncPassengerComposition()"></div>
+                <div class="full"><label>จำนวนผู้เดินทางรวม</label><input id="paxCount" type="number" value="1" readonly></div>
+              </div>
+            </div>
+            <div class="booking-form-section">
+              <h3>ที่มาของ Booking</h3>
+              <div class="form-grid">
+                <div><label>ต้นฉบับ</label><select id="bookingOriginal"></select></div>
+                <div><label>ช่องทางลูกค้า / จองในงาน</label><select id="source"></select></div>
+                <div class="full"><label>Agent / ผู้แนะนำ</label><input id="agentName"></div>
+              </div>
+            </div>
+            <div class="booking-form-section">
+              <h3>การชำระเงิน</h3>
+              <div class="form-grid">
+                <div><label>ชำระเงิน</label><select id="paymentMethod"></select></div>
+                <div><label>มัดจำ</label><input id="depositAmount" type="number" min="0" step="0.01" value="0" oninput="ensurePaymentMethod('depositPaymentMethod');refreshSummary()"></div>
+                <div><label>ช่องทางมัดจำ</label><select id="depositPaymentMethod"></select></div>
+                <div><label>ขายเชื่อ</label><input id="creditAmount" type="number" min="0" step="0.01" value="0" oninput="ensurePaymentMethod('creditPaymentMethod');refreshSummary()"></div>
+                <div><label>ช่องทางรับชำระยอดเชื่อ</label><select id="creditPaymentMethod"></select></div>
+                <div id="paymentBreakdownEditor" class="full hidden" aria-hidden="true"></div>
+              </div>
+            </div>
+            <div class="booking-form-section">
+              <h3>เลขอ้างอิงเอกสาร</h3>
+              <div class="form-grid">
+                <div><label>เล่มที่</label><input id="receiptBookNo"></div>
+                <div><label>เลขที่</label><input id="manualReceiptNo"></div>
+                <div><label>เล่มที่ (ตั๋วเรือ)</label><input id="boatTicketBookNo"></div>
+                <div><label>เลขที่ (ตั๋วเรือ)</label><input id="boatTicketNo"></div>
+                <div class="full"><label>หมายเหตุ Booking</label><textarea id="bookingNote"></textarea></div>
+              </div>
             </div>
             <p class="muted">รายการผู้โดยสารจะปรับอัตโนมัติเมื่อเปลี่ยนจำนวนแต่ละประเภท และสามารถบันทึกไว้ก่อนโดยยังไม่กรอกชื่อลูกทัวร์ได้</p>
           </div>
@@ -382,12 +409,12 @@
   </div>
 </div>
 
-<script src="js/api.js?v=20260921-8"></script>
-<script src="js/smartPaste.js?v=20260921-8"></script>
-<script src="js/csvImport.js?v=20260921-8"></script>
-<script src="js/app.js?v=20260921-8"></script>
-<script src="js/bookingOriginal.js?v=20260921-8"></script>
-<script src="js/islandAddonMaster.js?v=20260921-8"></script>
-<script src="js/financial.js?v=20260921-8"></script>
+<script src="js/api.js?v=20260921-9"></script>
+<script src="js/smartPaste.js?v=20260921-9"></script>
+<script src="js/csvImport.js?v=20260921-9"></script>
+<script src="js/app.js?v=20260921-9"></script>
+<script src="js/bookingOriginal.js?v=20260921-9"></script>
+<script src="js/islandAddonMaster.js?v=20260921-9"></script>
+<script src="js/financial.js?v=20260921-9"></script>
 </body>
 </html>

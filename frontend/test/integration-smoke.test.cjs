@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.21-8/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260921-8`));
+  assert.match(html,/Version 2026\.09\.21-9/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260921-9`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -89,8 +89,12 @@ test("booking draft fields allow minimum leader contact without travel dates",()
 test("booking dropdowns are master-driven and new booking fully resets edit state",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  const css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
   const masterRoute=fs.readFileSync(path.join(root,"..","backend","src","routes","masterData.js"),"utf8");
-  for(const id of ["source","transportationMethod","paymentMethod"])assert.match(html,new RegExp(`id=["']${id}["']`));
+  for(const id of ["source","paymentMethod"])assert.match(html,new RegExp(`id=["']${id}["']`));
+  assert.doesNotMatch(html,/id=["']transportationMethod["']/);
+  for(const heading of ["กำหนดการและสถานะ","ข้อมูลผู้จอง","จำนวนผู้เดินทาง","ที่มาของ Booking","การชำระเงิน","เลขอ้างอิงเอกสาร"])assert.match(html,new RegExp(heading));
+  assert.match(css,/\.booking-form-section\{[^}]*border-top:2px solid/);
   assert.match(html,/loadMasterDataPro\('customer_sources'\)/);
   assert.match(html,/loadMasterDataPro\('transportation_methods'\)/);
   assert.match(html,/onclick=["']openNewBooking\(\)/);
@@ -255,6 +259,9 @@ test("Island Add-on uses dedicated master data and prints an isolated dive recei
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),feature=fs.readFileSync(path.join(root,"js","islandAddonMaster.js"),"utf8"),financial=fs.readFileSync(path.join(root,"js","financial.js"),"utf8"),reportService=fs.readFileSync(path.resolve(root,"../backend/src/services/reportService.js"),"utf8"),masterRoute=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),bookingRoute=fs.readFileSync(path.resolve(root,"../backend/src/routes/bookings.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260921_034_island_addon_master_and_dive_receipt.sql"),"utf8");
   assert.match(html,/loadMasterDataPro\('island_addons'\)/);assert.match(html,/printCurrentDocument\('DIVE_RECEIPT'\)/);assert.match(html,/printSelectedReceipt\('DIVE_RECEIPT'\)/);assert.match(html,/ใบเสร็จอุปกรณ์/);
   assert.match(feature,/master\.islandAddOns/);assert.match(feature,/DIVE_RECEIPT/);assert.match(feature,/diveOnly/);assert.match(feature,/show_dive_receipt/);assert.match(feature,/รายการจาก Master Data/);assert.match(feature,/\?islandDocumentVisibility\(item\):addonConfigurationBeforeIslandMaster/);
+  assert.match(feature,/function islandAddonRowsForEditor/);assert.match(feature,/function toggleIslandAddonSelection/);assert.match(feature,/ติ๊กรายการที่ลูกค้าซื้อ/);assert.doesNotMatch(feature,/>\+ เพิ่ม Island Add-on จาก Master Data/);
+  const bookingEditor=feature.slice(feature.indexOf("islandAddonEditor=function"),feature.indexOf("const groupedItemsBeforeDiveReceipt"));assert.doesNotMatch(bookingEditor,/document-visibility-options/);assert.match(bookingEditor,/type="checkbox"/);
+  assert.match(app,/islandAddOns\|\|\[\]\)rows\.push\(\{name:item\.name\|\|"Island Add-on"[^}]*hideDocuments:true/);
   assert.match(app,/\(p\.islandAddOns\|\|\[\]\)\.reduce/);assert.match(financial,/sourceType:"island_addon"/);assert.match(reportService,/\.\.\.\(p\.islandAddOns\|\|\[\]\)/);
   assert.match(masterRoute,/master_island_addons/);assert.match(sql,/create table if not exists master_island_addons/);assert.match(sql,/printDiveReceipt/);assert.match(sql,/upsert_booking_v19/);assert.match(sql,/list_bookings_json_v19/);assert.match(bookingRoute,/upsert_booking_v19/);
   assert.match(sql,/numeric\(14,2\)/);assert.match(sql,/update booking_addons set show_dive_receipt=true where addon_source='island'/);assert.doesNotMatch(sql,/delete from/i);
