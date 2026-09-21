@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.16-5/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260916-5`));
+  assert.match(html,/Version 2026\.09\.21-1/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260921-1`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -279,6 +279,14 @@ test("payment masters drive receipt accounts and booking totals use one source",
   for(const id of ["mdpPaymentSettings","mdpPaymentType","mdpShowOnMoneyReceipt"])assert.match(html,new RegExp(`id=["']${id}["']`));assert.match(route,/payload\.payment_type/);assert.match(route,/payload\.show_on_money_receipt/);assert.match(sql,/payment_type text not null default 'transfer'/);assert.match(sql,/show_on_money_receipt boolean not null default true/);
   assert.match(app,/function documentFinancialSummary/);assert.match(app,/<span>ยอดรวม<\/span>/);assert.doesNotMatch(app,/รายการในเอกสาร/);assert.match(app,/ยอดสุทธิ/);assert.match(app,/documentGroupedItems\(booking,profile\)\.reduce/);assert.match(app,/function moneyReceiptAllocationTable\(booking,documentTotal\)/);assert.match(app,/paymentTypeLabel/);assert.match(app,/documentGroupedItemsWithoutTentRefund/);
   assert.match(html,/id="paymentBreakdownEditor"/);assert.match(app,/paymentBreakdown=structuredClone/);assert.match(app,/paymentBreakdownSum/);assert.match(app,/ยอดแบ่งบัญชีแถว/);
+});
+test("booking validation never checks stale hidden payment breakdown state",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  assert.match(app,/paymentBreakdown=structuredClone\(booking\.paymentBreakdown\)/);
+  const validator=app.slice(app.indexOf("const validateBookingBeforeBreakdown"),app.indexOf("const documentGroupedItemsWithoutTentRefund"));
+  assert.match(validator,/Object\.values\(booking\.paymentBreakdown\?\.\[row\]/);
+  assert.doesNotMatch(validator,/paymentBreakdownSum\(row\)/);
+  assert.doesNotMatch(validator,/paymentBreakdownExpected\(row/);
 });
 test("active HTML does not contain known Thai mojibake markers",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");

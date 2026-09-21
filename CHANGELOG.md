@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-21 - Payment breakdown validation
+
+- Fixed Booking updates being blocked by stale hidden payment-allocation values after totals, deposits, credits, or payment methods changed.
+- Booking validation now checks the freshly calculated allocation saved with the Booking and synchronizes the in-memory state immediately.
+
 ## 2026-09-16 - Master Data document visibility
 
 - Made the “แสดงรายการนี้ในเอกสาร” selections the single source of truth for Add-ons, transportation, accommodation, and Island Add-ons across Booking summaries and printable documents.
