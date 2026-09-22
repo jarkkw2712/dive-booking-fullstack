@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.22-17/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260922-17`));
+  assert.match(html,/Version 2026\.09\.22-18/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260922-18`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -314,6 +314,12 @@ test("simple accommodation fields follow Program Tour and use editable master da
   assert.match(app,/ข้อมูลการแพ้อาหาร/);
   assert.match(financial,/discountAmount:0,description:""/);
   assert.doesNotMatch(financial,/requestTentCreditRefund/);
+});
+test("changing accommodation owner does not hide the active owner field",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  assert.match(app,/card\.querySelectorAll\(":scope > \.form-grid > div"\)/);
+  assert.doesNotMatch(app,/card\.querySelectorAll\("\.form-grid>div"\)/);
+  assert.match(app,/setPassengerAccommodation\(\$\{index\},'accommodationBookedBy',this\.value\)/);
 });
 
 test("reference reports and category payment defaults are wired end to end",()=>{
