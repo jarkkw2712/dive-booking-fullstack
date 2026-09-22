@@ -21,6 +21,16 @@ test("booking list performance migration adds the required read indexes",()=>{
   assert.doesNotMatch(sql,/delete from|truncate/i);
 });
 
+test("booking add-on references validate against the correct master family",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260922_038_fix_polymorphic_booking_addon_reference.sql"),"utf8");
+  assert.match(sql,/con\.confrelid='public\.master_addons'::regclass/);
+  assert.match(sql,/from booking_addons ba[\s\S]+ba\.addon_source='island'/);
+  assert.match(sql,/if new\.addon_source='pre'[\s\S]+from master_addons/);
+  assert.match(sql,/elsif new\.addon_source='island'[\s\S]+from master_island_addons/);
+  assert.match(sql,/booking_addons_master_reference_trigger/);
+  assert.doesNotMatch(sql,/delete from|truncate/i);
+});
+
 const passenger=(name,island="อ่าวไม้งาม",accommodation="")=>({firstName:name,lastName:"ทดสอบ",age:30,phone:"0800000000",island,foodAllergy:"",medicalNote:"",accommodationId:accommodation,accommodationName:accommodation==="park_house"?"บ้านพักอุทยาน":accommodation==="park_tent"?"เต็นท์อุทยาน":"",accommodationBookedBy:"customer",parkAccommodationReference:accommodation?"PARK-01":"",program:{name:"One Day Trip"},preAddOns:[{id:"fin",name:"Fin",selected:true,qty:1}]});
 const bookings=[
   {bookingCode:"BK1",travelDate:"2026-07-23",returnDate:"2026-07-24",leaderFirstName:"สมชาย",leaderLastName:"ใจดี",phone:"081",status:"confirmed",paymentMethod:"โอน",totalAmount:3000,passengers:[passenger("หนึ่ง","อ่าวไม้งาม","park_house"),passenger("สอง","อ่าวไม้งาม","park_tent")]},
