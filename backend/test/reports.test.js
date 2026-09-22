@@ -7,6 +7,20 @@ import { buildPrintCenterReport } from "../src/services/reportService.js";
 
 const testDir=path.dirname(fileURLToPath(import.meta.url));
 
+test("booking API caches expensive list reads and invalidates after mutations",()=>{
+  const route=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8");
+  assert.match(route,/const bookingCache=/);
+  assert.match(route,/Date\.now\(\)\+30_000/);
+  assert.match(route,/if\(bookingCache\.promise\)return bookingCache\.promise/);
+  assert.ok((route.match(/invalidateBookingCache\(\)/g)||[]).length>=4);
+});
+
+test("booking list performance migration adds the required read indexes",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260922_037_booking_list_performance_indexes.sql"),"utf8");
+  for(const expected of ["passengers_booking_passenger_no_idx","booking_programs_passenger_idx","booking_addons_passenger_source_idx","bookings_travel_status_idx","bookings_return_status_idx"])assert.match(sql,new RegExp(expected));
+  assert.doesNotMatch(sql,/delete from|truncate/i);
+});
+
 const passenger=(name,island="อ่าวไม้งาม",accommodation="")=>({firstName:name,lastName:"ทดสอบ",age:30,phone:"0800000000",island,foodAllergy:"",medicalNote:"",accommodationId:accommodation,accommodationName:accommodation==="park_house"?"บ้านพักอุทยาน":accommodation==="park_tent"?"เต็นท์อุทยาน":"",accommodationBookedBy:"customer",parkAccommodationReference:accommodation?"PARK-01":"",program:{name:"One Day Trip"},preAddOns:[{id:"fin",name:"Fin",selected:true,qty:1}]});
 const bookings=[
   {bookingCode:"BK1",travelDate:"2026-07-23",returnDate:"2026-07-24",leaderFirstName:"สมชาย",leaderLastName:"ใจดี",phone:"081",status:"confirmed",paymentMethod:"โอน",totalAmount:3000,passengers:[passenger("หนึ่ง","อ่าวไม้งาม","park_house"),passenger("สอง","อ่าวไม้งาม","park_tent")]},
