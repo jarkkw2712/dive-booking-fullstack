@@ -1,6 +1,6 @@
 const API_BASE = "https://dive-booking-api.onrender.com/api";
 
-function token(){return localStorage.getItem("token")||""}
+function token(){return sessionStorage.getItem("token")||""}
 let pendingMutations=0;
 function setMutationPending(pending){
   pendingMutations=Math.max(0,pendingMutations+(pending?1:-1));
@@ -13,7 +13,7 @@ async function apiFetch(path, options={}){
   if(token()) headers.Authorization=`Bearer ${token()}`;
   if(isMutation)setMutationPending(true);
   try{
-    const res=await fetch(API_BASE+path,{...options,headers});
+    const res=await fetch(API_BASE+path,{...options,headers,credentials:"include"});
     const data=await res.json().catch(()=>({}));
     if(!res.ok) throw new Error(data.error||res.statusText);
     return data;
@@ -24,6 +24,7 @@ async function apiFetch(path, options={}){
 
 const API={
   login:(username,password)=>apiFetch("/auth/login",{method:"POST",body:JSON.stringify({username,password})}),
+  logout:()=>apiFetch("/auth/logout",{method:"POST",body:"{}"}),
   changePassword:(currentPassword,newPassword)=>apiFetch("/auth/change-password",{method:"POST",body:JSON.stringify({currentPassword,newPassword})}),
   me:()=>apiFetch("/auth/me"),
   bookings:()=>apiFetch("/bookings"),

@@ -7,7 +7,7 @@ import { hashPassword,verifyPassword,consumeComparableDelay,createPasswordResetT
 import { sendPasswordResetEmail } from "../services/emailService.js";
 
 const router=express.Router();
-const publicUserFields="user_id,username,email,display_name,role_id,active_flag,password_hash,must_change_password,failed_login_count,locked_until";
+const publicUserFields="user_id,username,email,display_name,role_id,active_flag,password_hash,must_change_password,failed_login_count,locked_until,session_version";
 async function permissionsFor(role){const {data,error}=await supabaseAdmin.from("role_permissions").select("permission_key,allowed").eq("role_id",role);if(error)throw error;return Object.fromEntries((data||[]).map(row=>[row.permission_key,row.allowed]))}
 async function audit(req,{user,username,email,action,success,detail}){try{await supabaseAdmin.from("auth_audit_logs").insert({user_id:user?.user_id||null,username_snapshot:username||user?.username||null,email_snapshot:email||user?.email||null,action,success,detail,ip_address:req.ip,user_agent:String(req.headers["user-agent"]||"").slice(0,500)})}catch(error){console.error("Auth audit failed",error.message)}}
 const loginLimiter=rateLimit({windowMs:15*60_000,max:30});
@@ -20,21 +20,20 @@ router.all(["/forgot-password","/reset-password"],(_req,res)=>res.status(404).js
 router.post("/login",loginLimiter,async(req,res)=>{
   try{
     const {username,password}=req.body||{};
-    const pilotAuthMode=process.env.PILOT_AUTH_MODE||"shared_password";
     if(!process.env.JWT_SECRET)return res.status(503).json({error:"Authentication environment is not configured"});
     const {data:user,error}=await supabaseAdmin.from("app_users").select(publicUserFields).eq("username",String(username||"").trim()).maybeSingle();
     if(error)throw error;
     if(!user){await consumeComparableDelay(password);await audit(req,{username,action:"LOGIN",success:false,detail:"Unknown username"});return res.status(401).json({error:"Invalid username or password"})}
     if(!user.active_flag){await audit(req,{user,action:"LOGIN",success:false,detail:"Inactive account"});return res.status(401).json({error:"Invalid username or password"})}
     if(user.locked_until&&new Date(user.locked_until)>new Date()){await audit(req,{user,action:"LOGIN",success:false,detail:"Account temporarily locked"});return res.status(423).json({error:"Account temporarily locked. Try again later."})}
-    const usingPilotPassword=!user.password_hash&&pilotAuthMode==="shared_password"&&process.env.DEMO_PASSWORD&&password===process.env.DEMO_PASSWORD;
-    const valid=usingPilotPassword||await verifyPassword(password,user.password_hash);
+    const valid=await verifyPassword(password,user.password_hash);
     if(!valid){const failures=Number(user.failed_login_count||0)+1,lockedUntil=failures>=5?new Date(Date.now()+15*60_000).toISOString():null;await supabaseAdmin.from("app_users").update({failed_login_count:failures>=5?0:failures,locked_until:lockedUntil,updated_at:new Date().toISOString()}).eq("user_id",user.user_id);await audit(req,{user,action:"LOGIN",success:false,detail:lockedUntil?"Locked after failed attempts":"Invalid password"});return res.status(401).json({error:"Invalid username or password"})}
     await supabaseAdmin.from("app_users").update({failed_login_count:0,locked_until:null,last_login_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("user_id",user.user_id);
-    const permissions=await permissionsFor(user.role_id),mustChangePassword=usingPilotPassword||user.must_change_password;
-    const payload={userId:user.user_id,username:user.username,email:user.email,displayName:user.display_name,role:user.role_id,permissions,mustChangePassword};
+    const permissions=await permissionsFor(user.role_id),mustChangePassword=user.must_change_password;
+    const payload={userId:user.user_id,username:user.username,email:user.email,displayName:user.display_name,role:user.role_id,permissions,mustChangePassword,sessionVersion:Number(user.session_version||1)};
     const token=jwt.sign(payload,process.env.JWT_SECRET,{expiresIn:mustChangePassword?"30m":"12h"});
-    await audit(req,{user,action:"LOGIN",success:true,detail:usingPilotPassword?"Pilot password; change required":"Per-user password"});
+    await audit(req,{user,action:"LOGIN",success:true,detail:"Per-user password"});
+    res.cookie("sabina_session",token,{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:process.env.NODE_ENV==="production"?"none":"lax",path:"/api",maxAge:(mustChangePassword?30*60:12*60*60)*1000});
     res.json({token,user:payload});
   }catch(error){console.error("Login failed",error);res.status(500).json({error:"Login failed"})}
 });
@@ -70,14 +69,14 @@ router.post("/reset-password",recoveryLimiter,async(req,res)=>{
 router.post("/change-password",requireAuth,rateLimit({windowMs:15*60_000,max:10}),async(req,res)=>{
   try{
     const {data:user,error}=await supabaseAdmin.from("app_users").select(publicUserFields).eq("user_id",req.user.userId).single();if(error)throw error;
-    const pilotValid=!user.password_hash&&process.env.DEMO_PASSWORD&&req.body?.currentPassword===process.env.DEMO_PASSWORD;
-    if(!pilotValid&&!await verifyPassword(req.body?.currentPassword,user.password_hash)){await audit(req,{user,action:"PASSWORD_CHANGE",success:false,detail:"Current password incorrect"});return res.status(400).json({error:"รหัสผ่านปัจจุบันไม่ถูกต้อง"})}
+    if(!await verifyPassword(req.body?.currentPassword,user.password_hash)){await audit(req,{user,action:"PASSWORD_CHANGE",success:false,detail:"Current password incorrect"});return res.status(400).json({error:"รหัสผ่านปัจจุบันไม่ถูกต้อง"})}
     if(req.body?.currentPassword===req.body?.newPassword)return res.status(400).json({error:"รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสเดิม"});
     const passwordHash=await hashPassword(req.body?.newPassword);
-    await supabaseAdmin.from("app_users").update({password_hash:passwordHash,must_change_password:false,password_changed_at:new Date().toISOString(),failed_login_count:0,locked_until:null,updated_at:new Date().toISOString()}).eq("user_id",user.user_id);
+    await supabaseAdmin.from("app_users").update({password_hash:passwordHash,must_change_password:false,password_changed_at:new Date().toISOString(),failed_login_count:0,locked_until:null,session_version:Number(user.session_version||1)+1,updated_at:new Date().toISOString()}).eq("user_id",user.user_id);
     await audit(req,{user,action:"PASSWORD_CHANGE",success:true,detail:"Password changed"});res.json({success:true});
   }catch(error){const policy=/Password must/.test(error.message||"");res.status(400).json({error:policy?error.message:"เปลี่ยนรหัสผ่านไม่สำเร็จ"})}
 });
+router.post("/logout",(req,res)=>{res.clearCookie("sabina_session",{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:process.env.NODE_ENV==="production"?"none":"lax",path:"/api"});res.json({success:true})});
 
 router.get("/me",requireAuth,(req,res)=>res.json({user:req.user}));
 export default router;

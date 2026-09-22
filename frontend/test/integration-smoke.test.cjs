@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.21-9/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260921-12`));
+  assert.match(html,/Version 2026\.09\.21-10/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260921-13`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -315,11 +315,13 @@ test("simple accommodation fields follow Program Tour and use editable master da
 
 test("reference reports and category payment defaults are wired end to end",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),feature=fs.readFileSync(path.join(root,"js","islandAddonMaster.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/reports.js"),"utf8"),service=fs.readFileSync(path.resolve(root,"../backend/src/services/reportService.js"),"utf8"),masterRoute=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),bookingRoute=fs.readFileSync(path.resolve(root,"../backend/src/routes/bookings.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260921_035_payment_defaults_transport_methods.sql"),"utf8");
-  for(const type of ["tour_expense_reference","tent_fee_reference","van_daily_reference","van_work_order_reference"]){assert.ok(html.includes(type)||app.includes(type));assert.ok(route.includes(type));assert.ok(service.includes(type))}for(const type of ["tour_monthly_reference","van_monthly_reference"]){assert.ok(route.includes(type));assert.ok(service.includes(type));assert.equal(html.includes(type),false)}
+  for(const type of ["tour_expense_reference","tent_fee_reference","van_daily_reference","van_work_order_reference","agent_reference","customer_travel_daily_reference"]){assert.ok(html.includes(type)||app.includes(type));assert.ok(route.includes(type));assert.ok(service.includes(type))}for(const type of ["tour_monthly_reference","van_monthly_reference"]){assert.ok(route.includes(type));assert.ok(service.includes(type));assert.equal(html.includes(type),false)}
   for(const id of ["mdpDefaultGeneral","mdpDefaultEquipment","mdpDefaultIsland","mdpDefaultTransport"])assert.match(html,new RegExp(`id=["']${id}["']`));
   for(const field of ["default_general","default_equipment","default_island","default_transport"]){assert.ok(app.includes(field));assert.ok(masterRoute.includes(field));assert.ok(sql.includes(field))}
   for(const name of ["นฤมล","เรืองโรจน์","รุ่งฤดี","ลัดดาวรรณ์","รุจิโรจน์"])assert.ok(sql.includes(name));
   assert.match(app,/function referencePrintReportHtml/);assert.match(app,/function appendReferenceReportTableTotals/);assert.match(app,/คืนละ \(บาท\)/);for(const heading of ["รายงานสรุปรายการทัวร์ (รายเดือน)","รายงานสรุปรายการรถตู้ (รายเดือน)"])assert.ok(app.includes(heading));assert.doesNotMatch(html,/exportReferenceExcelReport\('(tour|van)_monthly_reference'\)/);
+  assert.match(app,/function agentReferenceReportHtml/);assert.match(app,/function customerTravelDailyReferenceReportHtml/);assert.match(app,/วันที่จ่าย/);assert.match(app,/วันกลับ/);assert.doesNotMatch(html,/รายงานสรุปรายรับ-รายจ่าย/);
+  assert.match(app,/singleDate=dailySummary\|\|type==="customer_travel_daily_reference"/);assert.match(app,/if\(dailySummary\).*dailySummaryReportHtml/);
   assert.doesNotMatch(app,/แหล่งข้อมูลและวิธีคำนวณ/);assert.match(css,/reference-tour-table\{font-size:9px/);
   assert.match(app,/transportationPaymentMethod/);assert.match(app,/returnTransportationPaymentMethod/);assert.match(app,/function setEquipmentPaymentMethod/);assert.match(feature,/setIslandPaymentMethod/);assert.match(feature,/groupPaymentHeader/);assert.doesNotMatch(feature.slice(feature.indexOf("islandAddonEditor=function"),feature.indexOf("const groupedItemsBeforeDiveReceipt")),/updateIslandAddon\([^)]*'paymentMethod'/);
   assert.match(css,/passenger-travel-grid\{grid-template-columns:repeat\(5/);assert.match(css,/\.reference-report-portrait\{page:report-portrait/);assert.match(css,/\.reference-report-landscape\{page:report/);
@@ -367,4 +369,10 @@ test("authorized users have a searchable unified audit page",()=>{
   assert.match(html,/data-permission="viewAudit"/);
   assert.match(api,/audit-logs\/unified/);
   assert.match(app,/function loadAuditLogs/);
+});
+test("booking main contact and dates autofill the trip leader while individual dates remain editable",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  assert.match(app,/function syncBookingMainToLeader/);
+  for(const field of ["leaderTitle","leaderFirstName","leaderLastName","phone","travelDate","returnDate"])assert.match(app,new RegExp(`\\[?\\"${field}\\"`));
+  assert.match(app,/syncBookingMainToLeader\(\{render:false,dates:false\}\)/);
 });

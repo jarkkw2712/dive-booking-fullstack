@@ -267,6 +267,27 @@ test("reference reports follow travel date, stable payment codes and fixed tent 
   assert.deepEqual(monthly.rows[0],{month:"2026-09",cash:1200,transfer:1900,deposit:100,credit:200,rungruedeeTransfer:0});assert.deepEqual(monthly.totals,{cash:1200,transfer:1900,deposit:100,credit:200,rungruedeeTransfer:0});assert.equal("remaining" in monthly.rows[0],false);assert.equal("withdrawal" in monthly.rows[0],false);
 });
 
+test("agent and daily return travel reports follow the approved workbook logic",()=>{
+  const bookings=[
+    {bookingCode:"AG-B",travelDate:"2026-09-21",returnDate:"2026-09-23",leaderFirstName:"หัวหน้า",leaderLastName:"บี",agentName:"Agent B",status:"confirmed",bookingNote:"โทรก่อนรับ",passengers:[
+      {passengerType:"adult",program:{programId:"boat_ticket",name:"ตั๋วเรือ",qty:1,price:1000},passengerTravelDate:"2026-09-21",passengerReturnDate:"2026-09-23",returnTransportationMethod:"ลิกไนท์"},
+      {passengerType:"child",program:{programId:"package_3d2n",name:"3 วัน 2 คืน",qty:1,price:2000},passengerTravelDate:"2026-09-21",passengerReturnDate:"2026-09-23",returnTransportationMethod:"บขส."},
+      {passengerType:"infant",program:{programId:"package_3d2n",name:"3 วัน 2 คืน",qty:1,price:500},passengerTravelDate:"2026-09-21",passengerReturnDate:"2026-09-23",returnTransportationMethod:"รถส่วนตัว"},
+      {passengerType:"foc",program:{programId:"boat_ticket",name:"ตั๋วเรือ",qty:1,price:0},passengerTravelDate:"2026-09-21",passengerReturnDate:"2026-09-23",returnTransportationMethod:"รถตู้ VIP"},
+      {passengerType:"adult",program:{programId:"package_3d2n",name:"3 วัน 2 คืน",qty:1,price:300},passengerTravelDate:"2026-09-21",passengerReturnDate:"2026-09-23",returnTransportationMethod:"รถทัวร์"}
+    ]},
+    {bookingCode:"AG-A",travelDate:"2026-09-22",leaderFirstName:"หัวหน้า",leaderLastName:"เอ",agentName:"Agent A",status:"confirmed",passengers:[{passengerType:"adult",program:{programId:"package",name:"แพ็คเกจ",qty:1,price:3000}}]},
+    {bookingCode:"CANCEL",travelDate:"2026-09-21",agentName:"Agent B",status:"cancelled",passengers:[{passengerType:"adult",program:{programId:"boat_ticket",qty:1,price:9999},passengerReturnDate:"2026-09-23",returnTransportationMethod:"ลิกไนท์"}]}
+  ];
+  const agents=[{agent_name:"Agent B",sort_order:1},{agent_name:"Agent A",sort_order:2}],transportationMethods=[
+    {method_id:"lignite",method_name:"ลิกไนท์"},{method_id:"BKS",method_name:"บขส."},{method_id:"private_car",method_name:"รถส่วนตัว"},{method_id:"pv01",method_name:"รถตู้ VIP"},{method_id:"coach",method_name:"รถทัวร์"}
+  ];
+  const agent=buildPrintCenterReport({bookings,masterAgents:agents,date:"2026-09-21",toDate:"2026-09-22",type:"agent_reference"});
+  assert.deepEqual(agent.pages.map(page=>page.agent),["Agent B","Agent A"]);assert.equal(agent.pages[0].rows[0].adult,2);assert.equal(agent.pages[0].rows[0].child,1);assert.equal(agent.pages[0].rows[0].infant,1);assert.equal(agent.pages[0].rows[0].foc,1);assert.equal(agent.pages[0].totals.boatAmount,1000);assert.equal(agent.pages[0].totals.packageAmount,2800);assert.equal(agent.pages[0].totals.total,3800);assert.equal(agent.pages[0].rows[0].paymentDate,"");
+  const travel=buildPrintCenterReport({bookings,transportationMethods,date:"2026-09-23",toDate:"2026-09-23",type:"customer_travel_daily_reference"});
+  assert.equal(travel.pages.length,1);assert.equal(travel.pages[0].rows.length,1);assert.deepEqual(travel.pages[0].totals,{pax:5,lignite:1,bks:1,privateCar:1,van:1});assert.match(travel.pages[0].rows[0].note,/รถทัวร์ 1 คน/);assert.equal(travel.pages[0].rows[0].arrivalDate,"2026-09-21");
+});
+
 test("payment defaults and per-leg transportation migration is idempotent and non-destructive",()=>{
   const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260921_035_payment_defaults_transport_methods.sql"),"utf8");
   for(const field of ["default_general","default_equipment","default_island","default_transport","transportation_payment_method","return_transportation_payment_method","upsert_booking_v20","list_bookings_json_v20"])assert.match(sql,new RegExp(field));
