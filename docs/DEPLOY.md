@@ -43,6 +43,10 @@ Run these files once, in order, with Supabase SQL Editor:
 33. `database/migrations/20260921_033_booking_original_master.sql`
 34. `database/migrations/20260921_034_island_addon_master_and_dive_receipt.sql`
 35. `database/migrations/20260921_035_payment_defaults_transport_methods.sql`
+36. `database/migrations/20260922_036_security_sessions_and_transport_invoice.sql`
+37. `database/migrations/20260922_037_booking_list_performance_indexes.sql`
+38. `database/migrations/20260922_038_fix_polymorphic_booking_addon_reference.sql`
+39. `database/migrations/20260922_039_accommodation_quantity_price.sql`
 
 The stabilization and table migrations are idempotent and do not delete existing records. Function/view migrations use `CREATE OR REPLACE`.
 Migration 007 defaults existing passengers to no overnight stay and does not create revenue or financial entries.
@@ -60,8 +64,10 @@ Migration 018 exposes the immutable booking creation timestamp for Excel exports
 Migration 019 records the authenticated Booking creator once and backfills historical creators from the earliest available audit entry. Run it after migration 018 before deploying version 2026.08.12-4.
 Migration 030 adds revision-preserving daily operating expenses, CEO net reporting support, Island Purchase Order visibility, and two new permissions. Run `20260904_030_ceo_expenses_and_island_purchase_order.sql` after migration 029 and before deploying version 2026.09.04-1. Users must sign in again after the migration so their JWT contains the new permissions.
 Migration 035 adds category-specific Payment Method defaults and the separate outbound/return transportation payment snapshots used by the new reports. It also seeds the five named transfer accounts only when the same display name is absent. Run it after migration 034 and before deploying frontend version `20260921-12` and the matching backend.
+Migration 036 hardens sessions/refunds and permits both transportation legs in financial invoices. Migration 037 adds Booking List read indexes. Migration 038 fixes the polymorphic equipment/Island Add-on master reference. Run them in this order before migration 039.
+Migration 039 adds the Accommodation Master default price and booking snapshots for quantity and unit price. It preserves existing selected accommodation as one unit with zero historical price, allows accommodation invoice lines, and exposes Booking RPC v21. Run it before deploying frontend version `2026.09.22-17` and the matching backend.
 
-For rollback, redeploy the previous backend/frontend revision. Do not drop the migration 035 columns or named payment methods: they are backward-compatible and may already contain booking history. Disable unwanted seeded methods in Master Data instead of deleting them.
+For rollback, redeploy the previous backend/frontend revision. Do not drop the migration 035-039 columns, indexes, triggers, or named payment methods: they are backward-compatible and may already contain booking history. Disable unwanted Master Data records instead of deleting them. Existing v20 booking functions remain available if the application must be rolled back.
 
 ## 3. Render
 

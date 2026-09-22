@@ -13,7 +13,7 @@ async function listBookingsCached(){
   if(bookingCache.data&&Date.now()<bookingCache.expiresAt)return bookingCache.data;
   if(bookingCache.promise)return bookingCache.promise;
   const version=bookingCache.version;
-  const request=(async()=>{const {data,error}=await bookingRpc("list_bookings_json_v20","list_bookings_json_v19");if(error)throw error;const rows=data||[];if(version===bookingCache.version){bookingCache.data=rows;bookingCache.expiresAt=Date.now()+30_000}return rows})();
+  const request=(async()=>{const {data,error}=await bookingRpc("list_bookings_json_v21","list_bookings_json_v20");if(error)throw error;const rows=data||[];if(version===bookingCache.version){bookingCache.data=rows;bookingCache.expiresAt=Date.now()+30_000}return rows})();
   bookingCache.promise=request;
   try{return await request}finally{if(bookingCache.promise===request)bookingCache.promise=null}
 }
@@ -34,8 +34,8 @@ router.post("/check-duplicate",async(req,res)=>{
   }
   res.json({duplicates:[...found.values()]});
 });
-router.post("/",requirePermission("createBooking"),async(req,res)=>{const {data,error}=await bookingRpc("upsert_booking_v20","upsert_booking_v19",{p_booking:{...req.body,createdBy:req.user.username}});if(error)return res.status(500).json({error:error.message});invalidateBookingCache();res.json(data)});
-router.put("/:code",requirePermission("editBooking"),async(req,res)=>{const {data,error}=await bookingRpc("upsert_booking_v20","upsert_booking_v19",{p_booking:{...req.body,bookingCode:req.params.code,createdBy:req.user.username}});if(error)return res.status(500).json({error:error.message});invalidateBookingCache();res.json(data)});
+router.post("/",requirePermission("createBooking"),async(req,res)=>{const {data,error}=await bookingRpc("upsert_booking_v21","upsert_booking_v20",{p_booking:{...req.body,createdBy:req.user.username}});if(error)return res.status(500).json({error:error.message});invalidateBookingCache();res.json(data)});
+router.put("/:code",requirePermission("editBooking"),async(req,res)=>{const {data,error}=await bookingRpc("upsert_booking_v21","upsert_booking_v20",{p_booking:{...req.body,bookingCode:req.params.code,createdBy:req.user.username}});if(error)return res.status(500).json({error:error.message});invalidateBookingCache();res.json(data)});
 router.post("/:code/cancel",requirePermission("cancelBooking"),async(req,res)=>{if(!String(req.body.reason||"").trim())return res.status(400).json({error:"Cancellation reason is required"});const {data,error}=await supabaseAdmin.rpc("cancel_booking_by_code",{p_booking_code:req.params.code,p_reason:req.body.reason});if(error)return res.status(500).json({error:error.message});invalidateBookingCache();res.json(data)});
 router.get("/:code/timeline",async(req,res)=>{const {data,error}=await supabaseAdmin.from("audit_logs").select("*").eq("booking_code",req.params.code).order("changed_at",{ascending:true});if(error)return res.status(500).json({error:error.message});res.json(data||[])});
 export default router;

@@ -79,7 +79,26 @@ test("management report supports custom ranges and transposed income categories"
 test("management operations list active master data even when usage is zero",()=>{
   const report=buildPrintCenterReport({bookings:[],masterAddOns:[{addon_id:"mask",addon_name:"หน้ากาก"}],masterAccommodations:[{accommodation_id:"park_house",accommodation_name:"บ้านพักอุทยาน"}],date:"2026-09-04",type:"management"});
   assert.deepEqual(report.equipment,[{code:"mask",name:"หน้ากาก",qty:0}]);
-  assert.deepEqual(report.accommodationItems,[{code:"park_house",name:"บ้านพักอุทยาน",qty:0}]);
+  assert.deepEqual(report.accommodationItems,[{code:"park_house",name:"บ้านพักอุทยาน",qty:0,defaultPrice:0,amount:0}]);
+});
+
+test("accommodation quantity and price flow to reports only when the company books it",()=>{
+  const accommodationBookings=[
+    {bookingCode:"STAY-COMPANY",travelDate:"2026-09-04",status:"confirmed",paymentMethod:"เงินสด",totalAmount:1500,passengers:[{firstName:"A",accommodationId:"park_house",accommodationName:"บ้านพักอุทยาน",accommodationBookedBy:"company",accommodationQty:2,accommodationPrice:750}]},
+    {bookingCode:"STAY-CUSTOMER",travelDate:"2026-09-04",status:"confirmed",paymentMethod:"เงินสด",totalAmount:0,passengers:[{firstName:"B",accommodationId:"park_house",accommodationName:"บ้านพักอุทยาน",accommodationBookedBy:"customer",accommodationQty:3,accommodationPrice:900}]}
+  ],paymentMethods=[{method_id:"cash",method_name:"เงินสด",payment_type:"cash"}],masterAccommodations=[{accommodation_id:"park_house",accommodation_name:"บ้านพักอุทยาน",default_price:800}];
+  const management=buildPrintCenterReport({bookings:accommodationBookings,paymentMethods,masterAccommodations,date:"2026-09-04",type:"management"});
+  assert.equal(management.accommodation.parkHouse,5);assert.equal(management.accommodation.companyBooked,2);assert.equal(management.accommodation.customerSelfBooked,3);assert.equal(management.accommodation.companyRevenue,1500);assert.equal(management.accommodation.customerReferenceValue,2700);assert.equal(management.accommodationItems[0].amount,1500);assert.equal(management.incomeMatrix.find(row=>row.category==="ที่พัก").values["2026-09-04"],1500);
+  const tour=buildPrintCenterReport({bookings:accommodationBookings,paymentMethods,date:"2026-09-04",toDate:"2026-09-04",type:"tour_expense_reference"});
+  assert.equal(tour.rows[0].accommodationCash,1500);assert.equal(tour.rows[0].accommodationTransfer,0);assert.equal(tour.rows[0].totalRevenue,1500);
+  const boat=buildPrintCenterReport({bookings:accommodationBookings,date:"2026-09-04",type:"boat"});
+  assert.deepEqual(boat.rows.map(row=>row.accommodationTotal),[1500,0]);assert.deepEqual(boat.rows.map(row=>row.accommodationQty),[2,3]);
+});
+
+test("accommodation price migration is idempotent and routes use booking RPC v21",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260922_039_accommodation_quantity_price.sql"),"utf8"),bookingRoute=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8"),reportRoute=fs.readFileSync(path.resolve(testDir,"../src/routes/reports.js"),"utf8");
+  for(const field of ["default_price","accommodation_qty","accommodation_unit_price","accommodation_default_price","upsert_booking_v21","list_bookings_json_v21","'accommodation'"])assert.match(sql,new RegExp(field));
+  assert.match(sql,/if v_add_qty then/);assert.match(sql,/add column if not exists/);assert.doesNotMatch(sql,/delete from|truncate/i);assert.match(bookingRoute,/upsert_booking_v21/);assert.match(bookingRoute,/list_bookings_json_v21/);assert.match(reportRoute,/list_bookings_json_v21/);
 });
 
 test("daily register receipt and equipment summaries calculate operational totals",()=>{

@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.22-16/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260922-16`));
+  assert.match(html,/Version 2026\.09\.22-17/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260922-17`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -175,7 +175,7 @@ test("print center exposes role-specific reports and seven-day management output
   assert.match(css,/@page report\{size:A4 landscape/);
   assert.match(css,/#printCenterPage>h1/);
   assert.match(app,/ยอดอุปกรณ์ที่ต้องเบิก/);
-  assert.match(app,/ที่พักอุทยาน \(ไม่รวมรายได้บริษัท\)/);
+  assert.match(app,/ลูกค้าจองเองแสดงจำนวนเพื่อการปฏิบัติงาน แต่ไม่รวมเป็นรายได้/);
 });
 test("booking list owns flexible document search while print center remains date-based",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
@@ -252,7 +252,7 @@ test("outbound and return transportation prices persist and contribute to every 
 test("booking original master persists and Excel separates passenger counts, boat references and deposit type",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),feature=fs.readFileSync(path.join(root,"js","bookingOriginal.js"),"utf8"),masterRoute=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260921_033_booking_original_master.sql"),"utf8");
   assert.match(html,/id="bookingOriginal"/);assert.match(html,/loadMasterDataPro\('booking_originals'\)/);assert.match(app,/master\.bookingOriginals/);assert.match(masterRoute,/master_booking_originals/);
-  for(const heading of ["ต้นฉบับ","ผู้ใหญ่","เด็ก","ทารก","FOC","มัดจำเงินสด","มัดจำโอน","สถานที่รับ","สถานที่กลับ"])assert.ok(feature.includes(heading));assert.ok(feature.includes("เล่มที่ (ตั๋วเรือ)"));assert.ok(feature.includes("เลขที่ (ตั๋วเรือ)"));
+  for(const heading of ["ต้นฉบับ","ผู้ใหญ่","เด็ก","ทารก","FOC","มัดจำเงินสด","มัดจำโอน","สถานที่รับ","สถานที่กลับ","ผู้จองที่พัก","จำนวนที่พัก","ราคาที่พัก","รวมค่าที่พัก"])assert.ok(feature.includes(heading));assert.ok(feature.includes("เล่มที่ (ตั๋วเรือ)"));assert.ok(feature.includes("เลขที่ (ตั๋วเรือ)"));
   assert.match(feature,/counts\.adult,counts\.child,counts\.infant,counts\.foc/);assert.match(feature,/payment_type===type/);assert.match(sql,/upsert_booking_v18/);assert.match(sql,/list_bookings_json_v18/);
 });
 test("Island Add-on uses dedicated master data and prints an isolated dive receipt",()=>{
@@ -281,10 +281,10 @@ test("selected items and printed lines use Master Data document visibility as th
   assert.doesNotMatch(app,/else if\(title==="ใบอุปกรณ์"\)rows=rows\.filter/);
   assert.match(app,/function renderIslandPurchaseOrder\(booking\).*items=documentGroupedItems\(booking,profile\)/);
 });
-test("accommodation master controls non-revenue document visibility",()=>{
-  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_022_accommodation_document_visibility.sql"),"utf8");
-  assert.match(app,/\["addons","transportation_methods","accommodations"\]\.includes\(mdCat\)/);assert.match(app,/function accommodationVisibleOnDocument/);assert.match(app,/ไม่รวมรายได้/);assert.match(app,/unit:0,total:0/);
-  assert.match(route,/\["addons","island_addons","transportation_methods","accommodations"\]\.includes\(category\)/);assert.match(sql,/alter table if exists master_accommodations/);assert.match(sql,/show_register boolean not null default true/);assert.doesNotMatch(sql,/delete from/i);
+test("accommodation master controls price, totals, and document visibility",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),visibilitySql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_022_accommodation_document_visibility.sql"),"utf8"),priceSql=fs.readFileSync(path.resolve(root,"../database/migrations/20260922_039_accommodation_quantity_price.sql"),"utf8");
+  assert.match(app,/\["addons","transportation_methods","accommodations"\]\.includes\(mdCat\)/);assert.match(app,/function accommodationVisibleOnDocument/);assert.match(app,/function accommodationCharge/);assert.match(app,/accommodations:\{id:"accommodation_id",name:"accommodation_name",price:"default_price"\}/);
+  assert.match(route,/\["addons","island_addons","transportation_methods","accommodations"\]\.includes\(category\)/);assert.match(visibilitySql,/show_register boolean not null default true/);for(const field of ["default_price","accommodation_qty","accommodation_unit_price","upsert_booking_v21","list_bookings_json_v21"])assert.match(priceSql,new RegExp(field));assert.doesNotMatch(priceSql,/delete from|truncate/i);
 });
 test("insurance submission has a dedicated permission and receipt references follow document rules",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8"),routes=fs.readFileSync(path.resolve(root,"../backend/src/routes/reports.js"),"utf8"),service=fs.readFileSync(path.resolve(root,"../backend/src/services/reportService.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_023_insurance_report_permission.sql"),"utf8");
@@ -307,7 +307,10 @@ test("simple accommodation fields follow Program Tour and use editable master da
   assert.match(app,/function setPassengerAccommodation/);
   assert.match(app,/accommodationBookedBy/);
   assert.match(app,/>ลูกค้าจองเอง</);
-  assert.match(app,/>จองให้</);
+  assert.match(app,/>เราจองให้</);
+  for(const field of ["accommodationQty","accommodationPrice","accommodationDefaultPrice"])assert.match(app,new RegExp(field));
+  assert.match(app,/รวมจำนวน × ราคาในยอด Booking/);
+  assert.match(financial,/sourceType:"accommodation"/);
   assert.match(app,/ข้อมูลการแพ้อาหาร/);
   assert.match(financial,/discountAmount:0,description:""/);
   assert.doesNotMatch(financial,/requestTentCreditRefund/);

@@ -13,3 +13,7 @@ test("CSV import rejects missing required columns and incomplete names",()=>{
 test("CSV import flags duplicate names and phones before confirmation",()=>{
   const result=parsePassengerCsv("ชื่อ,นามสกุล,เบอร์โทร\nสมชาย,ใจดี,0812345678\nสมชาย,ใจดี,0812345678");assert.equal(result.duplicates.length>=1,true);
 });
+test("CSV import preserves accommodation owner quantity and price",()=>{
+  const result=parsePassengerCsv("ชื่อ,นามสกุล,ที่พัก,ผู้จองที่พัก,จำนวนที่พัก,ราคาที่พัก\nสมชาย,ใจดี,บ้านพักอุทยาน,เราจองให้,2,1500");
+  assert.equal(result.ok,true);assert.equal(result.rows[0].accommodationName,"บ้านพักอุทยาน");assert.equal(result.rows[0].accommodationBookedBy,"เราจองให้");assert.equal(result.rows[0].accommodationQty,2);assert.equal(result.rows[0].accommodationPrice,1500);
+});
