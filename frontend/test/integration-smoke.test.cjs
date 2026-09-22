@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.22-15/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260922-15`));
+  assert.match(html,/Version 2026\.09\.22-16/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260922-16`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -326,6 +326,17 @@ test("reference reports and category payment defaults are wired end to end",()=>
   assert.match(app,/transportationPaymentMethod/);assert.match(app,/returnTransportationPaymentMethod/);assert.match(app,/function setEquipmentPaymentMethod/);assert.match(feature,/setIslandPaymentMethod/);assert.match(feature,/groupPaymentHeader/);assert.doesNotMatch(feature.slice(feature.indexOf("islandAddonEditor=function"),feature.indexOf("const groupedItemsBeforeDiveReceipt")),/updateIslandAddon\([^)]*'paymentMethod'/);
   assert.match(css,/passenger-travel-grid\{grid-template-columns:repeat\(5/);assert.match(css,/\.reference-report-portrait\{page:report-portrait/);assert.match(css,/\.reference-report-landscape\{page:report/);
   assert.match(bookingRoute,/upsert_booking_v20/);assert.match(bookingRoute,/list_bookings_json_v20/);assert.match(sql,/numeric|payment_method/);assert.doesNotMatch(sql,/delete from|truncate/i);
+});
+test("payment account choices persist and equipment is available for every program",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  assert.doesNotMatch(app,/programId!==["']boat_ticket["']/);
+  assert.doesNotMatch(app,/id!==["']boat_ticket["'][^;]+selected=false/);
+  assert.match(app,/function ensurePaymentMethod\(id\).*bookingDefaultPaymentMethod\(["']general["']\)/);
+  assert.match(app,/find\(item=>item\.selected&&item\.paymentMethod\)/);
+  assert.match(app,/bookingGroupPaymentSelection\.equipment\|\|bookingDefaultPaymentMethod\(["']equipment["']\)/);
+  assert.match(app,/\["transportationPaymentMethod","returnTransportationPaymentMethod"\]\.includes\(field\).*return/);
+  assert.match(app,/else if\(!person\[paymentField\]\)person\[paymentField\]=bookingDefaultPaymentMethod/);
+  assert.match(app,/\(บัญชีเดิม\)/);
 });
 test("payment masters drive receipt accounts and booking totals use one source",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_024_payment_method_receipt_settings.sql"),"utf8");
