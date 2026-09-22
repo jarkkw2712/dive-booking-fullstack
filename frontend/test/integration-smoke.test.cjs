@@ -2,6 +2,7 @@ const test=require("node:test");
 const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const path=require("node:path");
+const vm=require("node:vm");
 const root=path.resolve(__dirname,"..");
 
 test("active HTML loads scripts in dependency order",()=>{
@@ -45,8 +46,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.22-18/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260922-18`));
+  assert.match(html,/Version 2026\.09\.22-19/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260922-19`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -352,6 +353,12 @@ test("payment masters drive receipt accounts and booking totals use one source",
   for(const id of ["mdpPaymentSettings","mdpPaymentType","mdpShowOnMoneyReceipt"])assert.match(html,new RegExp(`id=["']${id}["']`));assert.match(route,/payload\.payment_type/);assert.match(route,/payload\.show_on_money_receipt/);assert.match(sql,/payment_type text not null default 'transfer'/);assert.match(sql,/show_on_money_receipt boolean not null default true/);
   assert.match(app,/function documentFinancialSummary/);assert.match(app,/<span>ยอดรวม<\/span>/);assert.doesNotMatch(app,/รายการในเอกสาร/);assert.match(app,/ยอดสุทธิ/);assert.match(app,/documentGroupedItems\(booking,profile\)\.reduce/);assert.match(app,/function moneyReceiptAllocationTable\(booking,documentTotal\)/);assert.match(app,/paymentTypeLabel/);assert.match(app,/documentGroupedItemsWithoutTentRefund/);
   assert.match(html,/id="paymentBreakdownEditor"/);assert.match(app,/paymentBreakdown=structuredClone/);assert.match(app,/paymentBreakdownSum/);assert.match(app,/ยอดแบ่งบัญชีแถว/);
+});
+test("money receipt account table is capped to the items printed on that receipt",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),start=app.indexOf("function documentPaymentAmounts"),end=app.indexOf("function moneyReceiptAllocationTable"),context={result:null};
+  vm.runInNewContext(`${app.slice(start,end)};result={amounts:documentPaymentAmounts({depositAmount:1000,creditAmount:0},5000),allocated:allocateReceiptRow([{method_name:"เงินสด"}],{"เงินสด":9500},4000,"เงินสด")}`,context);
+  assert.equal(context.result.amounts.deposit,1000);assert.equal(context.result.amounts.remaining,4000);assert.equal(context.result.allocated["เงินสด"],4000);
+  const table=app.slice(end,app.indexOf("function documentFinancialSummary"));assert.match(table,/amounts=documentPaymentAmounts\(booking,documentTotal\)/);assert.match(table,/allocateReceiptRow\(methods,breakdown\[key\]\|\|\{\},amount,selected\)/);assert.doesNotMatch(table,/Number\(breakdown\[key\]/);
 });
 test("booking validation never checks stale hidden payment breakdown state",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
