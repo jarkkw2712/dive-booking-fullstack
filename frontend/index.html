@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sabina Tour Booking</title>
-  <link rel="stylesheet" href="css/style.css?v=20260922-14">
+  <link rel="stylesheet" href="css/style.css?v=20260922-15">
 </head>
 <body>
 <div id="globalSavingIndicator" class="saving-indicator hidden" role="status" aria-live="polite">
@@ -44,7 +44,7 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
-    <div id="appVersion" class="app-version">Version 2026.09.22-14</div>
+    <div id="appVersion" class="app-version">Version 2026.09.22-15</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
@@ -238,7 +238,11 @@
           <div id="pcPrintReports" class="print-center-report-section">
             <div class="report-section-heading"><span>PRINT / PDF</span><h2>รายงานสำหรับพิมพ์</h2><p class="muted">เลือกรูปแบบรายงาน แล้วพิมพ์หรือบันทึกเป็น PDF</p></div>
             <label>ประเภทรายงาน</label><select id="pcType"><option value="register_summary" data-any-permission="printCounterReport,printDailyReport">ใบสรุปยอดยืนยันการจอง (รายวัน)</option><option value="receipt_summary" data-any-permission="printCounterReport,printDailyReport">ใบสรุปยอดใบสำคัญรับเงิน (รายวัน)</option><option value="equipment_summary" data-any-permission="printCounterReport,printDailyReport">รายงานรวมยอดอุปกรณ์ (รายวัน)</option><option value="tour_expense_reference" data-any-permission="printCounterReport,printDailyReport">รายงานทัวร์และค่าใช้จ่าย</option><option value="tent_fee_reference" data-any-permission="printCounterReport,printDailyReport">รายงานค่าธรรมเนียมเต็นท์</option><option value="van_daily_reference" data-any-permission="printCounterReport,printDailyReport">รายงานรถตู้ (เฉพาะรถตู้)</option><option value="van_work_order_reference" data-any-permission="printCounterReport,printDailyReport">ใบงานรับ-ส่งรถตู้</option><option value="agent_reference" data-any-permission="printCounterReport,printDailyReport">รายงานเอเย่น</option><option value="customer_travel_daily_reference" data-any-permission="printCounterReport,printDailyReport">ตารางเดินทางลูกค้ารายวัน (วันกลับ)</option><option value="counter" data-any-permission="printCounterReport,printDailyReport">Counter — รายการจองประจำวัน</option><option value="boat" data-any-permission="printBoatReport,printDailyReport">Boat — รายชื่อผู้โดยสารเรือ</option><option value="island" data-any-permission="addIslandAddOn,printBoatReport,printDailyReport">Island — ผู้ลงเกาะ/ขึ้นจากเกาะ</option><option value="insurance" data-any-permission="printInsuranceReport">ใบส่งประกัน</option><option value="driver" data-any-permission="printCounterReport,printDailyReport">Driver — รายการรับส่ง</option><option value="management" data-any-permission="printDailyReport">CEO / Management — สรุปวันนี้และ 7 วัน</option></select>
-            <button class="btn primary" onclick="generatePrintCenterReport()">สร้างรายงานสำหรับพิมพ์</button>
+            <button id="pcGenerateButton" class="btn primary" onclick="generatePrintCenterReport()">สร้างรายงานสำหรับพิมพ์</button>
+            <div id="pcProgress" class="report-progress hidden" aria-live="polite">
+              <div class="report-progress-status"><span id="pcProgressLabel">กำลังเตรียมสร้างรายงาน...</span><b id="pcProgressPercent">0%</b></div>
+              <div id="pcProgressTrack" class="report-progress-track" role="progressbar" aria-label="ความคืบหน้าการสร้างรายงาน" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="pcProgressBar"></span></div>
+            </div>
           </div>
           <div id="pcExcelReports" class="print-center-report-section excel-report-section">
             <div class="report-section-heading"><span>EXCEL / CSV</span><h2>รายงาน Excel</h2><p class="muted">ดาวน์โหลดข้อมูล Booking ตามช่วงวันที่ที่เลือก เพื่อนำไปเปิดใน Excel</p></div>
@@ -410,12 +414,12 @@
   </div>
 </div>
 
-<script src="js/api.js?v=20260922-14"></script>
-<script src="js/smartPaste.js?v=20260922-14"></script>
-<script src="js/csvImport.js?v=20260922-14"></script>
-<script src="js/app.js?v=20260922-14"></script>
-<script src="js/bookingOriginal.js?v=20260922-14"></script>
-<script src="js/islandAddonMaster.js?v=20260922-14"></script>
-<script src="js/financial.js?v=20260922-14"></script>
+<script src="js/api.js?v=20260922-15"></script>
+<script src="js/smartPaste.js?v=20260922-15"></script>
+<script src="js/csvImport.js?v=20260922-15"></script>
+<script src="js/app.js?v=20260922-15"></script>
+<script src="js/bookingOriginal.js?v=20260922-15"></script>
+<script src="js/islandAddonMaster.js?v=20260922-15"></script>
+<script src="js/financial.js?v=20260922-15"></script>
 </body>
 </html>

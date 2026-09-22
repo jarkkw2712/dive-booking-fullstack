@@ -45,8 +45,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.22-14/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260922-14`));
+  assert.match(html,/Version 2026\.09\.22-15/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260922-15`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -387,4 +387,13 @@ test("booking search filters cached rows with debounce instead of fetching on ev
   assert.match(app,/Date\.now\(\)-bookingsLoadedAt<30_000/);
   assert.match(app,/rows\.slice\(0,200\)/);
   assert.match(app,/selectBookingByCode/);
+});
+test("print center shows determinate progress while a report is being generated",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
+  for(const id of ["pcGenerateButton","pcProgress","pcProgressLabel","pcProgressPercent","pcProgressTrack","pcProgressBar"])assert.match(html,new RegExp(`id=["']${id}["']`));
+  assert.match(html,/role="progressbar"/);
+  for(const name of ["setPrintCenterProgress","beginPrintCenterProgress","finishPrintCenterProgress"])assert.match(app,new RegExp(`function ${name}`));
+  assert.match(app,/button\.disabled=true/);
+  assert.match(app,/finally\{await finishPrintCenterProgress\(reportCreated\)\}/);
+  assert.match(css,/\.report-progress-track/);
 });
