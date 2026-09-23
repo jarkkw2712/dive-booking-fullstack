@@ -23,7 +23,7 @@ The four reports above are in the Print/PDF section and are formatted for A4. `�
 
 - The report date is the Booking outbound travel date, except van work orders, which use the individual outbound or return leg date.
 - `แพ็คเกจ` and `ตั๋วเรือ - เต็นท์` are daily A4 landscape PDFs and always use the Booking outbound island-travel date.
-- `แพ็คเกจ` excludes Program code `boat_ticket`. Every park/Sabina cost column is passenger quantity multiplied by the matching active rate in `ค่าคงที่แพ็คเกจ` Master Data.
+- `แพ็คเกจ` excludes Program code `boat_ticket`. Every park/Sabina cost column is passenger quantity multiplied by the matching active rate in `ค่าคงที่แพ็คเกจ` Master Data. Matching is an exact join from the Booking's `program_id` to `master_package_cost_rates.program_id`; labels such as DT or 2/1 are display text only.
 - `ตั๋วเรือ - เต็นท์` includes only Program code `boat_ticket`. Tent quantities and amounts come from company-booked Accommodation records, never equipment/add-ons.
 - Boat tickets are Program code `boat_ticket`; all other Programs are packages.
 - Tent rows are selected equipment whose code is exactly `tent` after lowercasing.

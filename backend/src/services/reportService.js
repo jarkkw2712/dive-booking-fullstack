@@ -130,17 +130,7 @@ function tentFeeReferenceReport(bookings,date,toDate){
   return{date,type:"tent_fee_reference",title:"รายงานค่าธรรมเนียมเต็นท์",purpose:"อุปกรณ์ code tent × จำนวนคืน × 80 บาท",range:{from:date,to:toDate},rows,totals:{people:rows.reduce((sum,row)=>sum+row.people,0),amount:rows.reduce((sum,row)=>sum+row.total,0)},sourceNotes:["วันที่อ้างอิงวันเดินทางไป","จำนวนคนอ้างอิง Qty ของอุปกรณ์ code tent","อัตราคงที่ 80 บาทต่อคนต่อคืน"]};
 }
 
-const compactKey=value=>normalized(value).replace(/\s+/g,"");
-function programRateKeys(program){
-  const values=new Set([compactKey(program?.programId||program?.id),compactKey(program?.name)]);
-  const label=String(program?.name||""),identity=`${program?.programId||program?.id||""} ${label}`;
-  const stay=label.match(/(\d+)\s*(?:วัน|days?)\s*(\d+)\s*(?:คืน|nights?)/i);
-  if(stay)values.add(`${stay[1]}/${stay[2]}`);
-  const compactStay=identity.match(/(\d+)\s*d\s*(\d+)\s*n/i)||identity.match(/(\d+)\s*[\/_-]\s*(\d+)/);if(compactStay)values.add(`${compactStay[1]}/${compactStay[2]}`);
-  if(/day\s*trip|เดย์ทริป|วันเดียว|one\s*day|1\s*(?:วัน|day)|\bdt\b/i.test(identity)||[...values].some(value=>value==="dt"||value==="daytrip"||value==="one_day"))values.add("dt");
-  return values;
-}
-function packageRatesFor(program,rates=[]){const keys=programRateKeys(program);return(rates||[]).filter(rate=>rate.active_flag!==false&&keys.has(compactKey(rate.program_key)))}
+function packageRatesFor(program,rates=[]){const programId=String(program?.programId||program?.id||"").trim();return(rates||[]).filter(rate=>rate.active_flag!==false&&String(rate.program_id||"").trim()===programId)}
 const packageCostField={park_food:"parkFood",park_fee:"parkFee",park_tent:"parkTent",sabina_food:"sabinaFood",longtail:"longtail",equipment:"equipment",refreshment:"refreshment",guide:"guide",sabina_tent:"sabinaTent",insurance:"insurance",agent:"agentCost"};
 function packageCostReport(bookings,date,packageCostRates=[]){
   const rows=[];
