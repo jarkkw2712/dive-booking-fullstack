@@ -46,8 +46,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.09\.22-19/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260922-19`));
+  assert.match(html,/Version 2026\.09\.23-20/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20260923-20`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -66,7 +66,7 @@ test("CEO report is paginated into structured A4 portrait sections",()=>{
 });
 test("CEO expenses are revisioned and Island purchase order is permission controlled",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),api=fs.readFileSync(path.join(root,"js","api.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/operatingExpenses.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260904_030_ceo_expenses_and_island_purchase_order.sql"),"utf8");
-  for(const id of ["ceoExpenseEditor","ceoExpenseRows","ceoExpenseNote","mdpShowIslandPurchaseOrder"])assert.match(html,new RegExp(`id=["']${id}["']`));
+  for(const id of ["expensePage","expenseDate","ceoExpenseRows","ceoExpenseNote","mdpShowIslandPurchaseOrder"])assert.match(html,new RegExp(`id=["']${id}["']`));
   for(const fn of ["defaultDailyExpenses","loadDailyExpenses","saveDailyExpenses","managementCombinedMatrix","renderIslandPurchaseOrder"])assert.match(app,new RegExp(`function ${fn}`));
   assert.match(html,/onchange="handleReportDateChange\(\)"/);assert.doesNotMatch(html,/>โหลดค่าเดิม</);
   for(const field of ["show_island_purchase_order","save_daily_operating_expenses","daily_expense_batches","daily_expense_items","upsert_booking_v15","list_bookings_json_v15","manageOperatingExpenses","printIslandPurchaseOrder"])assert.match(sql,new RegExp(field));
@@ -331,7 +331,7 @@ test("reference reports and category payment defaults are wired end to end",()=>
   for(const name of ["นฤมล","เรืองโรจน์","รุ่งฤดี","ลัดดาวรรณ์","รุจิโรจน์"])assert.ok(sql.includes(name));
   assert.match(app,/function referencePrintReportHtml/);assert.match(app,/function appendReferenceReportTableTotals/);assert.match(app,/คืนละ \(บาท\)/);for(const heading of ["รายงานสรุปรายการทัวร์ (รายเดือน)","รายงานสรุปรายการรถตู้ (รายเดือน)"])assert.ok(app.includes(heading));assert.doesNotMatch(html,/exportReferenceExcelReport\('(tour|van)_monthly_reference'\)/);
   assert.match(app,/function agentReferenceReportHtml/);assert.match(app,/function customerTravelDailyReferenceReportHtml/);assert.match(app,/วันที่จ่าย/);assert.match(app,/วันกลับ/);assert.doesNotMatch(html,/รายงานสรุปรายรับ-รายจ่าย/);
-  assert.match(app,/singleDate=dailySummary\|\|type==="customer_travel_daily_reference"/);assert.match(app,/if\(dailySummary\).*dailySummaryReportHtml/);
+  assert.match(app,/singleDate=dailySummary\|\|\["customer_travel_daily_reference","package_cost_reference","boat_tent_reference"\]\.includes\(type\)/);assert.match(app,/if\(dailySummary\).*dailySummaryReportHtml/);
   assert.doesNotMatch(app,/แหล่งข้อมูลและวิธีคำนวณ/);assert.match(css,/reference-tour-table\{font-size:9px/);
   assert.match(app,/transportationPaymentMethod/);assert.match(app,/returnTransportationPaymentMethod/);assert.match(app,/function setEquipmentPaymentMethod/);assert.match(feature,/setIslandPaymentMethod/);assert.match(feature,/groupPaymentHeader/);assert.doesNotMatch(feature.slice(feature.indexOf("islandAddonEditor=function"),feature.indexOf("const groupedItemsBeforeDiveReceipt")),/updateIslandAddon\([^)]*'paymentMethod'/);
   assert.match(css,/passenger-travel-grid\{grid-template-columns:repeat\(5/);assert.match(css,/\.reference-report-portrait\{page:report-portrait/);assert.match(css,/\.reference-report-landscape\{page:report/);
@@ -359,6 +359,16 @@ test("money receipt account table is capped to the items printed on that receipt
   vm.runInNewContext(`${app.slice(start,end)};result={amounts:documentPaymentAmounts({depositAmount:1000,creditAmount:0},5000),allocated:allocateReceiptRow([{method_name:"เงินสด"}],{"เงินสด":9500},4000,"เงินสด")}`,context);
   assert.equal(context.result.amounts.deposit,1000);assert.equal(context.result.amounts.remaining,4000);assert.equal(context.result.allocated["เงินสด"],4000);
   const table=app.slice(end,app.indexOf("function documentFinancialSummary"));assert.match(table,/amounts=documentPaymentAmounts\(booking,documentTotal\)/);assert.match(table,/allocateReceiptRow\(methods,breakdown\[key\]\|\|\{\},amount,selected\)/);assert.doesNotMatch(table,/Number\(breakdown\[key\]/);
+});
+
+test("package, boat-tent, expense and island-boat workflows are wired end to end",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),api=fs.readFileSync(path.join(root,"js","api.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8"),reportRoute=fs.readFileSync(path.resolve(root,"../backend/src/routes/reports.js"),"utf8"),boatRoute=fs.readFileSync(path.resolve(root,"../backend/src/routes/islandBoatOperations.js"),"utf8"),masterRoute=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260923_040_package_reports_and_island_boats.sql"),"utf8");
+  for(const id of ["expensePage","expenseDate","islandBoatPage","islandBoatDate","islandBoatGroups","mdpPackageCostSettings"])assert.match(html,new RegExp(`id=["']${id}["']`));
+  for(const type of ["package_cost_reference","boat_tent_reference"]){assert.ok(html.includes(type));assert.ok(app.includes(type));assert.ok(reportRoute.includes(type))}
+  assert.match(html,/loadMasterDataPro\('package_cost_rates'\)/);assert.match(html,/loadMasterDataPro\('island_boat_duties'\)/);assert.match(app,/function packageCostReferenceHtml/);assert.match(app,/function boatTentReferenceHtml/);assert.match(app,/function loadIslandBoatOperations/);assert.match(api,/island-boat-operations/);assert.match(boatRoute,/manageIslandBoatOperations/);assert.match(masterRoute,/master_package_cost_rates/);assert.match(masterRoute,/master_island_boat_duties/);assert.match(css,/package-cost-table/);assert.match(css,/island-boat-group/);
+  for(const field of ["master_package_cost_rates","master_island_boat_duties","island_boat_operation_batches","save_island_boat_operations","manageIslandBoatOperations"])assert.ok(sql.includes(field));
+  assert.doesNotMatch(sql,/delete from|truncate/i);
+  const printSection=html.slice(html.indexOf('id="printCenterPage"'),html.indexOf('id="expensePage"'));assert.doesNotMatch(printSection,/id="ceoExpenseEditor"/);
 });
 test("booking validation never checks stale hidden payment breakdown state",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");

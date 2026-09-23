@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sabina Tour Booking</title>
-  <link rel="stylesheet" href="css/style.css?v=20260922-19">
+  <link rel="stylesheet" href="css/style.css?v=20260923-20">
 </head>
 <body>
 <div id="globalSavingIndicator" class="saving-indicator hidden" role="status" aria-live="polite">
@@ -44,12 +44,14 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
-    <div id="appVersion" class="app-version">Version 2026.09.22-19</div>
+    <div id="appVersion" class="app-version">Version 2026.09.23-20</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
     <button onclick="showPage('bookingListPage')">Booking List</button>
     <button data-any-permission="printCounterReport,printBoatReport,printDailyReport,printInsuranceReport,addIslandAddOn" onclick="showPage('printCenterPage')">Print Center</button>
+    <button data-permission="manageOperatingExpenses" onclick="showPage('expensePage')">ค่าใช้จ่าย</button>
+    <button data-permission="manageIslandBoatOperations" onclick="showPage('islandBoatPage')">เรือบนเกาะ</button>
     <button data-permission="viewFinancial" onclick="showPage('financialPage')">Financial</button>
     <button data-permission="editMasterData" onclick="showPage('companyPage')">Company Profile</button>
     <button data-permission="editMasterData" onclick="showPage('masterDataPage')">Master Data</button>
@@ -237,7 +239,7 @@
         <div class="print-center-report-sections">
           <div id="pcPrintReports" class="print-center-report-section">
             <div class="report-section-heading"><span>PRINT / PDF</span><h2>รายงานสำหรับพิมพ์</h2><p class="muted">เลือกรูปแบบรายงาน แล้วพิมพ์หรือบันทึกเป็น PDF</p></div>
-            <label>ประเภทรายงาน</label><select id="pcType"><option value="register_summary" data-any-permission="printCounterReport,printDailyReport">ใบสรุปยอดยืนยันการจอง (รายวัน)</option><option value="receipt_summary" data-any-permission="printCounterReport,printDailyReport">ใบสรุปยอดใบสำคัญรับเงิน (รายวัน)</option><option value="equipment_summary" data-any-permission="printCounterReport,printDailyReport">รายงานรวมยอดอุปกรณ์ (รายวัน)</option><option value="tour_expense_reference" data-any-permission="printCounterReport,printDailyReport">รายงานทัวร์และค่าใช้จ่าย</option><option value="tent_fee_reference" data-any-permission="printCounterReport,printDailyReport">รายงานค่าธรรมเนียมเต็นท์</option><option value="van_daily_reference" data-any-permission="printCounterReport,printDailyReport">รายงานรถตู้ (เฉพาะรถตู้)</option><option value="van_work_order_reference" data-any-permission="printCounterReport,printDailyReport">ใบงานรับ-ส่งรถตู้</option><option value="agent_reference" data-any-permission="printCounterReport,printDailyReport">รายงานเอเย่น</option><option value="customer_travel_daily_reference" data-any-permission="printCounterReport,printDailyReport">ตารางเดินทางลูกค้ารายวัน (วันกลับ)</option><option value="counter" data-any-permission="printCounterReport,printDailyReport">Counter — รายการจองประจำวัน</option><option value="boat" data-any-permission="printBoatReport,printDailyReport">Boat — รายชื่อผู้โดยสารเรือ</option><option value="island" data-any-permission="addIslandAddOn,printBoatReport,printDailyReport">Island — ผู้ลงเกาะ/ขึ้นจากเกาะ</option><option value="insurance" data-any-permission="printInsuranceReport">ใบส่งประกัน</option><option value="driver" data-any-permission="printCounterReport,printDailyReport">Driver — รายการรับส่ง</option><option value="management" data-any-permission="printDailyReport">CEO / Management — สรุปวันนี้และ 7 วัน</option></select>
+            <label>ประเภทรายงาน</label><select id="pcType"><option value="package_cost_reference" data-any-permission="printCounterReport,printDailyReport">แพ็คเกจ (รายวัน)</option><option value="boat_tent_reference" data-any-permission="printCounterReport,printDailyReport">ตั๋วเรือ - เต็นท์ (รายวัน)</option><option value="register_summary" data-any-permission="printCounterReport,printDailyReport">ใบสรุปยอดยืนยันการจอง (รายวัน)</option><option value="receipt_summary" data-any-permission="printCounterReport,printDailyReport">ใบสรุปยอดใบสำคัญรับเงิน (รายวัน)</option><option value="equipment_summary" data-any-permission="printCounterReport,printDailyReport">รายงานรวมยอดอุปกรณ์ (รายวัน)</option><option value="tour_expense_reference" data-any-permission="printCounterReport,printDailyReport">รายงานทัวร์และค่าใช้จ่าย</option><option value="tent_fee_reference" data-any-permission="printCounterReport,printDailyReport">รายงานค่าธรรมเนียมเต็นท์</option><option value="van_daily_reference" data-any-permission="printCounterReport,printDailyReport">รายงานรถตู้ (เฉพาะรถตู้)</option><option value="van_work_order_reference" data-any-permission="printCounterReport,printDailyReport">ใบงานรับ-ส่งรถตู้</option><option value="agent_reference" data-any-permission="printCounterReport,printDailyReport">รายงานเอเย่น</option><option value="customer_travel_daily_reference" data-any-permission="printCounterReport,printDailyReport">ตารางเดินทางลูกค้ารายวัน (วันกลับ)</option><option value="counter" data-any-permission="printCounterReport,printDailyReport">Counter — รายการจองประจำวัน</option><option value="boat" data-any-permission="printBoatReport,printDailyReport">Boat — รายชื่อผู้โดยสารเรือ</option><option value="island" data-any-permission="addIslandAddOn,printBoatReport,printDailyReport">Island — ผู้ลงเกาะ/ขึ้นจากเกาะ</option><option value="insurance" data-any-permission="printInsuranceReport">ใบส่งประกัน</option><option value="driver" data-any-permission="printCounterReport,printDailyReport">Driver — รายการรับส่ง</option><option value="management" data-any-permission="printDailyReport">CEO / Management — สรุปวันนี้และ 7 วัน</option></select>
             <button id="pcGenerateButton" class="btn primary" onclick="generatePrintCenterReport()">สร้างรายงานสำหรับพิมพ์</button>
             <div id="pcProgress" class="report-progress hidden" aria-live="polite">
               <div class="report-progress-status"><span id="pcProgressLabel">กำลังเตรียมสร้างรายงาน...</span><b id="pcProgressPercent">0%</b></div>
@@ -251,15 +253,32 @@
           </div>
         </div>
       </div>
-      <div id="ceoExpenseEditor" class="card permission-hidden" data-permission="manageOperatingExpenses">
-        <div class="section-title-row"><div><h2>ค่าใช้จ่ายประจำวันสำหรับรายงาน CEO</h2><p class="muted">ระบบโหลดข้อมูลตามวันที่เริ่มต้นให้อัตโนมัติ และเก็บ revision เดิมไว้ตรวจสอบย้อนหลัง</p></div></div>
+      <div id="printCenterOutput" class="card print-doc"></div>
+    </section>
+
+    <section id="expensePage" class="page" data-permission="manageOperatingExpenses">
+      <h1>ค่าใช้จ่ายรายวัน</h1>
+      <div class="card">
+        <div class="section-title-row"><div><h2>ค่าใช้จ่ายสำหรับรายงาน CEO</h2><p class="muted">เลือกวันที่แล้วระบบจะโหลด revision ล่าสุด ข้อมูล revision เดิมไม่ถูกลบ</p></div></div>
+        <div class="form-grid"><div><label>วันที่</label><input id="expenseDate" type="date" onchange="loadDailyExpenses()"></div></div>
         <div id="ceoExpenseRows"></div>
         <button class="btn soft" onclick="addDailyExpenseRow()">+ เพิ่มค่าใช้จ่ายอื่น</button>
         <div class="form-grid one"><div><label>หมายเหตุค่าใช้จ่าย</label><input id="ceoExpenseNote"></div></div>
         <button class="btn primary" onclick="saveDailyExpenses()">บันทึกค่าใช้จ่ายของวันนี้</button>
         <div id="ceoExpenseStatus" class="muted"></div>
       </div>
-      <div id="printCenterOutput" class="card print-doc"></div>
+    </section>
+
+    <section id="islandBoatPage" class="page" data-permission="manageIslandBoatOperations">
+      <h1>เรือบนเกาะ</h1>
+      <div class="card">
+        <div class="section-title-row"><div><h2>รายการปฏิบัติงานเรือประจำวัน</h2><p class="muted">แบ่งกลุ่มตามเกาะใน Master Data และเก็บทุกครั้งที่บันทึกเป็น revision</p></div></div>
+        <div class="form-grid"><div><label>วันที่</label><input id="islandBoatDate" type="date" onchange="loadIslandBoatOperations()"></div></div>
+        <div id="islandBoatGroups"></div>
+        <div class="form-grid one"><div><label>หมายเหตุ</label><input id="islandBoatNote"></div></div>
+        <button class="btn primary" onclick="saveIslandBoatOperations()">บันทึกรายการเรือบนเกาะ</button>
+        <div id="islandBoatStatus" class="muted"></div>
+      </div>
     </section>
 
     <section id="companyPage" class="page" data-permission="editMasterData">
@@ -298,6 +317,8 @@
           <button class="btn soft" onclick="loadMasterDataPro('accommodations')">ที่พัก</button>
           <button class="btn soft" onclick="loadMasterDataPro('addons')">อุปกรณ์ / Add-ons</button>
           <button class="btn soft" onclick="loadMasterDataPro('island_addons')">Island Add-on / ดำน้ำ</button>
+          <button class="btn soft" onclick="loadMasterDataPro('package_cost_rates')">ค่าคงที่แพ็คเกจ</button>
+          <button class="btn soft" onclick="loadMasterDataPro('island_boat_duties')">หน้าที่เรือบนเกาะ</button>
           <button class="btn soft" onclick="loadMasterDataPro('agents')">Agents</button>
           <button class="btn soft" onclick="loadMasterDataPro('booking_originals')">ต้นฉบับ</button>
           <button class="btn soft" onclick="loadMasterDataPro('customer_sources')">ช่องทางลูกค้า</button>
@@ -330,6 +351,7 @@
           <div><label>Active</label><select id="mdpActive"><option value="true">ใช้งาน</option><option value="false">ปิดใช้งาน</option></select></div>
           <div id="mdpDocumentVisibility" class="full hidden"><label>แสดงรายการนี้ในเอกสาร</label><div class="document-visibility-options"><label><input id="mdpShowRegister" type="checkbox"> ใบยืนยันการจอง</label><label><input id="mdpShowMoneyReceipt" type="checkbox"> ใบสำคัญรับเงิน</label><label><input id="mdpShowEquipmentSlip" type="checkbox"> ใบเสร็จอุปกรณ์</label><label><input id="mdpShowVanReceipt" type="checkbox"> ใบเสร็จรถตู้</label><label><input id="mdpShowBoatTicket" type="checkbox"> ตั๋วเรือ</label><label id="mdpIslandPurchaseVisibility"><input id="mdpShowIslandPurchaseOrder" type="checkbox"> ใบสั่งซื้อจากเกาะ</label><label id="mdpDiveReceiptVisibility"><input id="mdpShowDiveReceipt" type="checkbox"> ใบเสร็จดำน้ำ</label></div><small class="muted">เลือกได้ว่ารายการนี้ต้องแสดงในเอกสารใดบ้าง</small></div>
           <div id="mdpPaymentSettings" class="full hidden"><label>ตั้งค่าช่องทางรับเงิน</label><div class="document-visibility-options"><label>ประเภท <select id="mdpPaymentType"><option value="cash">เงินสด</option><option value="transfer">โอนธนาคาร</option></select></label><label><input id="mdpShowOnMoneyReceipt" type="checkbox" checked> แสดงบัญชีนี้ในใบสำคัญรับเงิน</label><label><input id="mdpDefaultGeneral" type="checkbox"> ค่าเริ่มต้นทั่วไป / แพ็คเกจ / ตั๋วเรือ</label><label><input id="mdpDefaultEquipment" type="checkbox"> ค่าเริ่มต้นอุปกรณ์</label><label><input id="mdpDefaultIsland" type="checkbox"> ค่าเริ่มต้น Island Add-on / ดำน้ำ</label><label><input id="mdpDefaultTransport" type="checkbox"> ค่าเริ่มต้นรถตู้</label></div><small class="muted">เลือกค่าเริ่มต้นได้อย่างละหนึ่งบัญชีต่อหมวด ระบบตัดสินเงินสด/โอนจาก Code: cash หรือ code ที่มี bank_transfer</small></div>
+          <div id="mdpPackageCostSettings" class="full hidden"><label>การจับคู่ค่าคงที่แพ็คเกจ</label><div class="form-grid"><div><label>Program Code / ชื่อย่อ</label><input id="mdpProgramKey" placeholder="เช่น DT, 2/1, 3/2"></div><div><label>รหัสต้นทุน</label><select id="mdpCostCode"><option value="park_food">อุทยานรับ - อาหาร</option><option value="park_fee">อุทยานรับ - อุทยาน</option><option value="park_tent">อุทยานรับ - เต็นท์</option><option value="sabina_food">ซาบีน่ารับ - อาหาร</option><option value="longtail">ซาบีน่ารับ - เรือหาง</option><option value="equipment">ซาบีน่ารับ - อุปกรณ์</option><option value="refreshment">ซาบีน่ารับ - ผลไม้/น้ำ</option><option value="guide">ซาบีน่ารับ - ไกด์</option><option value="sabina_tent">ซาบีน่ารับ - เต็นท์</option><option value="insurance">ซาบีน่ารับ - ประกัน</option><option value="agent">ซาบีน่ารับ - เอเจ้นท์</option></select></div><div><label>กลุ่มผู้รับ</label><select id="mdpRecipientGroup"><option value="park">อุทยานรับ</option><option value="sabina">ซาบีน่ารับ</option></select></div></div><small class="muted">ราคา Default ด้านบนคือค่าคงที่ต่อ 1 คน ระบบนำไปคูณจำนวนในรายงานแพ็คเกจ</small></div>
         </div>
         <button class="btn primary" onclick="saveMasterDataProItem()">Save</button>
         <button class="btn soft" onclick="closeMasterDataEditor()">Cancel</button>
@@ -414,12 +436,12 @@
   </div>
 </div>
 
-<script src="js/api.js?v=20260922-19"></script>
-<script src="js/smartPaste.js?v=20260922-19"></script>
-<script src="js/csvImport.js?v=20260922-19"></script>
-<script src="js/app.js?v=20260922-19"></script>
-<script src="js/bookingOriginal.js?v=20260922-19"></script>
-<script src="js/islandAddonMaster.js?v=20260922-19"></script>
-<script src="js/financial.js?v=20260922-19"></script>
+<script src="js/api.js?v=20260923-20"></script>
+<script src="js/smartPaste.js?v=20260923-20"></script>
+<script src="js/csvImport.js?v=20260923-20"></script>
+<script src="js/app.js?v=20260923-20"></script>
+<script src="js/bookingOriginal.js?v=20260923-20"></script>
+<script src="js/islandAddonMaster.js?v=20260923-20"></script>
+<script src="js/financial.js?v=20260923-20"></script>
 </body>
 </html>

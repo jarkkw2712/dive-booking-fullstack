@@ -130,6 +130,55 @@ function tentFeeReferenceReport(bookings,date,toDate){
   return{date,type:"tent_fee_reference",title:"รายงานค่าธรรมเนียมเต็นท์",purpose:"อุปกรณ์ code tent × จำนวนคืน × 80 บาท",range:{from:date,to:toDate},rows,totals:{people:rows.reduce((sum,row)=>sum+row.people,0),amount:rows.reduce((sum,row)=>sum+row.total,0)},sourceNotes:["วันที่อ้างอิงวันเดินทางไป","จำนวนคนอ้างอิง Qty ของอุปกรณ์ code tent","อัตราคงที่ 80 บาทต่อคนต่อคืน"]};
 }
 
+const compactKey=value=>normalized(value).replace(/\s+/g,"");
+function programRateKeys(program){
+  const values=new Set([compactKey(program?.programId||program?.id),compactKey(program?.name)]);
+  const label=String(program?.name||""),identity=`${program?.programId||program?.id||""} ${label}`;
+  const stay=label.match(/(\d+)\s*(?:วัน|days?)\s*(\d+)\s*(?:คืน|nights?)/i);
+  if(stay)values.add(`${stay[1]}/${stay[2]}`);
+  const compactStay=identity.match(/(\d+)\s*d\s*(\d+)\s*n/i)||identity.match(/(\d+)\s*[\/_-]\s*(\d+)/);if(compactStay)values.add(`${compactStay[1]}/${compactStay[2]}`);
+  if(/day\s*trip|เดย์ทริป|วันเดียว|one\s*day|1\s*(?:วัน|day)|\bdt\b/i.test(identity)||[...values].some(value=>value==="dt"||value==="daytrip"||value==="one_day"))values.add("dt");
+  return values;
+}
+function packageRatesFor(program,rates=[]){const keys=programRateKeys(program);return(rates||[]).filter(rate=>rate.active_flag!==false&&keys.has(compactKey(rate.program_key)))}
+const packageCostField={park_food:"parkFood",park_fee:"parkFee",park_tent:"parkTent",sabina_food:"sabinaFood",longtail:"longtail",equipment:"equipment",refreshment:"refreshment",guide:"guide",sabina_tent:"sabinaTent",insurance:"insurance",agent:"agentCost"};
+function packageCostReport(bookings,date,packageCostRates=[]){
+  const rows=[];
+  for(const booking of bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===date)){
+    const groups=new Map();
+    for(const person of passengersOf(booking)){
+      const program=person.program;if(!program||isBoatProgram(program))continue;
+      const price=money(program.price),key=[program.programId||program.name,price].join("|"),row=groups.get(key)||{leader:leaderName(booking),program:program.name||program.programId||"",programData:program,qty:0,price,amount:0,note:booking.bookingNote||""};
+      const qty=Math.max(money(program.qty||1),0);row.qty+=qty;row.amount+=qty*price;groups.set(key,row);
+    }
+    for(const source of groups.values()){
+      const result={leader:source.leader,program:source.program,qty:source.qty,price:source.price,amount:source.amount,parkFood:0,parkFee:0,parkTent:0,parkTotal:0,sabinaFood:0,longtail:0,equipment:0,refreshment:0,guide:0,sabinaTent:0,insurance:0,agentCost:0,sabinaTotal:0,balance:0,note:source.note,missingRates:false};
+      const rates=packageRatesFor(source.programData,packageCostRates);result.missingRates=!rates.length;
+      for(const rate of rates){const field=packageCostField[rate.cost_code];if(field)result[field]+=source.qty*money(rate.unit_rate)}
+      result.parkTotal=result.parkFood+result.parkFee+result.parkTent;
+      result.sabinaTotal=result.sabinaFood+result.longtail+result.equipment+result.refreshment+result.guide+result.sabinaTent+result.insurance+result.agentCost;
+      result.balance=result.amount-result.parkTotal-result.sabinaTotal;rows.push(result);
+    }
+  }
+  const fields=["qty","amount","parkFood","parkFee","parkTent","parkTotal","sabinaFood","longtail","equipment","refreshment","guide","sabinaTent","insurance","agentCost","sabinaTotal","balance"],totals=Object.fromEntries(fields.map(field=>[field,rows.reduce((sum,row)=>sum+money(row[field]),0)]));
+  return{date,type:"package_cost_reference",title:"แพ็คเกจ",purpose:"ยอดขายและต้นทุนแพ็คเกจประจำวัน",range:{from:date,to:date},rows:rows.map((row,index)=>({no:index+1,...row})),totals,missingRatePrograms:[...new Set(rows.filter(row=>row.missingRates).map(row=>row.program))],sourceNotes:["วันที่อ้างอิงวันเดินทางไปเกาะ","ไม่รวมโปรแกรมตั๋วเรือ","ต้นทุนแต่ละช่องคำนวณจากจำนวน × ค่าคงที่ใน Master Data"]};
+}
+
+function tentSize(person){const value=normalized(`${person.accommodationId||""} ${person.accommodationName||""}`),price=accommodationUnitPrice(person);if(/บ้าน|house|bungalow/.test(value))return"";if(/ใหญ่|large/.test(value))return"large";if(/เล็ก|small/.test(value))return"small";if(/tent|เต็นท์/.test(value))return price>500?"large":"small";if(price===450)return"small";if(price===650)return"large";return""}
+function boatTentReport(bookings,date,paymentMethods=[]){
+  const rows=[];
+  for(const booking of bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===date)){
+    const people=passengersOf(booking),boatPeople=people.filter(person=>person.program&&isBoatProgram(person.program));if(!boatPeople.length)continue;
+    const qty=boatPeople.reduce((sum,person)=>sum+Math.max(money(person.program?.qty||1),0),0),amount=boatPeople.reduce((sum,person)=>sum+lineAmount(person.program?.qty,person.program?.price),0),defaultAmount=boatPeople.reduce((sum,person)=>sum+lineAmount(person.program?.qty,person.program?.defaultPrice??person.program?.price),0),kind=paymentKind(booking.paymentMethod,paymentMethods);
+    let smallTentQty=0,largeTentQty=0,tentAmount=0;
+    for(const person of people){if(!person.accommodationId||person.accommodationBookedBy!=="company")continue;const size=tentSize(person);if(!size)continue;const accommodationQty=accommodationQuantity(person);if(size==="large")largeTentQty+=accommodationQty;else smallTentQty+=accommodationQty;tentAmount+=accommodationRevenue(person)}
+    const tentKind=paymentKind(booking.paymentMethod,paymentMethods),boatCash=kind==="cash"?amount:0,boatTransfer=kind==="transfer"?amount:0,tentCash=tentKind==="cash"?tentAmount:0,tentTransfer=tentKind==="transfer"?tentAmount:0;
+    rows.push({returnDate:booking.returnDate||"",leader:leaderName(booking),qty,price:qty?amount/qty:0,boatCash,boatTransfer,discount:Math.max(defaultAmount-amount,0),balance:amount,smallTentQty,largeTentQty,tentCash,tentTransfer,totalCash:boatCash+tentCash,totalTransfer:boatTransfer+tentTransfer,customerSource:booking.source||booking.contactEmail||"",bookingCode:booking.bookingCode||""});
+  }
+  const fields=["qty","boatCash","boatTransfer","discount","balance","smallTentQty","largeTentQty","tentCash","tentTransfer","totalCash","totalTransfer"],totals=Object.fromEntries(fields.map(field=>[field,rows.reduce((sum,row)=>sum+money(row[field]),0)]));
+  return{date,type:"boat_tent_reference",title:"ตั๋วเรือ - เต็นท์",purpose:"ยอดตั๋วเรือและเต็นท์ประจำวัน",range:{from:date,to:date},rows,totals,sourceNotes:["วันที่อ้างอิงวันเดินทางไปเกาะ","รวมเฉพาะ Program ตั๋วเรือ","เต็นท์อ้างอิงจากที่พักที่เราเป็นผู้จอง ไม่ใช่อุปกรณ์","สด/โอนอ้างอิงช่องทางชำระเงินของ Booking"]};
+}
+
 function vanDailyReferenceReport(bookings,date,toDate,paymentMethods){
   const days=reportDays(date,toDate),rows=days.map(day=>{const lines=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===day).flatMap(booking=>transportationRevenueLines(booking,paymentMethods)).filter(line=>isVanMethod(line.method)),cash=lines.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="cash").reduce((sum,line)=>sum+line.amount,0),transfer=lines.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="transfer").reduce((sum,line)=>sum+line.amount,0);return{date:day,cash,transfer,total:cash+transfer}}),totals={cash:rows.reduce((sum,row)=>sum+row.cash,0),transfer:rows.reduce((sum,row)=>sum+row.transfer,0),total:rows.reduce((sum,row)=>sum+row.total,0)};
   const monthly=vanMonthlyReferenceReport(bookings,date,toDate,paymentMethods);
@@ -281,7 +330,7 @@ function dailyReceiptSummary(bookings,date,paymentMethods){
 }
 function dailyEquipmentSummary(bookings,date){const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===date),groups=new Map();for(const booking of daily)for(const person of passengersOf(booking))for(const addon of person.preAddOns||[]){if(addon.selected===false)continue;const key=addon.id||addon.name||"other",qty=money(addon.qty||1),amount=qty*money(addon.price),row=groups.get(key)||{name:addon.name||key,qty:0,total:0};row.qty+=qty;row.total+=amount;groups.set(key,row)}const rows=[...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,"th")).map((row,index)=>({no:index+1,...row,unitPrice:row.qty?row.total/row.qty:0}));return{date,type:"equipment_summary",title:"รายงานรวมยอดอุปกรณ์",purpose:"รายการเบิกอุปกรณ์ประจำวัน",rows,equipmentTotals:{qty:rows.reduce((sum,row)=>sum+row.qty,0),amount:rows.reduce((sum,row)=>sum+row.total,0)},summary:{bookings:daily.length,pax:rows.reduce((sum,row)=>sum+row.qty,0)}}}
 
-export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows=[],paymentMethods=[],masterAddOns=[],masterAccommodations=[],masterAgents=[],transportationMethods=[],date,toDate,type}){
+export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows=[],paymentMethods=[],masterAddOns=[],masterAccommodations=[],masterAgents=[],transportationMethods=[],packageCostRates=[],date,toDate,type}){
   const active=bookings.filter(activeBooking);
   toDate=toDate||(type==="management"?isoDate(date,6):date);
   const selectedDays=reportDays(date,toDate),entries=selectedDays.flatMap(day=>movements(active,day).map(row=>({...row,date:day})));
@@ -293,6 +342,8 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows
   if(type==="management")return{date,type,...managementReport(active,financialRows,expenseRows,date,toDate,masterAddOns,masterAccommodations)};
   if(type==="tour_expense_reference")return tourExpenseReferenceReport(active,date,toDate,paymentMethods);
   if(type==="tent_fee_reference")return tentFeeReferenceReport(active,date,toDate);
+  if(type==="package_cost_reference")return packageCostReport(active,date,packageCostRates);
+  if(type==="boat_tent_reference")return boatTentReport(active,date,paymentMethods);
   if(type==="van_daily_reference")return vanDailyReferenceReport(active,date,toDate,paymentMethods);
   if(type==="van_work_order_reference")return vanWorkOrderReferenceReport(active,date,toDate,paymentMethods);
   if(type==="agent_reference")return agentReferenceReport(active,date,toDate,masterAgents);

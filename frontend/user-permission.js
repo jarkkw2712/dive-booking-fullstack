@@ -20,6 +20,8 @@ const PERMISSION_LABELS_PRO = {
   viewAudit: "ดู Audit",
   viewMoney: "เห็นยอดเงิน",
   manageUsers: "จัดการ Users"
+  ,manageOperatingExpenses: "จัดการค่าใช้จ่ายรายวัน"
+  ,manageIslandBoatOperations: "จัดการเรือบนเกาะ"
 };
 
 async function loadRolesForUserEditor() {

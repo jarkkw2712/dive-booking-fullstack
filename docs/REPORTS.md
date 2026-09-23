@@ -14,12 +14,17 @@ All reports exclude cancelled bookings. The selected date is interpreted as the 
 | รายงานค่าธรรมเนียมเต็นท์ | Operations / accounting | Tent equipment quantity multiplied by trip nights and the fixed 80-baht person-night fee |
 | รายงานรถตู้ (เฉพาะรถตู้) | Transport / accounting | Daily van income split by cash and transfer |
 | ใบงานรับ-ส่งรถตู้ | Driver / operations | Outbound and return van jobs using each passenger leg date, destination, leader and phone |
+| แพ็คเกจ | Operations / accounting | Daily package sales with park/Sabina cost allocations calculated as passenger quantity × editable Master Data rate |
+| ตั๋วเรือ - เต็นท์ | Counter / accounting | Daily boat-ticket sales and company-booked tent accommodation split by cash/transfer |
 
 The four reports above are in the Print/PDF section and are formatted for A4. `รายงานสรุปรายการทัวร์` is appended to the tour/expense PDF and `รายงานสรุปรายการรถตู้` is appended to the van PDF; both group the same selected range by month and include a final total row. The Excel section contains only the detailed Booking export.
 
 ## Reference report data sources
 
 - The report date is the Booking outbound travel date, except van work orders, which use the individual outbound or return leg date.
+- `แพ็คเกจ` and `ตั๋วเรือ - เต็นท์` are daily A4 landscape PDFs and always use the Booking outbound island-travel date.
+- `แพ็คเกจ` excludes Program code `boat_ticket`. Every park/Sabina cost column is passenger quantity multiplied by the matching active rate in `ค่าคงที่แพ็คเกจ` Master Data.
+- `ตั๋วเรือ - เต็นท์` includes only Program code `boat_ticket`. Tent quantities and amounts come from company-booked Accommodation records, never equipment/add-ons.
 - Boat tickets are Program code `boat_ticket`; all other Programs are packages.
 - Tent rows are selected equipment whose code is exactly `tent` after lowercasing.
 - Payment type comes from Payment Method code: exact `cash` is cash; a code containing `bank_transfer` is transfer. The saved type remains a compatibility fallback for older/custom methods.

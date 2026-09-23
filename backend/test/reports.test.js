@@ -337,3 +337,37 @@ test("payment defaults and per-leg transportation migration is idempotent and no
   for(const name of ["นฤมล","เรืองโรจน์","รุ่งฤดี","ลัดดาวรรณ์","รุจิโรจน์"])assert.ok(sql.includes(name));
   assert.match(sql,/add column if not exists/);assert.match(sql,/where not exists/);assert.match(sql,/position\('bank_transfer'/);assert.doesNotMatch(sql,/delete from|truncate/i);
 });
+
+test("package report multiplies passenger quantity by editable master cost rates",()=>{
+  const packageCostRates=[
+    {program_key:"2/1",cost_code:"park_food",unit_rate:980,active_flag:true},
+    {program_key:"2/1",cost_code:"park_fee",unit_rate:100,active_flag:true},
+    {program_key:"2/1",cost_code:"park_tent",unit_rate:160,active_flag:true},
+    {program_key:"2/1",cost_code:"sabina_food",unit_rate:120,active_flag:true},
+    {program_key:"2/1",cost_code:"longtail",unit_rate:400,active_flag:true},
+    {program_key:"2/1",cost_code:"equipment",unit_rate:150,active_flag:true},
+    {program_key:"2/1",cost_code:"refreshment",unit_rate:100,active_flag:true},
+    {program_key:"2/1",cost_code:"guide",unit_rate:100,active_flag:true},
+    {program_key:"2/1",cost_code:"sabina_tent",unit_rate:225,active_flag:true},
+    {program_key:"2/1",cost_code:"insurance",unit_rate:30,active_flag:true},
+    {program_key:"2/1",cost_code:"agent",unit_rate:500,active_flag:true}
+  ];
+  const bookings=[{bookingCode:"PKG",travelDate:"2026-09-23",status:"confirmed",leaderFirstName:"ลูกค้า",passengers:[{program:{programId:"package_2d1n",name:"2 วัน 1 คืน",qty:2,price:5000}}]}];
+  const report=buildPrintCenterReport({bookings,packageCostRates,date:"2026-09-23",type:"package_cost_reference"}),row=report.rows[0];
+  assert.equal(row.qty,2);assert.equal(row.amount,10000);assert.equal(row.parkTotal,2480);assert.equal(row.sabinaTotal,3250);assert.equal(row.balance,4270);assert.deepEqual(report.missingRatePrograms,[]);
+});
+
+test("boat and tent report reads tents from company-booked accommodation and splits by payment type",()=>{
+  const paymentMethods=[{method_id:"bank_transfer_naruemon",method_name:"นฤมล",payment_type:"transfer"}],bookings=[{bookingCode:"BT",travelDate:"2026-09-23",returnDate:"2026-09-24",status:"confirmed",leaderFirstName:"ลูกค้า",source:"Facebook",paymentMethod:"นฤมล",passengers:[
+    {program:{programId:"boat_ticket",name:"ตั๋วเรือ",qty:1,price:1500,defaultPrice:1600},accommodationId:"tent_small",accommodationName:"เต็นท์เล็ก",accommodationBookedBy:"company",accommodationQty:1,accommodationPrice:450},
+    {program:{programId:"boat_ticket",name:"ตั๋วเรือ",qty:1,price:1500,defaultPrice:1600},accommodationId:"tent_large",accommodationName:"เต็นท์ใหญ่",accommodationBookedBy:"company",accommodationQty:2,accommodationPrice:650}
+  ]}];
+  const report=buildPrintCenterReport({bookings,paymentMethods,date:"2026-09-23",type:"boat_tent_reference"}),row=report.rows[0];
+  assert.equal(row.qty,2);assert.equal(row.boatCash,0);assert.equal(row.boatTransfer,3000);assert.equal(row.discount,200);assert.equal(row.smallTentQty,1);assert.equal(row.largeTentQty,2);assert.equal(row.tentTransfer,1750);assert.equal(row.totalTransfer,4750);assert.equal(row.customerSource,"Facebook");
+});
+
+test("package and island boat migration is revisioned, numeric and non-destructive",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260923_040_package_reports_and_island_boats.sql"),"utf8");
+  for(const expected of ["master_package_cost_rates","unit_rate numeric(14,2)","master_island_boat_duties","island_boat_operation_batches","fuel_liters numeric(12,2)","passenger_count integer","save_island_boat_operations","v_current_island_boat_operations","manageIslandBoatOperations","ช่องขาด","ไม้งาม"])assert.ok(sql.includes(expected));
+  assert.match(sql,/max\(revision\),0\)\+1/);assert.match(sql,/on delete restrict/);assert.doesNotMatch(sql,/delete from|truncate/i);
+});
