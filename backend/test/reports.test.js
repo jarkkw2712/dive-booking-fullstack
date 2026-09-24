@@ -378,3 +378,11 @@ test("package cost program-link migration adds an idempotent protected Program F
   for(const expected of ["add column if not exists program_id text","master_package_cost_rates_program_id_fkey","references master_programs(program_id)","on delete restrict","master_package_cost_rates_program_required","check(program_id is not null) not valid","ux_master_package_cost_rates_program_cost"])assert.ok(sql.includes(expected));
   assert.match(sql,/where r\.program_id is null/);assert.doesNotMatch(sql,/delete from|truncate/i);
 });
+
+test("fast booking read migration is set-based and routes use v22",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260924_042_fast_booking_read_model.sql"),"utf8");
+  const bookingRoute=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8"),reportRoute=fs.readFileSync(path.resolve(testDir,"../src/routes/reports.js"),"utf8");
+  for(const expected of ["create or replace function list_bookings_json_v22","with program_rows as","pre_addons as","island_addons as","passenger_rows as","language sql stable","security definer","grant execute"] )assert.ok(sql.includes(expected));
+  for(const field of ["accommodationQty","transportationPaymentMethod","returnTransportationPaymentMethod","paymentBreakdown","bookingOriginal","documentVisibility"])assert.ok(sql.includes(`'${field}'`));
+  assert.doesNotMatch(sql,/\bfor\b|delete from|truncate/i);assert.match(bookingRoute,/list_bookings_json_v22/);assert.match(reportRoute,/list_bookings_json_v22/);
+});

@@ -13,7 +13,7 @@ async function listBookingsCached(){
   if(bookingCache.data&&Date.now()<bookingCache.expiresAt)return bookingCache.data;
   if(bookingCache.promise)return bookingCache.promise;
   const version=bookingCache.version;
-  const request=(async()=>{const {data,error}=await bookingRpc("list_bookings_json_v21","list_bookings_json_v20");if(error)throw error;const rows=data||[];if(version===bookingCache.version){bookingCache.data=rows;bookingCache.expiresAt=Date.now()+30_000}return rows})();
+  const request=(async()=>{const {data,error}=await bookingRpc("list_bookings_json_v22","list_bookings_json_v21");if(error)throw error;const rows=data||[];if(version===bookingCache.version){bookingCache.data=rows;bookingCache.expiresAt=Date.now()+30_000}return rows})();
   bookingCache.promise=request;
   try{return await request}finally{if(bookingCache.promise===request)bookingCache.promise=null}
 }
@@ -21,7 +21,7 @@ async function listBookingsCached(){
 router.get("/",async(req,res)=>{try{res.json(await listBookingsCached())}catch(error){res.status(500).json({error:error.message})}});
 router.post("/check-duplicate",async(req,res)=>{
   const booking=req.body||{};
-  const {data,error}=await bookingRpc("list_bookings_json_v14","list_bookings_json_v13");
+  const {data,error}=await bookingRpc("list_bookings_json_v22","list_bookings_json_v21");
   if(error)return res.status(500).json({error:error.message});
   const candidates=(data||[]).filter(row=>(!booking.travelDate||row.travelDate===booking.travelDate)&&row.bookingCode!==booking.bookingCode&&row.status!=="cancelled");
   const names=new Set((booking.passengers||[]).map(person=>normalizeName(`${person.title||""}${person.firstName||""}${person.lastName||""}`)).filter(Boolean));
