@@ -40,11 +40,11 @@ Print Center reports total selected Pre Add-ons by item and quantity for passeng
 
 ## Park accommodation
 
-Accommodation is recorded per passenger as no overnight stay, national-park house, or national-park tent. The record also stores who made the reservation, the park reference, and an operational note.
+Accommodation is recorded as one or more Booking-level rows. Each row stores the Accommodation Master item, who made the reservation, quantity, and the price snapshot. A single Booking may therefore contain different accommodation types such as a small tent, large tent, and house.
 
 National-park accommodation is informational only and is never included in Sabina revenue, invoices, expected revenue, or outstanding calculations. Customers normally reserve and pay the park directly.
 
-The live entry workflow is intentionally simple. Staff select an accommodation maintained in Master Data, choose either customer booked or company booked, and enter any tent credit manually (default zero). The credit reduces the booking and invoice; if payment was already received, Financial shows the remaining refund due and creates a normal auditable refund request.
+Staff add accommodation rows from Master Data and choose either customer booked or company booked. Customer-booked rows remain operational information and do not contribute revenue. Company-booked rows contribute quantity multiplied by the saved unit price to the Booking total, printable documents allowed by Master Data, reports, exports, and newly generated invoices. Historical passenger accommodation snapshots remain readable and are backfilled without deleting audit history.
 
 Boat Ticket outbound and approximate return dates can be recorded and edited later if the passenger changes plans on the island.
 

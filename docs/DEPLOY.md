@@ -50,6 +50,7 @@ Run these files once, in order, with Supabase SQL Editor:
 40. `database/migrations/20260923_040_package_reports_and_island_boats.sql`
 41. `database/migrations/20260923_041_link_package_costs_to_programs.sql`
 42. `database/migrations/20260924_042_fast_booking_read_model.sql`
+43. `database/migrations/20261010_043_multiple_booking_accommodations.sql`
 
 The stabilization and table migrations are idempotent and do not delete existing records. Function/view migrations use `CREATE OR REPLACE`.
 Migration 007 defaults existing passengers to no overnight stay and does not create revenue or financial entries.
@@ -69,11 +70,13 @@ Migration 030 adds revision-preserving daily operating expenses, CEO net reporti
 Migration 035 adds category-specific Payment Method defaults and the separate outbound/return transportation payment snapshots used by the new reports. It also seeds the five named transfer accounts only when the same display name is absent. Run it after migration 034 and before deploying frontend version `20260921-12` and the matching backend.
 Migration 036 hardens sessions/refunds and permits both transportation legs in financial invoices. Migration 037 adds Booking List read indexes. Migration 038 fixes the polymorphic equipment/Island Add-on master reference. Run them in this order before migration 039.
 Migration 039 adds the Accommodation Master default price and booking snapshots for quantity and unit price. It preserves existing selected accommodation as one unit with zero historical price, allows accommodation invoice lines, and exposes Booking RPC v21. Run it before deploying frontend version `2026.09.22-17` and the matching backend.
+
 Migration 040 adds editable package-cost rates, island-boat duty Master Data, revision-preserving daily island-boat operations, the new permission, and the ช่องขาด/ไม้งาม island records. Run it before deploying frontend version `2026.09.23-20` and the matching backend. Users must sign in again after the migration to receive `manageIslandBoatOperations` in their JWT.
 Migration 041 links every package-cost rate to `master_programs.program_id`. Run it after migration 040 and before deploying frontend version `2026.09.23-21`; verify any custom Program not matching the standard DT, 2/1, 3/2, or 4/3 names in Package Cost Master Data.
 Migration 042 adds the set-based Booking v22 read model. It replaces the slow procedural v1-v21 wrapper chain without changing Booking data or its JSON contract. Run it before deploying frontend version `2026.09.24-22` and the matching backend.
+Migration 043 adds multiple Booking-level accommodation rows, backfills existing passenger accommodation snapshots without deleting history, and exposes Booking RPC v23. Save the Supabase SQL Editor query with the exact filename `20261010_043_multiple_booking_accommodations.sql` before running it.
 
-For rollback, redeploy the previous backend/frontend revision. Do not drop the migration 035-042 tables, columns, indexes, triggers, or named payment methods: they are backward-compatible and may already contain operational history. Disable unwanted Master Data records instead of deleting them. Existing v21 booking functions remain available if the application must be rolled back.
+For rollback, redeploy the previous backend/frontend revision. Do not drop the migration 035-043 tables, columns, indexes, triggers, or named payment methods: they are backward-compatible and may already contain operational history. Disable unwanted Master Data records instead of deleting them. Existing v21/v22 booking functions remain available if the application must be rolled back.
 
 ## 3. Render
 

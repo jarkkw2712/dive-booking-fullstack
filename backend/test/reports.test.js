@@ -95,10 +95,10 @@ test("accommodation quantity and price flow to reports only when the company boo
   assert.deepEqual(boat.rows.map(row=>row.accommodationTotal),[1500,0]);assert.deepEqual(boat.rows.map(row=>row.accommodationQty),[2,3]);
 });
 
-test("accommodation price migration is idempotent and routes use booking RPC v21",()=>{
+test("accommodation price migration is idempotent and remains available under booking RPC v23",()=>{
   const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260922_039_accommodation_quantity_price.sql"),"utf8"),bookingRoute=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8"),reportRoute=fs.readFileSync(path.resolve(testDir,"../src/routes/reports.js"),"utf8");
   for(const field of ["default_price","accommodation_qty","accommodation_unit_price","accommodation_default_price","upsert_booking_v21","list_bookings_json_v21","'accommodation'"])assert.match(sql,new RegExp(field));
-  assert.match(sql,/if v_add_qty then/);assert.match(sql,/add column if not exists/);assert.doesNotMatch(sql,/delete from|truncate/i);assert.match(bookingRoute,/upsert_booking_v21/);assert.match(bookingRoute,/list_bookings_json_v21/);assert.match(reportRoute,/list_bookings_json_v21/);
+  assert.match(sql,/if v_add_qty then/);assert.match(sql,/add column if not exists/);assert.doesNotMatch(sql,/delete from|truncate/i);assert.match(bookingRoute,/upsert_booking_v23/);assert.match(bookingRoute,/list_bookings_json_v23/);assert.match(reportRoute,/list_bookings_json_v23/);
 });
 
 test("daily register receipt and equipment summaries calculate operational totals",()=>{
@@ -137,7 +137,7 @@ test("booking export exposes immutable creation date",()=>{
 });
 test("booking creator comes from authenticated server user and remains immutable",()=>{
   const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260812_019_booking_creator_export.sql"),"utf8"),route=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8");
-  assert.match(sql,/created_by=coalesce\(created_by/);assert.match(sql,/list_bookings_json_v10/);assert.match(route,/createdBy:req\.user\.username/);assert.match(route,/upsert_booking_v20/);
+  assert.match(sql,/created_by=coalesce\(created_by/);assert.match(sql,/list_bookings_json_v10/);assert.match(route,/createdBy:req\.user\.username/);assert.match(route,/upsert_booking_v23/);
 });
 
 test("island report includes both arrivals and departures on the selected date",()=>{
@@ -385,4 +385,22 @@ test("fast booking read migration is set-based and routes use v22",()=>{
   for(const expected of ["create or replace function list_bookings_json_v22","with program_rows as","pre_addons as","island_addons as","passenger_rows as","language sql stable","security definer","grant execute"] )assert.ok(sql.includes(expected));
   for(const field of ["accommodationQty","transportationPaymentMethod","returnTransportationPaymentMethod","paymentBreakdown","bookingOriginal","documentVisibility"])assert.ok(sql.includes(`'${field}'`));
   assert.doesNotMatch(sql,/\bfor\b|delete from|truncate/i);assert.match(bookingRoute,/list_bookings_json_v22/);assert.match(reportRoute,/list_bookings_json_v22/);
+});
+
+test("multiple booking accommodations are reported separately without charging customer-booked rows",()=>{
+  const bookings=[{bookingCode:"MULTI-STAY",travelDate:"2026-10-10",returnDate:"2026-10-12",status:"confirmed",paymentMethod:"เงินสด",totalAmount:2400,passengers:[{firstName:"Leader",program:{programId:"boat_ticket",name:"ตั๋วเรือ",qty:1,price:0}}],accommodations:[
+    {accommodationId:"tent_small",accommodationName:"เต็นท์เล็ก",accommodationBookedBy:"company",accommodationQty:2,accommodationPrice:400},
+    {accommodationId:"tent_large",accommodationName:"เต็นท์ใหญ่",accommodationBookedBy:"company",accommodationQty:1,accommodationPrice:600},
+    {accommodationId:"park_house",accommodationName:"บ้านสินสมุทร",accommodationBookedBy:"customer",accommodationQty:1,accommodationPrice:1000}
+  ]}];
+  const masterAccommodations=[{accommodation_id:"tent_small",accommodation_name:"เต็นท์เล็ก",default_price:400},{accommodation_id:"tent_large",accommodation_name:"เต็นท์ใหญ่",default_price:600},{accommodation_id:"park_house",accommodation_name:"บ้านสินสมุทร",default_price:1000}];
+  const report=buildPrintCenterReport({bookings,masterAccommodations,date:"2026-10-10",type:"management"});
+  assert.equal(report.accommodation.companyBooked,3);assert.equal(report.accommodation.customerSelfBooked,1);assert.equal(report.accommodation.companyRevenue,1400);assert.equal(report.accommodation.customerReferenceValue,1000);
+  assert.equal(report.accommodationItems.find(row=>row.code==="tent_small").qty,2);assert.equal(report.accommodationItems.find(row=>row.code==="tent_large").amount,600);assert.equal(report.accommodationItems.find(row=>row.code==="park_house").amount,0);
+});
+
+test("multiple accommodation migration is idempotent, preserves history and routes use v23",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20261010_043_multiple_booking_accommodations.sql"),"utf8"),bookingRoute=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8"),reportRoute=fs.readFileSync(path.resolve(testDir,"../src/routes/reports.js"),"utf8");
+  for(const expected of ["add column if not exists accommodations jsonb","bookings_accommodations_array_check","upsert_booking_v23","list_bookings_json_v23","list_bookings_json_v22()","grant execute"])assert.ok(sql.includes(expected));
+  assert.doesNotMatch(sql,/delete from|truncate/i);assert.match(bookingRoute,/upsert_booking_v23/);assert.match(bookingRoute,/list_bookings_json_v23/);assert.match(reportRoute,/list_bookings_json_v23/);
 });

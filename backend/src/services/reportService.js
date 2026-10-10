@@ -1,5 +1,6 @@
 const activeBooking=booking=>booking.status!=="cancelled";
 const passengersOf=booking=>Array.isArray(booking.passengers)?booking.passengers:[];
+const accommodationsOf=booking=>Array.isArray(booking.accommodations)&&booking.accommodations.length?booking.accommodations:passengersOf(booking).filter(person=>person.accommodationId);
 const personName=person=>[person.title,person.firstName,person.lastName].filter(Boolean).join(" ");
 const leaderName=booking=>[booking.leaderTitle,booking.leaderFirstName,booking.leaderLastName].filter(Boolean).join(" ");
 const isoDate=(date,offset=0)=>{const value=new Date(`${date}T00:00:00Z`);value.setUTCDate(value.getUTCDate()+offset);return value.toISOString().slice(0,10)};
@@ -21,7 +22,7 @@ function equipmentSummary(entries){
 }
 
 function accommodationSummary(entries){
-  const people=entries.flatMap(({booking})=>passengersOf(booking));
+  const people=entries.flatMap(({booking})=>accommodationsOf(booking));
   return{
     parkHouse:people.filter(person=>person.accommodationId==="park_house").reduce((sum,person)=>sum+accommodationQuantity(person),0),
     parkTent:people.filter(person=>person.accommodationId==="park_tent").reduce((sum,person)=>sum+accommodationQuantity(person),0),
@@ -55,8 +56,8 @@ function passengerRows(entries,{includeHealth=false}={}){
     pickupLocation:person.pickupLocation||"",transportationMethod:person.transportationMethod||booking.transportationMethod||"",returnTransportationMethod:person.returnTransportationMethod||person.transportationMethod||booking.transportationMethod||"",transportationAmount:money(person.transportationAmount),returnTransportationAmount:money(person.returnTransportationAmount),passengerTravelDate:person.passengerTravelDate||booking.travelDate||"",outboundDestination:person.outboundDestination||person.transportationDestination||person.pickupLocation||"",passengerReturnDate:person.passengerReturnDate||booking.returnDate||"",returnDestination:person.returnDestination||"",
     program:person.program?.name||"",
     island:person.island||"",
-    accommodation:person.accommodationName||accommodationLabel[person.parkAccommodationType||"none"]||"",
-    accommodationBookedBy:person.accommodationId?(person.accommodationBookedBy==="company"?"เราจองให้":"ลูกค้าจองเอง"):"",
+    accommodation:person.accommodationName||bookingAccommodationText(booking)||accommodationLabel[person.parkAccommodationType||"none"]||"",
+    accommodationBookedBy:person.accommodationId?(person.accommodationBookedBy==="company"?"เราจองให้":"ลูกค้าจองเอง"):accommodationsOf(booking).length?"ดูรายการที่พักของ Booking":"",
     accommodationQty:accommodationQuantity(person),
     accommodationPrice:accommodationUnitPrice(person),
     accommodationTotal:accommodationRevenue(person),
@@ -102,8 +103,8 @@ function serviceRevenueLines(booking,paymentMethods){
     if(person.program)rows.push({source:isBoatProgram(person.program)?"boat":"package",amount:lineAmount(person.program.qty,person.program.price),paymentMethod:booking.paymentMethod||defaultPayment(paymentMethods,"general")});
     for(const addon of person.preAddOns||[]){if(addon.selected===false)continue;rows.push({source:isTentAddon(addon)?"tent":"equipment",amount:lineAmount(addon.qty,addon.price),paymentMethod:addon.paymentMethod||defaultPayment(paymentMethods,"equipment")||booking.paymentMethod||""})}
     for(const addon of person.islandAddOns||[])rows.push({source:"island",amount:lineAmount(addon.qty,addon.price),paymentMethod:addon.paymentMethod||defaultPayment(paymentMethods,"island")||booking.paymentMethod||""});
-    if(person.accommodationId&&person.accommodationBookedBy==="company")rows.push({source:"accommodation",amount:accommodationRevenue(person),paymentMethod:booking.paymentMethod||defaultPayment(paymentMethods,"general")});
   }
+  for(const accommodation of accommodationsOf(booking))if(accommodation.accommodationBookedBy==="company")rows.push({source:"accommodation",amount:accommodationRevenue(accommodation),paymentMethod:booking.paymentMethod||defaultPayment(paymentMethods,"general")});
   rows.push(...transportationRevenueLines(booking,paymentMethods));
   return rows;
 }
@@ -161,7 +162,7 @@ function boatTentReport(bookings,date,paymentMethods=[]){
     const people=passengersOf(booking),boatPeople=people.filter(person=>person.program&&isBoatProgram(person.program));if(!boatPeople.length)continue;
     const qty=boatPeople.reduce((sum,person)=>sum+Math.max(money(person.program?.qty||1),0),0),amount=boatPeople.reduce((sum,person)=>sum+lineAmount(person.program?.qty,person.program?.price),0),defaultAmount=boatPeople.reduce((sum,person)=>sum+lineAmount(person.program?.qty,person.program?.defaultPrice??person.program?.price),0),kind=paymentKind(booking.paymentMethod,paymentMethods);
     let smallTentQty=0,largeTentQty=0,tentAmount=0;
-    for(const person of people){if(!person.accommodationId||person.accommodationBookedBy!=="company")continue;const size=tentSize(person);if(!size)continue;const accommodationQty=accommodationQuantity(person);if(size==="large")largeTentQty+=accommodationQty;else smallTentQty+=accommodationQty;tentAmount+=accommodationRevenue(person)}
+    for(const person of accommodationsOf(booking)){if(!person.accommodationId||person.accommodationBookedBy!=="company")continue;const size=tentSize(person);if(!size)continue;const accommodationQty=accommodationQuantity(person);if(size==="large")largeTentQty+=accommodationQty;else smallTentQty+=accommodationQty;tentAmount+=accommodationRevenue(person)}
     const tentKind=paymentKind(booking.paymentMethod,paymentMethods),boatCash=kind==="cash"?amount:0,boatTransfer=kind==="transfer"?amount:0,tentCash=tentKind==="cash"?tentAmount:0,tentTransfer=tentKind==="transfer"?tentAmount:0;
     rows.push({returnDate:booking.returnDate||"",leader:leaderName(booking),qty,price:qty?amount/qty:0,boatCash,boatTransfer,discount:Math.max(defaultAmount-amount,0),balance:amount,smallTentQty,largeTentQty,tentCash,tentTransfer,totalCash:boatCash+tentCash,totalTransfer:boatTransfer+tentTransfer,customerSource:booking.source||booking.contactEmail||"",bookingCode:booking.bookingCode||""});
   }
@@ -267,7 +268,7 @@ function managementReport(bookings,financialRows,expenseRows,date,toDate=date,ma
   });
   const today=rows[0]||{};
   const categoryNames=["ค่าตั๋วเรือ","ที่พัก","มัดจำ","ขายเชื่อ","ค่าน้ำ","ค่าน้ำเกาะ","หน้ากาก","ชูชีพ","ฟิน","น้ำแข็ง","เต็นท์","เหมาเรือ","ค่าระวาง","อื่นๆ","รวมรายได้"];
-  const incomeMatrix=categoryNames.map(category=>({category,values:Object.fromEntries(days.map(day=>{const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===day);let amount=0;if(category==="ค่าตั๋วเรือ")amount=daily.flatMap(passengersOf).reduce((sum,p)=>sum+money(p.program?.qty||1)*money(p.program?.price),0);else if(category==="ที่พัก")amount=daily.flatMap(passengersOf).reduce((sum,p)=>sum+accommodationRevenue(p),0);else if(category==="มัดจำ")amount=daily.reduce((sum,b)=>sum+money(b.depositAmount),0);else if(category==="ขายเชื่อ")amount=daily.reduce((sum,b)=>sum+money(b.creditAmount),0);else if(category==="รวมรายได้")amount=daily.reduce((sum,b)=>sum+money(b.totalAmount),0);else amount=daily.flatMap(passengersOf).flatMap(p=>[...(p.preAddOns||[]).filter(a=>a.selected),...(p.islandAddOns||[])]).filter(a=>incomeCategory(a.name)===category).reduce((sum,a)=>sum+money(a.qty||1)*money(a.price),0);return[day,amount]}))}));
+  const incomeMatrix=categoryNames.map(category=>({category,values:Object.fromEntries(days.map(day=>{const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===day);let amount=0;if(category==="ค่าตั๋วเรือ")amount=daily.flatMap(passengersOf).reduce((sum,p)=>sum+money(p.program?.qty||1)*money(p.program?.price),0);else if(category==="ที่พัก")amount=daily.flatMap(accommodationsOf).reduce((sum,p)=>sum+accommodationRevenue(p),0);else if(category==="มัดจำ")amount=daily.reduce((sum,b)=>sum+money(b.depositAmount),0);else if(category==="ขายเชื่อ")amount=daily.reduce((sum,b)=>sum+money(b.creditAmount),0);else if(category==="รวมรายได้")amount=daily.reduce((sum,b)=>sum+money(b.totalAmount),0);else amount=daily.flatMap(passengersOf).flatMap(p=>[...(p.preAddOns||[]).filter(a=>a.selected),...(p.islandAddOns||[])]).filter(a=>incomeCategory(a.name)===category).reduce((sum,a)=>sum+money(a.qty||1)*money(a.price),0);return[day,amount]}))}));
   const standardExpenseCategories=[
     {code:"boat_fee",name:"ค่าธรรมเนียมเรือ"},{code:"thai_adult_fee",name:"คนไทย - ผู้ใหญ่"},{code:"thai_child_fee",name:"คนไทย - เด็ก"},
     {code:"foreign_adult_fee",name:"ต่างชาติ - ผู้ใหญ่"},{code:"foreign_child_fee",name:"ต่างชาติ - เด็ก"},{code:"tent_fee",name:"ค่าธรรมเนียมกางเต็นท์ (ยอดรวม)"},{code:"ice",name:"ค่าน้ำแข็งประจำวัน"}
@@ -277,7 +278,7 @@ function managementReport(bookings,financialRows,expenseRows,date,toDate=date,ma
   const expenseMatrix=[...standardExpenseCategories,...customExpenseCategories].map(category=>({category:category.name,values:Object.fromEntries(days.map(day=>[day,(expensesByDay.get(day)||[]).filter(item=>(item.category_code||item.categoryCode||"other")===category.code&&(knownCodes.has(category.code)||(item.category_name_snapshot||item.categoryName||"ค่าใช้จ่ายอื่น")===category.name)).reduce((sum,item)=>sum+money(item.amount),0)]))}));
   const arrivalEntries=movements(bookings,date).filter(row=>row.movement==="arrival"),usedEquipment=equipmentSummary(arrivalEntries),equipmentByCode=new Map(usedEquipment.map(item=>[item.code,item]));
   const equipment=[...(masterAddOns||[]).map(item=>equipmentByCode.get(item.addon_id)||{code:item.addon_id,name:item.addon_name,qty:0}),...usedEquipment.filter(item=>!(masterAddOns||[]).some(master=>master.addon_id===item.code))];
-  const arrivalPeople=arrivalEntries.flatMap(({booking})=>passengersOf(booking)),accommodationItems=(masterAccommodations||[]).map(item=>{const selected=arrivalPeople.filter(person=>person.accommodationId===item.accommodation_id);return{code:item.accommodation_id,name:item.accommodation_name,qty:selected.reduce((sum,person)=>sum+accommodationQuantity(person),0),defaultPrice:money(item.default_price),amount:selected.reduce((sum,person)=>sum+accommodationRevenue(person),0)}});
+  const arrivalAccommodations=arrivalEntries.flatMap(({booking})=>accommodationsOf(booking)),accommodationItems=(masterAccommodations||[]).map(item=>{const selected=arrivalAccommodations.filter(person=>person.accommodationId===item.accommodation_id);return{code:item.accommodation_id,name:item.accommodation_name,qty:selected.reduce((sum,person)=>sum+accommodationQuantity(person),0),defaultPrice:money(item.default_price),amount:selected.reduce((sum,person)=>sum+accommodationRevenue(person),0)}});
   return{
     title:"Management / CEO Daily & 7-Day Forecast",
     purpose:"สรุปภาพรวมสำหรับ CEO และผู้บริหาร พร้อมประมาณการ 7 วัน",
@@ -302,15 +303,16 @@ function managementReport(bookings,financialRows,expenseRows,date,toDate=date,ma
 const passengerCounts=booking=>passengersOf(booking).reduce((counts,person)=>{const type=person.passengerType||"adult";counts[type]=(counts[type]||0)+1;return counts},{adult:0,child:0,infant:0,foc:0});
 const uniqueValues=(people,getter)=>[...new Set(people.map(getter).filter(Boolean))].join(", ");
 const accommodationText=person=>person.accommodationId?`${person.accommodationName||person.accommodationId} x ${accommodationQuantity(person)} (${person.accommodationBookedBy==="company"?"เราจองให้":"ลูกค้าจองเอง"})`:"";
+const bookingAccommodationText=booking=>uniqueValues(accommodationsOf(booking),accommodationText);
 const programShort=name=>String(name||"").replace(/(\d+)\s*(?:วัน|days?)\s*(\d+)\s*(?:คืน|nights?)/gi,"$1D$2N");
 function dailyRegisterSummary(bookings,date){
   const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===date),totals={adult:0,child:0,infant:0,foc:0};
-  const rows=daily.map((booking,index)=>{const people=passengersOf(booking),counts=passengerCounts(booking);for(const key of Object.keys(totals))totals[key]+=counts[key];return{no:index+1,leader:leaderName(booking),returnDate:booking.returnDate||"",adult:counts.adult,child:counts.child,infant:counts.infant,foc:counts.foc,program:uniqueValues(people,p=>programShort(p.program?.name)),island:uniqueValues(people,p=>p.island),accommodation:uniqueValues(people,accommodationText),transportation:uniqueValues(people,p=>p.transportationMethod)||booking.transportationMethod||"",agent:booking.agentName||"",note:booking.bookingNote||""}});
+  const rows=daily.map((booking,index)=>{const people=passengersOf(booking),counts=passengerCounts(booking);for(const key of Object.keys(totals))totals[key]+=counts[key];return{no:index+1,leader:leaderName(booking),returnDate:booking.returnDate||"",adult:counts.adult,child:counts.child,infant:counts.infant,foc:counts.foc,program:uniqueValues(people,p=>programShort(p.program?.name)),island:uniqueValues(people,p=>p.island),accommodation:bookingAccommodationText(booking),transportation:uniqueValues(people,p=>p.transportationMethod)||booking.transportationMethod||"",agent:booking.agentName||"",note:booking.bookingNote||""}});
   return{date,type:"register_summary",title:"ใบสรุปยอดยืนยันการจอง",purpose:"รายงานประจำวัน",rows,registerTotals:totals,manualTotals:{guide:"",mogan:"",parkOfficer:"",grandTotal:""},summary:{bookings:daily.length,pax:Object.values(totals).reduce((sum,value)=>sum+value,0)}};
 }
 function rangeRegisterSummary(bookings,date,toDate){
   const selected=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate>=date&&booking.travelDate<=toDate),totals={adult:0,child:0,infant:0,foc:0};
-  const rows=selected.sort((a,b)=>String(a.travelDate).localeCompare(String(b.travelDate))||String(a.bookingCode).localeCompare(String(b.bookingCode))).map((booking,index)=>{const people=passengersOf(booking),counts=passengerCounts(booking);for(const key of Object.keys(totals))totals[key]+=counts[key];return{no:index+1,travelDate:booking.travelDate||"",leader:leaderName(booking),returnDate:booking.returnDate||"",adult:counts.adult,child:counts.child,infant:counts.infant,foc:counts.foc,program:uniqueValues(people,p=>programShort(p.program?.name)),island:uniqueValues(people,p=>p.island),accommodation:uniqueValues(people,accommodationText),transportation:uniqueValues(people,p=>p.transportationMethod)||booking.transportationMethod||"",agent:booking.agentName||"",note:booking.bookingNote||""}});
+  const rows=selected.sort((a,b)=>String(a.travelDate).localeCompare(String(b.travelDate))||String(a.bookingCode).localeCompare(String(b.bookingCode))).map((booking,index)=>{const people=passengersOf(booking),counts=passengerCounts(booking);for(const key of Object.keys(totals))totals[key]+=counts[key];return{no:index+1,travelDate:booking.travelDate||"",leader:leaderName(booking),returnDate:booking.returnDate||"",adult:counts.adult,child:counts.child,infant:counts.infant,foc:counts.foc,program:uniqueValues(people,p=>programShort(p.program?.name)),island:uniqueValues(people,p=>p.island),accommodation:bookingAccommodationText(booking),transportation:uniqueValues(people,p=>p.transportationMethod)||booking.transportationMethod||"",agent:booking.agentName||"",note:booking.bookingNote||""}});
   return{date,type:"register_summary_range",title:"ใบสรุปยอดยืนยันการจอง (ช่วงวันที่)",purpose:`รายงานช่วงวันที่ ${date} ถึง ${toDate}`,range:{from:date,to:toDate},rows,registerTotals:totals,manualTotals:{guide:"",mogan:"",parkOfficer:"",grandTotal:""},summary:{bookings:selected.length,pax:Object.values(totals).reduce((sum,value)=>sum+value,0)}};
 }
 function dailyReceiptSummary(bookings,date,paymentMethods){
@@ -377,7 +379,7 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows
       date:date||booking.travelDate,direction,bookingCode:booking.bookingCode,leader:leaderName(booking),phone:booking.phone||"",
       pax:passengersOf(booking).length,program:[...new Set(passengersOf(booking).map(person=>person.program?.name).filter(Boolean))].join(", "),
       island:[...new Set(passengersOf(booking).map(person=>person.island).filter(Boolean))].join(", "),
-      accommodation:uniqueValues(passengersOf(booking),accommodationText),
+      accommodation:bookingAccommodationText(booking),
       note:booking.bookingNote||""
     }));
   }else{
