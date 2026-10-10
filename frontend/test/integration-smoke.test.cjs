@@ -46,8 +46,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.10-24/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20261010-24`));
+  assert.match(html,/Version 2026\.10\.10-25/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20261010-25`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -293,6 +293,7 @@ test("a booking supports multiple accommodation rows while preserving legacy acc
   for(const label of ["+ เพิ่มที่พัก","ผู้จองที่พัก","ลูกค้าจองเอง","เราจองให้","จำนวน","ราคา"])assert.ok(app.includes(label));
   assert.match(app,/booking\.accommodations=bookingAccommodations/);assert.match(app,/bookingAccommodationCharge\(booking\.accommodations\)/);assert.match(financial,/normalizeBookingAccommodations\(booking\)/);assert.match(css,/booking-accommodation-row/);
   assert.match(app,/oninput="updateBookingAccommodation\(\$\{index\},'accommodationQty'/);assert.match(app,/oninput="updateBookingAccommodation\(\$\{index\},'accommodationPrice'/);
+  assert.match(app,/bookingAccommodations=\[createBookingAccommodation\(\)\]/);assert.match(app,/filter\(row=>row\.accommodationId\)/);assert.doesNotMatch(app,/ยังไม่ได้เพิ่มที่พัก กด/);assert.doesNotMatch(app,/ลูกค้าจองเอง: เก็บเป็นข้อมูล/);
   assert.match(sql,/add column if not exists accommodations jsonb/);assert.match(sql,/upsert_booking_v23/);assert.match(sql,/list_bookings_json_v23/);assert.doesNotMatch(sql,/delete from|truncate/i);
 });
 test("insurance submission has a dedicated permission and receipt references follow document rules",()=>{
