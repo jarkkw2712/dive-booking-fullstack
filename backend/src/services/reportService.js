@@ -83,16 +83,19 @@ const defaultPayment=(methods,scope)=>methods.find(method=>method[paymentDefault
 const namedAccount=name=>namedPaymentAccounts.find(account=>String(name||"").includes(account))||"";
 const isBoatProgram=program=>normalized(program?.programId||program?.id)==="boat_ticket"||String(program?.name||"").includes("ตั๋วเรือ");
 const isTentAddon=addon=>normalized(addon?.id||addon?.code)==="tent";
-const isVanMethod=name=>/รถตู้|\bvan\b/i.test(String(name||""));
+const isVanMethod=(name,methods=[])=>{
+  const key=normalized(name),master=methods.find(row=>normalized(row.method_name)===key||normalized(row.method_id)===key),code=normalized(master?.method_id||"");
+  return code.includes("van")||code.includes("pv")||/รถตู้|\bvan\b/i.test(String(name||""));
+};
 const lineAmount=(qty,price)=>money(qty||1)*money(price);
 
-function transportationRevenueLines(booking,paymentMethods){
+function transportationRevenueLines(booking,paymentMethods,transportationMethods=[]){
   const rows=[];
   for(const person of passengersOf(booking)){
     const outboundMethod=person.transportationMethod||booking.transportationMethod||"",outboundAmount=money(person.transportationAmount);
-    if(outboundMethod||outboundAmount)rows.push({source:"transport",direction:"ขาไป",method:outboundMethod,amount:outboundAmount,paymentMethod:person.transportationPaymentMethod||defaultPayment(paymentMethods,isVanMethod(outboundMethod)?"transport":"general")||booking.paymentMethod||"",operationalDate:person.passengerTravelDate||booking.travelDate||"",destination:person.outboundDestination||person.transportationDestination||person.pickupLocation||""});
+    if(outboundMethod||outboundAmount)rows.push({source:"transport",direction:"ขาไป",method:outboundMethod,amount:outboundAmount,paymentMethod:person.transportationPaymentMethod||defaultPayment(paymentMethods,isVanMethod(outboundMethod,transportationMethods)?"transport":"general")||booking.paymentMethod||"",operationalDate:person.passengerTravelDate||booking.travelDate||"",destination:person.outboundDestination||person.transportationDestination||person.pickupLocation||""});
     const returnMethod=person.returnTransportationMethod||"",returnAmount=money(person.returnTransportationAmount);
-    if(returnMethod||returnAmount)rows.push({source:"transport",direction:"ขากลับ",method:returnMethod,amount:returnAmount,paymentMethod:person.returnTransportationPaymentMethod||defaultPayment(paymentMethods,isVanMethod(returnMethod)?"transport":"general")||booking.paymentMethod||"",operationalDate:person.passengerReturnDate||booking.returnDate||"",destination:person.returnDestination||""});
+    if(returnMethod||returnAmount)rows.push({source:"transport",direction:"ขากลับ",method:returnMethod,amount:returnAmount,paymentMethod:person.returnTransportationPaymentMethod||defaultPayment(paymentMethods,isVanMethod(returnMethod,transportationMethods)?"transport":"general")||booking.paymentMethod||"",operationalDate:person.passengerReturnDate||booking.returnDate||"",destination:person.returnDestination||""});
   }
   return rows;
 }
@@ -170,14 +173,19 @@ function boatTentReport(bookings,date,paymentMethods=[]){
   return{date,type:"boat_tent_reference",title:"ตั๋วเรือ - เต็นท์",purpose:"ยอดตั๋วเรือและเต็นท์ประจำวัน",range:{from:date,to:date},rows,totals,sourceNotes:["วันที่อ้างอิงวันเดินทางไปเกาะ","รวมเฉพาะ Program ตั๋วเรือ","เต็นท์อ้างอิงจากที่พักที่เราเป็นผู้จอง ไม่ใช่อุปกรณ์","สด/โอนอ้างอิงช่องทางชำระเงินของ Booking"]};
 }
 
-function vanDailyReferenceReport(bookings,date,toDate,paymentMethods){
-  const days=reportDays(date,toDate),rows=days.map(day=>{const lines=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===day).flatMap(booking=>transportationRevenueLines(booking,paymentMethods)).filter(line=>isVanMethod(line.method)),cash=lines.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="cash").reduce((sum,line)=>sum+line.amount,0),transfer=lines.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="transfer").reduce((sum,line)=>sum+line.amount,0);return{date:day,cash,transfer,total:cash+transfer}}),totals={cash:rows.reduce((sum,row)=>sum+row.cash,0),transfer:rows.reduce((sum,row)=>sum+row.transfer,0),total:rows.reduce((sum,row)=>sum+row.total,0)};
-  const monthly=vanMonthlyReferenceReport(bookings,date,toDate,paymentMethods);
-  return{date,type:"van_daily_reference",title:"รายงานรถตู้ (เฉพาะรถตู้)",purpose:"ยอดค่ารถตู้ตามวันเดินทางไป แยกเงินสดและเงินโอน",range:{from:date,to:toDate},rows,totals,monthlyRows:monthly.rows,monthlyTotals:monthly.totals,sourceNotes:["รวมเฉพาะวิธีการเดินทางรถตู้","ยอดขาไปและขากลับใช้ช่องทางชำระของแต่ละขา","เงินสด/โอนพิจารณาจาก code ใน Payment Method Master"]};
+function vanRevenueLines(bookings,paymentMethods,transportationMethods){
+  return bookings.filter(activeBooking).flatMap(booking=>transportationRevenueLines(booking,paymentMethods,transportationMethods)).filter(line=>isVanMethod(line.method,transportationMethods));
+}
+function vanDailyReferenceReport(bookings,date,toDate,paymentMethods,transportationMethods){
+  const lines=vanRevenueLines(bookings,paymentMethods,transportationMethods);
+  const days=reportDays(date,toDate),rows=days.map(day=>{const daily=lines.filter(line=>line.operationalDate===day),cash=daily.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="cash").reduce((sum,line)=>sum+line.amount,0),transfer=daily.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="transfer").reduce((sum,line)=>sum+line.amount,0);return{date:day,cash,transfer,total:cash+transfer}}),totals={cash:rows.reduce((sum,row)=>sum+row.cash,0),transfer:rows.reduce((sum,row)=>sum+row.transfer,0),total:rows.reduce((sum,row)=>sum+row.total,0)};
+  const periodLines=lines.filter(line=>line.operationalDate>=date&&line.operationalDate<=toDate),summary={vanLegs:periodLines.length,unpricedLegs:periodLines.filter(line=>line.amount<=0).length};
+  const monthly=vanMonthlyReferenceReport(bookings,date,toDate,paymentMethods,transportationMethods);
+  return{date,type:"van_daily_reference",title:"รายงานรถตู้",purpose:"ยอดค่ารถตู้ตามวันให้บริการของแต่ละขา แยกเงินสดและเงินโอน",range:{from:date,to:toDate},rows,totals,summary,monthlyRows:monthly.rows,monthlyTotals:monthly.totals,sourceNotes:["นับขาไปและขากลับตามวันเดินทางรายบุคคลของแต่ละขา","ระบุรถตู้จากรหัสวิธีการเดินทางใน Master Data หรือชื่อรถตู้ของรายการเดิม","เงินสด/โอนใช้ช่องทางชำระของแต่ละขาและ code ใน Payment Method Master"]};
 }
 
-function vanWorkOrderReferenceReport(bookings,date,toDate,paymentMethods){
-  const groups=new Map();for(const booking of bookings.filter(activeBooking))for(const leg of transportationRevenueLines(booking,paymentMethods)){if(!isVanMethod(leg.method)||!leg.operationalDate||leg.operationalDate<date||leg.operationalDate>toDate)continue;const key=[booking.bookingCode,leg.direction,leg.operationalDate,leg.destination].join("|");const row=groups.get(key)||{date:leg.operationalDate,direction:leg.direction,leader:leaderName(booking),phone:booking.phone||"",pax:0,location:leg.destination||"ไม่ระบุ",note:booking.bookingNote||"",bookingCode:booking.bookingCode};row.pax++;groups.set(key,row)}
+function vanWorkOrderReferenceReport(bookings,date,toDate,paymentMethods,transportationMethods){
+  const groups=new Map();for(const booking of bookings.filter(activeBooking))for(const leg of transportationRevenueLines(booking,paymentMethods,transportationMethods)){if(!isVanMethod(leg.method,transportationMethods)||!leg.operationalDate||leg.operationalDate<date||leg.operationalDate>toDate)continue;const key=[booking.bookingCode,leg.direction,leg.operationalDate,leg.destination].join("|");const row=groups.get(key)||{date:leg.operationalDate,direction:leg.direction,leader:leaderName(booking),phone:booking.phone||"",pax:0,location:leg.destination||"ไม่ระบุ",note:booking.bookingNote||"",bookingCode:booking.bookingCode};row.pax++;groups.set(key,row)}
   const rows=[...groups.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.bookingCode.localeCompare(b.bookingCode)||a.direction.localeCompare(b.direction)).map((row,index)=>({no:index+1,...row}));
   return{date,type:"van_work_order_reference",title:"ใบงานรับ-ส่งรถตู้",purpose:"รายการปฏิบัติงานรถตู้แยกขาไปและขากลับ",range:{from:date,to:toDate},rows,summary:{jobs:rows.length,pax:rows.reduce((sum,row)=>sum+row.pax,0)},sourceNotes:["วันปฏิบัติงานอ้างอิงวันเดินทางรายบุคคลของแต่ละขา","จำนวนคือผู้โดยสารที่เลือกวิธีการเดินทางรถตู้ในขานั้น"]};
 }
@@ -226,10 +234,11 @@ function tourMonthlyReferenceReport(bookings,date,toDate,paymentMethods){
   const fields=["cash","transfer","deposit","credit","rungruedeeTransfer"],totals=Object.fromEntries(fields.map(field=>[field,rows.reduce((sum,row)=>sum+money(row[field]),0)]));
   return{date,type:"tour_monthly_reference",title:"รายงานสรุปรายการทัวร์",purpose:"สรุปรายเดือนตามวันเดินทางไป",range:{from:date,to:toDate},rows,totals,sourceNotes:["มัดจำและขายเชื่อเป็นข้อมูลประกอบและไม่บวกซ้ำกับยอดสด/โอน","ตัดคอลัมน์เบิกทัวร์และคงเหลือตามข้อกำหนด"]};
 }
-function vanMonthlyReferenceReport(bookings,date,toDate,paymentMethods){
-  const rows=reportMonths(date,toDate).map(month=>{const lines=bookings.filter(booking=>activeBooking(booking)&&String(booking.travelDate||"").slice(0,7)===month).flatMap(booking=>transportationRevenueLines(booking,paymentMethods)).filter(line=>isVanMethod(line.method)),cash=lines.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="cash").reduce((sum,line)=>sum+line.amount,0),transfer=lines.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="transfer").reduce((sum,line)=>sum+line.amount,0);return{month,cash,transfer,total:cash+transfer}});
+function vanMonthlyReferenceReport(bookings,date,toDate,paymentMethods,transportationMethods=[]){
+  const vanLines=vanRevenueLines(bookings,paymentMethods,transportationMethods).filter(line=>line.operationalDate>=date&&line.operationalDate<=toDate);
+  const rows=reportMonths(date,toDate).map(month=>{const lines=vanLines.filter(line=>line.operationalDate.slice(0,7)===month),cash=lines.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="cash").reduce((sum,line)=>sum+line.amount,0),transfer=lines.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="transfer").reduce((sum,line)=>sum+line.amount,0);return{month,cash,transfer,total:cash+transfer}});
   const totals={cash:rows.reduce((sum,row)=>sum+row.cash,0),transfer:rows.reduce((sum,row)=>sum+row.transfer,0),total:rows.reduce((sum,row)=>sum+row.total,0)};
-  return{date,type:"van_monthly_reference",title:"รายงานสรุปรายการรถตู้",purpose:"สรุปค่ารถตู้รายเดือนตามวันเดินทางไป",range:{from:date,to:toDate},rows,totals,sourceNotes:["รวมเฉพาะวิธีการเดินทางรถตู้","เงินสด/โอนพิจารณาจาก code ใน Payment Method Master"]};
+  return{date,type:"van_monthly_reference",title:"รายงานสรุปรายการรถตู้",purpose:"สรุปค่ารถตู้รายเดือนตามวันให้บริการของแต่ละขา",range:{from:date,to:toDate},rows,totals,sourceNotes:["นับขาไปและขากลับตามวันเดินทางรายบุคคลของแต่ละขา","เงินสด/โอนพิจารณาจาก code ใน Payment Method Master"]};
 }
 const incomeCategory=name=>{const value=String(name||"").toLowerCase();if(value.includes("น้ำแข็ง"))return"น้ำแข็ง";if(value.includes("น้ำเกาะ"))return"ค่าน้ำเกาะ";if(value.includes("น้ำ"))return"ค่าน้ำ";if(value.includes("หน้ากาก"))return"หน้ากาก";if(value.includes("ชูชีพ"))return"ชูชีพ";if(value.includes("ฟิน")||value.includes("ตีนกบ"))return"ฟิน";if(value.includes("เต็นท์"))return"เต็นท์";if(value.includes("เหมาเรือ"))return"เหมาเรือ";if(value.includes("ระวาง"))return"ค่าระวาง";return"อื่นๆ"};
 function managementReport(bookings,financialRows,expenseRows,date,toDate=date,masterAddOns=[],masterAccommodations=[]){
@@ -386,12 +395,12 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows
   if(type==="tent_fee_reference")return tentFeeReferenceReport(active,date,toDate);
   if(type==="package_cost_reference")return packageCostReport(active,date,packageCostRates);
   if(type==="boat_tent_reference")return boatTentReport(active,date,paymentMethods);
-  if(type==="van_daily_reference")return vanDailyReferenceReport(active,date,toDate,paymentMethods);
-  if(type==="van_work_order_reference")return vanWorkOrderReferenceReport(active,date,toDate,paymentMethods);
+  if(type==="van_daily_reference")return vanDailyReferenceReport(active,date,toDate,paymentMethods,transportationMethods);
+  if(type==="van_work_order_reference")return vanWorkOrderReferenceReport(active,date,toDate,paymentMethods,transportationMethods);
   if(type==="agent_reference")return agentReferenceReport(active,date,toDate,masterAgents);
   if(type==="customer_travel_daily_reference")return customerTravelDailyReferenceReport(active,date,toDate,transportationMethods);
   if(type==="tour_monthly_reference")return tourMonthlyReferenceReport(active,date,toDate,paymentMethods);
-  if(type==="van_monthly_reference")return vanMonthlyReferenceReport(active,date,toDate,paymentMethods);
+  if(type==="van_monthly_reference")return vanMonthlyReferenceReport(active,date,toDate,paymentMethods,transportationMethods);
 
   let title="",purpose="",rows=[],insuranceSummary=null;
   if(type==="counter"){

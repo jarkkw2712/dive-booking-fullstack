@@ -322,11 +322,34 @@ test("reference reports follow travel date, stable payment codes and fixed tent 
   const tent=buildPrintCenterReport({bookings:referenceBookings,date:"2026-09-21",toDate:"2026-09-21",type:"tent_fee_reference"});
   assert.equal(tent.rows[0].nights,2);assert.equal(tent.rows[0].people,2);assert.equal(tent.rows[0].rate,80);assert.equal(tent.rows[0].total,320);
   const van=buildPrintCenterReport({bookings:referenceBookings,paymentMethods,date:"2026-09-21",toDate:"2026-09-21",type:"van_daily_reference"});
-  assert.deepEqual(van.rows[0],{date:"2026-09-21",cash:600,transfer:500,total:1100});assert.deepEqual(van.monthlyRows,[{month:"2026-09",cash:600,transfer:500,total:1100}]);assert.deepEqual(van.monthlyTotals,{cash:600,transfer:500,total:1100});
+  assert.deepEqual(van.rows[0],{date:"2026-09-21",cash:0,transfer:500,total:500});assert.deepEqual(van.monthlyRows,[{month:"2026-09",cash:0,transfer:500,total:500}]);assert.deepEqual(van.monthlyTotals,{cash:0,transfer:500,total:500});
   const work=buildPrintCenterReport({bookings:referenceBookings,paymentMethods,date:"2026-09-21",toDate:"2026-09-23",type:"van_work_order_reference"});
   assert.equal(work.rows.length,2);assert.equal(work.rows[0].location,"บขส.");assert.equal(work.rows[1].location,"สนามบิน");
   const monthly=buildPrintCenterReport({bookings:referenceBookings,paymentMethods,date:"2026-09-01",toDate:"2026-09-30",type:"tour_monthly_reference"});
   assert.deepEqual(monthly.rows[0],{month:"2026-09",cash:1200,transfer:1900,deposit:100,credit:200,rungruedeeTransfer:0});assert.deepEqual(monthly.totals,{cash:1200,transfer:1900,deposit:100,credit:200,rungruedeeTransfer:0});assert.equal("remaining" in monthly.rows[0],false);assert.equal("withdrawal" in monthly.rows[0],false);
+});
+
+test("van report uses each leg's service date and Master Data code even when the method name omits van",()=>{
+  const paymentMethods=[{method_id:"cash",method_name:"Cash",payment_type:"cash"},{method_id:"bank_transfer_laddawan",method_name:"Bank",payment_type:"transfer",default_transport:true}];
+  const transportationMethods=[{method_id:"van_bus_station",method_name:"รับบขส."},{method_id:"van_airport",method_name:"ส่งสนามบิน"},{method_id:"private_car",method_name:"รถส่วนตัว"}];
+  const booking={bookingCode:"VAN1",travelDate:"2026-09-20",returnDate:"2026-09-23",status:"confirmed",passengers:[
+    {transportationMethod:"รับบขส.",transportationAmount:400,transportationPaymentMethod:"Cash",passengerTravelDate:"2026-09-21",returnTransportationMethod:"ส่งสนามบิน",returnTransportationAmount:600,returnTransportationPaymentMethod:"Bank",passengerReturnDate:"2026-09-23"},
+    {transportationMethod:"รถส่วนตัว",transportationAmount:900,passengerTravelDate:"2026-09-21"}
+  ]};
+  const report=buildPrintCenterReport({bookings:[booking],paymentMethods,transportationMethods,date:"2026-09-21",toDate:"2026-09-23",type:"van_daily_reference"});
+  assert.equal(report.title,"รายงานรถตู้");
+  assert.deepEqual(report.summary,{vanLegs:2,unpricedLegs:0});
+  assert.deepEqual(report.rows,[{date:"2026-09-21",cash:400,transfer:0,total:400},{date:"2026-09-22",cash:0,transfer:0,total:0},{date:"2026-09-23",cash:0,transfer:600,total:600}]);
+  assert.deepEqual(report.monthlyRows,[{month:"2026-09",cash:400,transfer:600,total:1000}]);
+  assert.deepEqual(report.monthlyTotals,{cash:400,transfer:600,total:1000});
+  const returnDay=buildPrintCenterReport({bookings:[booking],paymentMethods,transportationMethods,date:"2026-09-23",toDate:"2026-09-23",type:"van_daily_reference"});
+  assert.equal(returnDay.totals.total,600);
+  assert.equal(returnDay.monthlyTotals.total,600);
+  const work=buildPrintCenterReport({bookings:[booking],paymentMethods,transportationMethods,date:"2026-09-21",toDate:"2026-09-23",type:"van_work_order_reference"});
+  assert.equal(work.rows.length,2);
+  const unpriced=buildPrintCenterReport({bookings:[{...booking,passengers:[{transportationMethod:"รับบขส.",transportationAmount:0,passengerTravelDate:"2026-09-23"}]}],paymentMethods,transportationMethods,date:"2026-09-23",toDate:"2026-09-23",type:"van_daily_reference"});
+  assert.deepEqual(unpriced.summary,{vanLegs:1,unpricedLegs:1});
+  assert.equal(unpriced.totals.total,0);
 });
 
 test("agent and daily return travel reports follow the approved workbook logic",()=>{

@@ -12,7 +12,7 @@ All reports exclude cancelled bookings. The selected date is interpreted as the 
 | Management / CEO | Management and CEO | Selected-day KPIs plus a seven-day daily forecast of bookings, passengers, statuses, expected revenue, actual receipts, and outstanding |
 | รายงานทัวร์และค่าใช้จ่าย | Counter / accounting | Daily boat-ticket, package and tent income split by cash/transfer, with deposits, credit and named-account references |
 | รายงานค่าธรรมเนียมเต็นท์ | Operations / accounting | Tent equipment quantity multiplied by trip nights and the fixed 80-baht person-night fee |
-| รายงานรถตู้ (เฉพาะรถตู้) | Transport / accounting | Daily van income split by cash and transfer |
+| รายงานรถตู้ | Transport / accounting | Daily van income by each passenger leg's service date, split by cash and transfer |
 | ใบงานรับ-ส่งรถตู้ | Driver / operations | Outbound and return van jobs using each passenger leg date, destination, leader and phone |
 | แพ็คเกจ | Operations / accounting | Daily package sales with park/Sabina cost allocations calculated as passenger quantity × editable Master Data rate |
 | ตั๋วเรือ - เต็นท์ | Counter / accounting | Daily boat-ticket sales and company-booked tent accommodation split by cash/transfer |
@@ -21,7 +21,7 @@ The four reports above are in the Print/PDF section and are formatted for A4. `�
 
 ## Reference report data sources
 
-- The report date is the Booking outbound travel date, except van work orders, which use the individual outbound or return leg date.
+- The report date is the Booking outbound travel date, except van income reports and van work orders, which use the individual outbound or return leg date.
 - `แพ็คเกจ` and `ตั๋วเรือ - เต็นท์` are daily A4 landscape PDFs and always use the Booking outbound island-travel date.
 - `แพ็คเกจ` excludes Program code `boat_ticket`. Every park/Sabina cost column is passenger quantity multiplied by the matching active rate in `ค่าคงที่แพ็คเกจ` Master Data. Matching is an exact join from the Booking's `program_id` to `master_package_cost_rates.program_id`; labels such as DT or 2/1 are display text only.
 - `ตั๋วเรือ - เต็นท์` includes only Program code `boat_ticket`. Tent quantities and amounts come from company-booked Accommodation records, never equipment/add-ons.
