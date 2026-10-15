@@ -329,6 +329,20 @@ test("reference reports follow travel date, stable payment codes and fixed tent 
   assert.deepEqual(monthly.rows[0],{month:"2026-09",cash:1200,transfer:1900,deposit:100,credit:200,rungruedeeTransfer:0});assert.deepEqual(monthly.totals,{cash:1200,transfer:1900,deposit:100,credit:200,rungruedeeTransfer:0});assert.equal("remaining" in monthly.rows[0],false);assert.equal("withdrawal" in monthly.rows[0],false);
 });
 
+test("boat-ticket totals follow program code, not a package name containing boat ticket",()=>{
+  const makeBooking=(code,date,paymentMethod,programId,name,price)=>({bookingCode:code,travelDate:date,status:"confirmed",paymentMethod,passengers:[{program:{programId,name,qty:1,price}}]});
+  const bookings=[makeBooking("B1","2026-10-15","เงินสด","boat_ticket","ตั๋วเรือ",4100),makeBooking("B2","2026-10-15","โอน","boat_ticket","ตั๋วเรือ",5900),makeBooking("P1","2026-10-15","เงินสด","package_day","แพ็คเกจรวมตั๋วเรือ",1700),makeBooking("P2","2026-10-15","โอน","package_day","แพ็คเกจรวมตั๋วเรือ",2000),makeBooking("OUT","2026-10-01","เงินสด","boat_ticket","ตั๋วเรือ",900)];
+  const paymentMethods=[{method_id:"cash",method_name:"เงินสด",payment_type:"cash"},{method_id:"bank_transfer",method_name:"โอน",payment_type:"transfer"}];
+  const report=buildPrintCenterReport({bookings,paymentMethods,date:"2026-10-15",toDate:"2026-10-15",type:"tour_expense_reference"});
+  assert.deepEqual([report.rows[0].boatCash,report.rows[0].boatTransfer,report.rows[0].packageCash,report.rows[0].packageTransfer],[4100,5900,1700,2000]);
+  assert.equal(report.rows[0].totalRevenue,13700);
+  assert.deepEqual([report.monthlyTotals.cash,report.monthlyTotals.transfer],[5800,7900]);
+  const boat=buildPrintCenterReport({bookings,paymentMethods,date:"2026-10-15",type:"boat_tent_reference"});
+  const packages=buildPrintCenterReport({bookings,date:"2026-10-15",type:"package_cost_reference"});
+  assert.equal(boat.rows.length,2);
+  assert.equal(packages.rows.length,2);
+});
+
 test("van report uses each leg's service date and Master Data code even when the method name omits van",()=>{
   const paymentMethods=[{method_id:"cash",method_name:"Cash",payment_type:"cash"},{method_id:"bank_transfer_laddawan",method_name:"Bank",payment_type:"transfer",default_transport:true}];
   const transportationMethods=[{method_id:"van_bus_station",method_name:"รับบขส."},{method_id:"van_airport",method_name:"ส่งสนามบิน"},{method_id:"private_car",method_name:"รถส่วนตัว"}];
