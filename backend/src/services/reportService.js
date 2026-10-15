@@ -5,6 +5,7 @@ const personName=person=>[person.title,person.firstName,person.lastName].filter(
 const leaderName=booking=>[booking.leaderTitle,booking.leaderFirstName,booking.leaderLastName].filter(Boolean).join(" ");
 const isoDate=(date,offset=0)=>{const value=new Date(`${date}T00:00:00Z`);value.setUTCDate(value.getUTCDate()+offset);return value.toISOString().slice(0,10)};
 const money=value=>Number(value||0);
+const sumMoney=(values,amount)=>values.reduce((sum,value)=>sum+Math.round(money(amount(value))*100),0)/100;
 const accommodationQuantity=person=>person?.accommodationId?Math.max(Number(person.accommodationQty??1),0):0;
 const accommodationUnitPrice=person=>Math.max(money(person?.accommodationPrice),0);
 const accommodationRevenue=person=>person?.accommodationBookedBy==="company"?accommodationQuantity(person)*accommodationUnitPrice(person):0;
@@ -112,17 +113,45 @@ function serviceRevenueLines(booking,paymentMethods){
   return rows;
 }
 
+// This report shows deposits separately. Allocate each booking's deposit against
+// its sale lines (programs first) so the same baht is not shown twice. Keep
+// amounts in cents while allocating to avoid fractional-baht drift.
+function tourRevenueLines(booking,paymentMethods){
+  const lines=serviceRevenueLines(booking,paymentMethods).filter(line=>line.source!=="transport").map(line=>({...line}));
+  let remaining=Math.max(0,Math.round(money(booking.depositAmount)*100));
+  for(const group of [lines.filter(line=>line.source==="boat"||line.source==="package"),lines.filter(line=>line.source!=="boat"&&line.source!=="package")]){
+    const cents=group.map(line=>Math.max(0,Math.round(line.amount*100))),gross=cents.reduce((sum,value)=>sum+value,0),deduction=Math.min(remaining,gross);
+    if(!deduction)continue;
+    const deductions=cents.map(value=>Math.floor(deduction*value/gross));
+    let remainder=deduction-deductions.reduce((sum,value)=>sum+value,0);
+    const order=cents.map((value,index)=>index).sort((a,b)=>(deduction*cents[b]/gross-deductions[b])-(deduction*cents[a]/gross-deductions[a])||a-b);
+    for(const index of order){if(!remainder)break;if(deductions[index]<cents[index]){deductions[index]++;remainder--}}
+    group.forEach((line,index)=>{line.amount=(Math.round(line.amount*100)-deductions[index])/100});
+    remaining-=deduction;
+  }
+  return lines;
+}
+
 function tourExpenseReferenceReport(bookings,date,toDate,paymentMethods){
   const days=reportDays(date,toDate),rows=days.map(day=>{
-    const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===day),services=daily.flatMap(booking=>serviceRevenueLines(booking,paymentMethods));
-    const sum=(source,kind)=>services.filter(line=>(!source||line.source===source)&&(!kind||paymentKind(line.paymentMethod,paymentMethods)===kind)).reduce((total,line)=>total+line.amount,0);
+    const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===day),services=daily.flatMap(booking=>tourRevenueLines(booking,paymentMethods));
+    const sum=(source,kind)=>sumMoney(services.filter(line=>(!source||line.source===source)&&(!kind||paymentKind(line.paymentMethod,paymentMethods)===kind)),line=>line.amount);
     const deposits=daily.map(booking=>({amount:money(booking.depositAmount),method:booking.depositPaymentMethod||booking.paymentMethod||""}));
-    const accountLines=[...services,...deposits.map(row=>({amount:row.amount,paymentMethod:row.method,source:"deposit"}))],accountTotals=Object.fromEntries(namedPaymentAccounts.map(account=>[account,accountLines.filter(line=>namedAccount(line.paymentMethod)===account).reduce((total,line)=>total+line.amount,0)]));
-    return{date:day,boatCash:sum("boat","cash"),boatTransfer:sum("boat","transfer"),packageCash:sum("package","cash"),packageTransfer:sum("package","transfer"),tentCash:sum("tent","cash"),tentTransfer:sum("tent","transfer"),accommodationCash:sum("accommodation","cash"),accommodationTransfer:sum("accommodation","transfer"),deposit:deposits.reduce((total,row)=>total+row.amount,0),credit:daily.reduce((total,booking)=>total+money(booking.creditAmount),0),naruemonTransfer:accountLines.filter(line=>namedAccount(line.paymentMethod)==="นฤมล"&&paymentKind(line.paymentMethod,paymentMethods)==="transfer").reduce((total,line)=>total+line.amount,0),rungruedeeTransfer:accountLines.filter(line=>namedAccount(line.paymentMethod)==="รุ่งฤดี"&&paymentKind(line.paymentMethod,paymentMethods)==="transfer").reduce((total,line)=>total+line.amount,0),rujirojDepositCash:deposits.filter(row=>namedAccount(row.method)==="รุจิโรจน์"&&paymentKind(row.method,paymentMethods)==="cash").reduce((total,row)=>total+row.amount,0),rujirojDepositTransfer:deposits.filter(row=>namedAccount(row.method)==="รุจิโรจน์"&&paymentKind(row.method,paymentMethods)==="transfer").reduce((total,row)=>total+row.amount,0),totalRevenue:services.reduce((total,line)=>total+line.amount,0),accounts:accountTotals};
-  }),moneyFields=["boatCash","boatTransfer","packageCash","packageTransfer","tentCash","tentTransfer","accommodationCash","accommodationTransfer","deposit","credit","naruemonTransfer","rungruedeeTransfer","rujirojDepositCash","rujirojDepositTransfer","totalRevenue"],totals=Object.fromEntries(moneyFields.map(field=>[field,rows.reduce((sum,row)=>sum+money(row[field]),0)]));
-  totals.accounts=Object.fromEntries(namedPaymentAccounts.map(account=>[account,rows.reduce((sum,row)=>sum+money(row.accounts?.[account]),0)]));
+    const accountLines=[...services,...deposits.map(row=>({amount:row.amount,paymentMethod:row.method,source:"deposit"}))],accountTotals=Object.fromEntries(namedPaymentAccounts.map(account=>[account,sumMoney(accountLines.filter(line=>namedAccount(line.paymentMethod)===account),line=>line.amount)]));
+    return{
+      date:day,boatCash:sum("boat","cash"),boatTransfer:sum("boat","transfer"),packageCash:sum("package","cash"),packageTransfer:sum("package","transfer"),
+      tentCash:sum("tent","cash"),tentTransfer:sum("tent","transfer"),accommodationCash:sum("accommodation","cash"),accommodationTransfer:sum("accommodation","transfer"),
+      deposit:sumMoney(deposits,row=>row.amount),credit:sumMoney(daily,booking=>booking.creditAmount),
+      naruemonTransfer:sumMoney(services.filter(line=>line.source==="boat"&&namedAccount(line.paymentMethod)==="นฤมล"&&paymentKind(line.paymentMethod,paymentMethods)==="transfer"),line=>line.amount),
+      rungruedeeTransfer:sumMoney(deposits.filter(row=>namedAccount(row.method)==="รุ่งฤดี"&&paymentKind(row.method,paymentMethods)==="transfer"),row=>row.amount),
+      rujirojDepositCash:sumMoney(deposits.filter(row=>namedAccount(row.method)==="รุจิโรจน์"&&paymentKind(row.method,paymentMethods)==="cash"),row=>row.amount),
+      rujirojDepositTransfer:sumMoney(deposits.filter(row=>namedAccount(row.method)==="รุจิโรจน์"&&paymentKind(row.method,paymentMethods)==="transfer"),row=>row.amount),
+      totalRevenue:sumMoney(daily.flatMap(booking=>serviceRevenueLines(booking,paymentMethods)).filter(line=>line.source!=="transport"),line=>line.amount),accounts:accountTotals
+    };
+  }),moneyFields=["boatCash","boatTransfer","packageCash","packageTransfer","tentCash","tentTransfer","accommodationCash","accommodationTransfer","deposit","credit","naruemonTransfer","rungruedeeTransfer","rujirojDepositCash","rujirojDepositTransfer","totalRevenue"],totals=Object.fromEntries(moneyFields.map(field=>[field,sumMoney(rows,row=>row[field])]));
+  totals.accounts=Object.fromEntries(namedPaymentAccounts.map(account=>[account,sumMoney(rows,row=>row.accounts?.[account])]));
   const monthly=tourMonthlyReferenceReport(bookings,date,toDate,paymentMethods);
-  return{date,type:"tour_expense_reference",title:"รายงานทัวร์และค่าใช้จ่าย",purpose:"ยอดตามวันเดินทางไป แยกหมวดรายได้และช่องทางชำระเงิน",range:{from:date,to:toDate},rows,totals,monthlyRows:monthly.rows,monthlyTotals:monthly.totals,accountNames:namedPaymentAccounts,sourceNotes:["วันที่อ้างอิงวันเดินทางไปของ Booking","ตั๋วเรือใช้ Program code boat_ticket; Program อื่นเป็นแพ็คเกจ","เต็นท์ใช้อุปกรณ์ code tent","ที่พักรวมเป็นรายได้เฉพาะรายการที่เลือก เราจองให้"]};
+  return{date,type:"tour_expense_reference",title:"รายงานทัวร์และค่าใช้จ่าย",purpose:"ยอดตามวันเดินทางไป หักมัดจำจากรายการขายและแสดงแยก ไม่รวมค่าเดินทาง",range:{from:date,to:toDate},rows,totals,monthlyRows:monthly.rows,monthlyTotals:monthly.totals,accountNames:namedPaymentAccounts,sourceNotes:["วันที่อ้างอิงวันเดินทางไปของ Booking","ตั๋วเรือใช้ Program code boat_ticket; Program อื่นเป็นแพ็คเกจ","ยอดหมวดรายการขายหักมัดจำก่อน โดยตัดจาก Program ก่อน แล้วจึงตัดจากรายการอื่น","โอนนฤมลคือยอดตั๋วเรือโอนหลังหักมัดจำ; โอนรุ่งฤดีคือมัดจำที่โอนเข้ารุ่งฤดี","รวมรายได้รวมอุปกรณ์และ Island Add-on แต่ไม่รวมค่าเดินทาง","เต็นท์ใช้อุปกรณ์ code tent","ที่พักรวมเป็นรายได้เฉพาะรายการที่เลือก เราจองให้"]};
 }
 
 function tentFeeReferenceReport(bookings,date,toDate){
@@ -230,8 +259,15 @@ function customerTravelDailyReferenceReport(bookings,date,toDate,transportationM
 
 function reportMonths(date,toDate){const months=[];let cursor=date.slice(0,7);const last=toDate.slice(0,7);while(cursor<=last&&months.length<120){months.push(cursor);const [year,month]=cursor.split("-").map(Number),next=new Date(Date.UTC(year,month,1));cursor=next.toISOString().slice(0,7)}return months}
 function tourMonthlyReferenceReport(bookings,date,toDate,paymentMethods){
-  const rows=reportMonths(date,toDate).map(month=>{const selected=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate>=date&&booking.travelDate<=toDate&&String(booking.travelDate).slice(0,7)===month),services=selected.flatMap(booking=>serviceRevenueLines(booking,paymentMethods)),deposits=selected.map(booking=>({amount:money(booking.depositAmount),paymentMethod:booking.depositPaymentMethod||booking.paymentMethod||""})),accountLines=[...services,...deposits],cash=services.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="cash").reduce((sum,line)=>sum+line.amount,0),transfer=services.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="transfer").reduce((sum,line)=>sum+line.amount,0);return{month,cash,transfer,deposit:deposits.reduce((sum,line)=>sum+line.amount,0),credit:selected.reduce((sum,booking)=>sum+money(booking.creditAmount),0),rungruedeeTransfer:accountLines.filter(line=>namedAccount(line.paymentMethod)==="รุ่งฤดี"&&paymentKind(line.paymentMethod,paymentMethods)==="transfer").reduce((sum,line)=>sum+line.amount,0)}});
-  const fields=["cash","transfer","deposit","credit","rungruedeeTransfer"],totals=Object.fromEntries(fields.map(field=>[field,rows.reduce((sum,row)=>sum+money(row[field]),0)]));
+  const rows=reportMonths(date,toDate).map(month=>{
+    const selected=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate>=date&&booking.travelDate<=toDate&&String(booking.travelDate).slice(0,7)===month);
+    const services=selected.flatMap(booking=>tourRevenueLines(booking,paymentMethods));
+    const deposits=selected.map(booking=>({amount:money(booking.depositAmount),paymentMethod:booking.depositPaymentMethod||booking.paymentMethod||""}));
+    const cash=sumMoney(services.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="cash"),line=>line.amount);
+    const transfer=sumMoney(services.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="transfer"),line=>line.amount);
+    return{month,cash,transfer,deposit:sumMoney(deposits,line=>line.amount),credit:sumMoney(selected,booking=>booking.creditAmount),rungruedeeTransfer:sumMoney(deposits.filter(line=>namedAccount(line.paymentMethod)==="รุ่งฤดี"&&paymentKind(line.paymentMethod,paymentMethods)==="transfer"),line=>line.amount)};
+  });
+  const fields=["cash","transfer","deposit","credit","rungruedeeTransfer"],totals=Object.fromEntries(fields.map(field=>[field,sumMoney(rows,row=>row[field])]));
   return{date,type:"tour_monthly_reference",title:"รายงานสรุปรายการทัวร์",purpose:"สรุปรายเดือนตามวันเดินทางไป",range:{from:date,to:toDate},rows,totals,sourceNotes:["มัดจำและขายเชื่อเป็นข้อมูลประกอบและไม่บวกซ้ำกับยอดสด/โอน","ตัดคอลัมน์เบิกทัวร์และคงเหลือตามข้อกำหนด"]};
 }
 function vanMonthlyReferenceReport(bookings,date,toDate,paymentMethods,transportationMethods=[]){
