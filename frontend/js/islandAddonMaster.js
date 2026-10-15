@@ -12,9 +12,9 @@ editMasterDataProItem=function(index){editMasterDataItemForIsland(index);const r
 const masterVisibilityForIsland=masterDataDocumentVisibility;
 masterDataDocumentVisibility=function(){return{...masterVisibilityForIsland(),show_dive_receipt:document.getElementById("mdpShowDiveReceipt").checked}};
 
-function islandMasterConfiguration(item){return item.documentVisibility||(master.islandAddOns||[]).find(row=>row.island_addon_id===item.id)||{show_money_receipt:true,show_island_purchase_order:true,show_dive_receipt:true}}
+function islandMasterConfiguration(item){return(master.islandAddOns||[]).find(row=>row.island_addon_id===item.id)||item.documentVisibility||{show_money_receipt:true,show_island_purchase_order:true,show_dive_receipt:true}}
 const addonConfigurationBeforeIslandMaster=addonConfiguration;
-addonConfiguration=function(item){const islandMaster=(master.islandAddOns||[]).some(row=>row.island_addon_id===item.id);return item.source==="island"||islandMaster?islandDocumentVisibility(item):addonConfigurationBeforeIslandMaster(item)};
+addonConfiguration=function(item){const equipmentMaster=(master.addOns||[]).some(row=>row.addon_id===item.id),islandMaster=(master.islandAddOns||[]).some(row=>row.island_addon_id===item.id);return item.source==="island"||(!equipmentMaster&&islandMaster)?islandDocumentVisibility(item):addonConfigurationBeforeIslandMaster(item)};
 islandDocumentVisibility=function(item){const config=islandMasterConfiguration(item);return{show_register:config.show_register===true,show_money_receipt:config.show_money_receipt!==false,show_equipment_slip:config.show_equipment_slip===true,show_van_receipt:config.show_van_receipt===true,show_boat_ticket:config.show_boat_ticket===true,show_island_purchase_order:config.show_island_purchase_order!==false,show_dive_receipt:config.show_dive_receipt!==false}};
 
 function islandAddonRowsForEditor(){

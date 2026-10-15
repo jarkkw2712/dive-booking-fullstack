@@ -46,8 +46,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.10-25/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20261010-25`));
+  assert.match(html,/Version 2026\.10\.15-01/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20261015-01`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -231,7 +231,7 @@ test("group purchases stay on the leader and passenger travel remains per person
   assert.match(app,/section\.classList\.toggle\("hidden",title!=="Program"\)/);assert.match(app,/const targets=\[passengers\[pi\]\]/);assert.match(app,/copy-leader-package-all.*remove\("hidden"\)/);
   assert.doesNotMatch(app,/title\.includes\("Register"\).*ค่าอุปกรณ์\|ค่ารถตู้\|ค่าเดินทาง/);assert.match(route,/upsert_booking_v23/);assert.match(route,/list_bookings_json_v23/);
   for(const fn of ["copyLeaderTravelDetails","applyLeaderTravelDetailsToAll","addIslandAddonRow","updateIslandAddon","islandAddonEditor"])assert.match(app,new RegExp(`function ${fn}`));for(const field of ["outboundDestination","returnDestination","documentVisibility"])assert.match(app,new RegExp(field));
-  const visibilityFunction=app.slice(app.indexOf("function addonConfiguration"),app.indexOf("function transportationConfiguration"));assert.ok(visibilityFunction.indexOf("item.documentVisibility")<visibilityFunction.indexOf("master.addOns"));
+  const visibilityFunction=app.slice(app.indexOf("function addonConfiguration"),app.indexOf("function transportationConfiguration"));assert.ok(visibilityFunction.indexOf("master.addOns")<visibilityFunction.indexOf("item.documentVisibility"));
 });
 test("passenger travel has outbound and return methods, prices, dates and destinations",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/bookings.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260921_031_passenger_return_transportation.sql"),"utf8");
@@ -259,10 +259,10 @@ test("booking original master persists and Excel separates passenger counts, boa
 test("Island Add-on uses dedicated master data and prints an isolated dive receipt",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),feature=fs.readFileSync(path.join(root,"js","islandAddonMaster.js"),"utf8"),financial=fs.readFileSync(path.join(root,"js","financial.js"),"utf8"),reportService=fs.readFileSync(path.resolve(root,"../backend/src/services/reportService.js"),"utf8"),masterRoute=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),bookingRoute=fs.readFileSync(path.resolve(root,"../backend/src/routes/bookings.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260921_034_island_addon_master_and_dive_receipt.sql"),"utf8");
   assert.match(html,/loadMasterDataPro\('island_addons'\)/);assert.match(html,/printCurrentDocument\('DIVE_RECEIPT'\)/);assert.match(html,/printSelectedReceipt\('DIVE_RECEIPT'\)/);assert.match(html,/ใบเสร็จอุปกรณ์/);
-  assert.match(feature,/master\.islandAddOns/);assert.match(feature,/DIVE_RECEIPT/);assert.match(feature,/diveOnly/);assert.match(feature,/show_dive_receipt/);assert.match(feature,/รายการจาก Master Data/);assert.match(feature,/\?islandDocumentVisibility\(item\):addonConfigurationBeforeIslandMaster/);
+  assert.match(feature,/master\.islandAddOns/);assert.match(feature,/DIVE_RECEIPT/);assert.match(feature,/diveOnly/);assert.match(feature,/show_dive_receipt/);assert.match(feature,/รายการจาก Master Data/);assert.match(feature,/\?islandDocumentVisibility\(item\):addonConfigurationBeforeIslandMaster\(item\)/);
   assert.match(feature,/function islandAddonRowsForEditor/);assert.match(feature,/function toggleIslandAddonSelection/);assert.match(feature,/ติ๊กรายการที่ลูกค้าซื้อ/);assert.doesNotMatch(feature,/>\+ เพิ่ม Island Add-on จาก Master Data/);
   const bookingEditor=feature.slice(feature.indexOf("islandAddonEditor=function"),feature.indexOf("const groupedItemsBeforeDiveReceipt"));assert.doesNotMatch(bookingEditor,/document-visibility-options/);assert.match(bookingEditor,/type="checkbox"/);
-  assert.match(app,/islandAddOns\|\|\[\]\)rows\.push\(\{name:item\.name\|\|"Island Add-on"[^}]*hideDocuments:true/);
+  assert.match(app,/islandAddOns\|\|\[\]\)rows\.push\(\{name:item\.name\|\|"Island Add-on"[^}]*documents:visibilityLabels/);
   assert.match(app,/\(p\.islandAddOns\|\|\[\]\)\.reduce/);assert.match(financial,/sourceType:"island_addon"/);assert.match(reportService,/\.\.\.\(p\.islandAddOns\|\|\[\]\)/);
   assert.match(masterRoute,/master_island_addons/);assert.match(sql,/create table if not exists master_island_addons/);assert.match(sql,/printDiveReceipt/);assert.match(sql,/upsert_booking_v19/);assert.match(sql,/list_bookings_json_v19/);assert.match(bookingRoute,/upsert_booking_v23/);
   assert.match(sql,/numeric\(14,2\)/);assert.match(sql,/update booking_addons set show_dive_receipt=true where addon_source='island'/);assert.doesNotMatch(sql,/delete from/i);
@@ -281,6 +281,26 @@ test("selected items and printed lines use Master Data document visibility as th
   assert.doesNotMatch(app,/if\(profile\.van\&\&\(person\.transportationMethod/);
   assert.doesNotMatch(app,/else if\(title==="ใบอุปกรณ์"\)rows=rows\.filter/);
   assert.match(app,/function renderIslandPurchaseOrder\(booking\).*items=documentGroupedItems\(booking,profile\)/);
+});
+test("saved equipment follows Master Data when its old document flags disagree",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  const definitions=app.slice(app.indexOf("const documentProfiles="),app.indexOf("function selectedBookingItemsSummaryHtml"));
+  const grouped=app.slice(app.indexOf("function documentGroupedItems(booking,profile)"),app.indexOf("function documentInfoLine"));
+  const context={master:{addOns:[{addon_id:"fin",show_money_receipt:false,show_equipment_slip:true}],islandAddOns:[]},passengerTypeLabels:{adult:"ผู้ใหญ่"}};
+  vm.runInNewContext(`${definitions}\n${grouped}\nresult={equipment:documentGroupedItems({passengers:[{preAddOns:[{id:"fin",name:"Fin",selected:true,qty:2,price:400,documentVisibility:{show_money_receipt:true,show_equipment_slip:false}}]}]},documentProfiles.EQUIPMENT_SLIP),receipt:documentGroupedItems({passengers:[{preAddOns:[{id:"fin",name:"Fin",selected:true,qty:2,price:400,documentVisibility:{show_money_receipt:true,show_equipment_slip:false}}]}]},documentProfiles.MONEY_RECEIPT)};`,context);
+  assert.equal(context.result.equipment.length,1);
+  assert.equal(context.result.equipment[0].total,800);
+  assert.equal(context.result.receipt.length,0);
+});
+test("Island Add-on uses its own Master Data even when codes overlap with equipment",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),island=fs.readFileSync(path.join(root,"js","islandAddonMaster.js"),"utf8");
+  const base=app.slice(app.indexOf("function addonConfiguration(item)"),app.indexOf("function transportationConfiguration"));
+  const islandConfiguration=island.slice(island.indexOf("function islandMasterConfiguration(item)"),island.indexOf("function islandAddonRowsForEditor"));
+  const context={master:{addOns:[{addon_id:"shared",show_equipment_slip:true,show_money_receipt:false}],islandAddOns:[{island_addon_id:"shared",show_dive_receipt:true,show_equipment_slip:false,show_money_receipt:true}]},islandDocumentVisibility:()=>({})};
+  vm.runInNewContext(`${base}\n${islandConfiguration}\nresult={equipment:addonConfiguration({id:"shared",documentVisibility:{show_equipment_slip:false}}),island:addonConfiguration({id:"shared",source:"island",documentVisibility:{show_dive_receipt:false}})};`,context);
+  assert.equal(context.result.equipment.show_equipment_slip,true);
+  assert.equal(context.result.island.show_dive_receipt,true);
+  assert.equal(context.result.island.show_equipment_slip,false);
 });
 test("accommodation master controls price, totals, and document visibility",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),visibilitySql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_022_accommodation_document_visibility.sql"),"utf8"),priceSql=fs.readFileSync(path.resolve(root,"../database/migrations/20260922_039_accommodation_quantity_price.sql"),"utf8");
@@ -319,7 +339,7 @@ test("simple accommodation fields follow Program Tour and use editable master da
   assert.match(app,/>ลูกค้าจองเอง</);
   assert.match(app,/>เราจองให้</);
   for(const field of ["accommodationQty","accommodationPrice","accommodationDefaultPrice"])assert.match(app,new RegExp(field));
-  assert.match(app,/รวมจำนวน × ราคาในยอด Booking/);
+  assert.match(app,/function bookingAccommodationCharge/);
   assert.match(financial,/sourceType:"accommodation"/);
   assert.match(app,/ข้อมูลการแพ้อาหาร/);
   assert.match(financial,/discountAmount:0,description:""/);
