@@ -102,13 +102,32 @@ test("accommodation price migration is idempotent and remains available under bo
 });
 
 test("daily register receipt and equipment summaries calculate operational totals",()=>{
-  const daily=[{bookingCode:"R1",travelDate:"2026-07-23",returnDate:"2026-07-25",leaderFirstName:"Leader",agentName:"Agent A",status:"confirmed",depositAmount:1000,depositPaymentMethod:"Cash",creditAmount:500,creditPaymentMethod:"Bank",paymentMethod:"Bank",totalAmount:3000,passengers:[{passengerType:"adult",program:{name:"3 days 2 nights"},preAddOns:[{id:"fin",name:"Fin",selected:true,qty:2,price:100}]},{passengerType:"child",program:{name:"3 days 2 nights"},preAddOns:[{id:"fin",name:"Fin",selected:true,qty:1,price:150}]}]}];
+  const daily=[{bookingCode:"R1",travelDate:"2026-07-23",returnDate:"2026-07-25",leaderFirstName:"Leader",agentName:"Agent A",status:"confirmed",depositAmount:1000,depositPaymentMethod:"Cash",creditAmount:500,creditPaymentMethod:"Bank",paymentMethod:"Bank",totalAmount:3000,passengers:[{passengerType:"adult",program:{name:"3 days 2 nights",qty:1,price:2000},preAddOns:[{id:"fin",name:"Fin",selected:true,qty:2,price:100}]},{passengerType:"child",program:{name:"3 days 2 nights",qty:1,price:650},preAddOns:[{id:"fin",name:"Fin",selected:true,qty:1,price:150}]}]}];
   const register=buildPrintCenterReport({bookings:daily,date:"2026-07-23",type:"register_summary"});
   assert.deepEqual(register.registerTotals,{adult:1,child:1,infant:0,foc:0});assert.equal(register.rows[0].program,"3D2N");
   const receipt=buildPrintCenterReport({bookings:daily,paymentMethods:[{method_name:"Cash",payment_type:"cash"},{method_name:"Bank",payment_type:"transfer"}],date:"2026-07-23",type:"receipt_summary"});
   assert.equal(receipt.receiptTotals.depositCash,1000);assert.equal(receipt.receiptTotals.creditTransfer,500);assert.equal(receipt.receiptTotals.balanceTransfer,1500);assert.equal(receipt.receiptTotals.grandTotal,3000);
   const equipment=buildPrintCenterReport({bookings:daily,date:"2026-07-23",type:"equipment_summary"});
   assert.equal(equipment.rows[0].qty,3);assert.equal(equipment.rows[0].total,350);assert.equal(equipment.equipmentTotals.amount,350);
+});
+
+test("receipt summary totals only items enabled for money receipts in current master data",()=>{
+  const booking={bookingCode:"R2",travelDate:"2026-07-23",status:"confirmed",totalAmount:5000,depositAmount:500,creditAmount:200,depositPaymentMethod:"Bank",creditPaymentMethod:"Bank",paymentMethod:"Bank",paymentBreakdown:{deposit:{Cash:200,Bank:300}},passengers:[{
+    program:{name:"Package",qty:1,price:1000},transportationMethod:"Van",transportationAmount:400,returnTransportationMethod:"Boat",returnTransportationAmount:600,
+    preAddOns:[{id:"visible",selected:true,qty:2,price:100},{id:"hidden",selected:true,qty:1,price:300,documentVisibility:{show_money_receipt:true}},{id:"unselected",selected:false,qty:1,price:900}],
+    islandAddOns:[{id:"dive",qty:1,price:150},{id:"island_hidden",qty:1,price:250}]
+  }],accommodations:[{accommodationId:"house",accommodationBookedBy:"company",accommodationQty:1,accommodationPrice:500},{accommodationId:"tent",accommodationBookedBy:"company",accommodationQty:1,accommodationPrice:700},{accommodationId:"self",accommodationBookedBy:"customer",accommodationQty:1,accommodationPrice:800}]};
+  const masters={paymentMethods:[{method_id:"cash",method_name:"Cash",payment_type:"cash"},{method_id:"bank_transfer_1",method_name:"Bank",payment_type:"transfer"}],masterAddOns:[{addon_id:"visible",show_money_receipt:true},{addon_id:"hidden",show_money_receipt:false}],masterIslandAddOns:[{island_addon_id:"dive",show_money_receipt:true},{island_addon_id:"island_hidden",show_money_receipt:false}],masterAccommodations:[{accommodation_id:"house",show_money_receipt:true},{accommodation_id:"tent",show_money_receipt:false},{accommodation_id:"self",show_money_receipt:true}],transportationMethods:[{method_name:"Van",show_money_receipt:true},{method_name:"Boat",show_money_receipt:false}]};
+  const receipt=buildPrintCenterReport({bookings:[booking],date:"2026-07-23",type:"receipt_summary",...masters});
+  assert.equal(receipt.rows[0].grandTotal,2250);
+  assert.deepEqual([receipt.rows[0].depositCash,receipt.rows[0].depositTransfer,receipt.rows[0].creditTransfer,receipt.rows[0].balanceTransfer],[200,300,200,1550]);
+  assert.equal(receipt.receiptTotals.totalCash+receipt.receiptTotals.totalTransfer,receipt.receiptTotals.grandTotal);
+  const changed=buildPrintCenterReport({bookings:[booking],date:"2026-07-23",type:"receipt_summary",...masters,masterAddOns:masters.masterAddOns.map(row=>({...row,show_money_receipt:false}))});
+  assert.equal(changed.rows[0].grandTotal,2050);
+  const capped=buildPrintCenterReport({bookings:[{...booking,depositAmount:3000,creditAmount:2000,paymentBreakdown:{}}],date:"2026-07-23",type:"receipt_summary",...masters});
+  assert.equal(capped.rows[0].depositTransfer,2250);
+  assert.equal(capped.rows[0].creditTransfer,0);
+  assert.equal(capped.rows[0].balanceTransfer,0);
 });
 
 test("register summary supports an inclusive custom date range",()=>{
