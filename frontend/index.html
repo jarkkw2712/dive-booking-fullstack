@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sabina Tour Booking</title>
-  <link rel="stylesheet" href="css/style.css?v=20261017-02">
+  <link rel="stylesheet" href="css/style.css?v=20261017-03">
 </head>
 <body>
 <div id="globalSavingIndicator" class="saving-indicator hidden" role="status" aria-live="polite">
@@ -44,7 +44,7 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
-    <div id="appVersion" class="app-version">Version 2026.10.17-02</div>
+    <div id="appVersion" class="app-version">Version 2026.10.17-03</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
@@ -194,22 +194,33 @@
 
     <section id="bookingListPage" class="page">
       <h1>Booking List</h1>
-      <div class="workspace">
-        <div class="card">
+      <div class="booking-list-workspace">
+        <div class="card booking-list-search-panel">
           <h2>ค้นหา</h2>
           <div class="form-grid one">
+            <div><label>ค้นหาข้อมูล Booking</label><input id="blSearch" oninput="queueBookingListSearch()" placeholder="Booking, เล่มที่/เลขที่, ชื่อ-สกุล, เบอร์โทร, ข้อมูลติดต่อ หรือ Agent"></div>
             <div><label>ค้นหาวันที่</label><input id="blDate" type="date" onchange="renderBookingList()"></div>
             <div><label>ประเภทวันที่</label><select id="blDateMode" onchange="renderBookingList()"><option value="any">วันไปหรือวันกลับ</option><option value="travel">วันเดินทางไป</option><option value="return">วันเดินทางกลับ</option></select></div>
-            <div><label>Status</label><select id="blStatus" onchange="renderBookingList()"><option value="">ทั้งหมด</option><option>pending</option><option>confirmed</option><option>checked-in</option><option>completed</option><option>cancelled</option></select></div>
-            <div><label>ค้นหาข้อมูล Booking</label><input id="blSearch" oninput="queueBookingListSearch()" placeholder="Booking, เล่มที่/เลขที่, ชื่อ-สกุล, เบอร์โทร, ข้อมูลติดต่อ หรือ Agent"></div>
+            <div><label>สถานะด่วน</label><select id="blStatus" onchange="renderBookingList()"><option value="">ทุกสถานะ</option><option value="pending">pending</option><option value="confirmed">confirmed</option><option value="checked-in">checked-in</option><option value="completed">completed</option><option value="cancelled">cancelled</option></select></div>
           </div>
-          <button class="btn soft" onclick="clearBookingListFilters()">ล้างการค้นหา</button>
-          <button class="btn soft" onclick="loadBookingList(true)">รีเฟรชข้อมูล</button>
+          <div class="booking-list-facet-builder">
+            <h3>ฟิลเตอร์จาก Master Data</h3>
+            <div><label for="blMetric">หัวข้อ (Metric)</label><select id="blMetric" onchange="updateBookingListValueOptions()"><option value="">เลือกหัวข้อ</option><option value="programs">โปรแกรม (Programs)</option><option value="accommodations">ที่พัก</option><option value="addons">อุปกรณ์ / Add-ons</option><option value="islandAddOns">Island Add-on / ดำน้ำ</option><option value="agents">Agents</option><option value="bookingOriginals">ต้นฉบับ</option><option value="customerSources">ช่องทางลูกค้า</option><option value="transportationMethods">วิธีการเดินทาง</option><option value="islands">เกาะ (Islands)</option><option value="paymentMethods">ช่องทางชำระเงิน</option><option value="statuses">สถานะ (Statuses)</option></select></div>
+            <div><label for="blValue">รายการ (Value)</label><select id="blValue" disabled><option value="">เลือกหัวข้อก่อน</option></select></div>
+            <button type="button" class="btn primary full-btn" onclick="addBookingListFilter()">+ เพิ่มฟิลเตอร์</button>
+            <div id="blActiveFilters" class="booking-list-active-filters" aria-live="polite"></div>
+            <p class="muted">ต่างหัวข้อใช้ร่วมกัน · เลือกหลายรายการในหัวข้อเดียวกันได้</p>
+          </div>
+          <div class="booking-list-search-actions"><button class="btn soft" onclick="clearBookingListFilters()">ล้างการค้นหา</button><button class="btn soft" onclick="loadBookingList(true)">รีเฟรชข้อมูล</button></div>
+        </div>
+        <div class="card booking-list-results-panel">
+          <h2>ผลการค้นหา</h2>
+          <div id="blResultSummary" class="booking-list-result-summary" aria-live="polite"></div>
           <div id="bookingList"></div>
         </div>
-        <div class="card">
+        <div class="card booking-list-detail-panel">
           <h2>Booking Detail</h2>
-          <div id="bookingDetail">เลือก Booking ทางซ้าย</div>
+          <div id="bookingDetail">เลือก Booking จากผลการค้นหา</div>
           <div class="btn-row">
             <button class="btn primary" data-permission="editBooking" onclick="editSelectedBooking()">เปิดแก้ไข Booking</button>
             <button class="btn soft" data-permission="editBooking" onclick="backToBookingEditor()">ย้อนกลับไปหน้าแก้ไข</button>
@@ -436,12 +447,13 @@
   </div>
 </div>
 
-<script src="js/api.js?v=20261017-02"></script>
-<script src="js/smartPaste.js?v=20261017-02"></script>
-<script src="js/csvImport.js?v=20261017-02"></script>
-<script src="js/app.js?v=20261017-02"></script>
-<script src="js/bookingOriginal.js?v=20261017-02"></script>
-<script src="js/islandAddonMaster.js?v=20261017-02"></script>
-<script src="js/financial.js?v=20261017-02"></script>
+<script src="js/api.js?v=20261017-03"></script>
+<script src="js/smartPaste.js?v=20261017-03"></script>
+<script src="js/csvImport.js?v=20261017-03"></script>
+<script src="js/bookingListFilters.js?v=20261017-03"></script>
+<script src="js/app.js?v=20261017-03"></script>
+<script src="js/bookingOriginal.js?v=20261017-03"></script>
+<script src="js/islandAddonMaster.js?v=20261017-03"></script>
+<script src="js/financial.js?v=20261017-03"></script>
 </body>
 </html>
