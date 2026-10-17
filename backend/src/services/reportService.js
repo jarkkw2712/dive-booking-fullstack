@@ -416,7 +416,41 @@ function dailyReceiptSummary(bookings,date,paymentMethods,masters){
   for(const key of Object.keys(totals))totals[key]=receiptAmount(receiptCents(totals[key]));
   return{date,type:"receipt_summary",title:"ใบสรุปยอดใบสำคัญรับเงิน",purpose:"รายงานประจำวัน",rows,receiptTotals:totals,summary:{bookings:daily.length,pax:daily.reduce((sum,booking)=>sum+passengersOf(booking).length,0)}};
 }
-function dailyEquipmentSummary(bookings,date){const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===date),groups=new Map();for(const booking of daily)for(const person of passengersOf(booking))for(const addon of person.preAddOns||[]){if(addon.selected===false)continue;const key=addon.id||addon.name||"other",qty=money(addon.qty||1),billableQty=equipmentBillableUnits(addon),amount=billableQty*money(addon.price),row=groups.get(key)||{name:addon.name||key,qty:0,billableQty:0,total:0};row.qty+=qty;row.billableQty+=billableQty;row.total+=amount;groups.set(key,row)}const rows=[...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,"th")).map((row,index)=>({no:index+1,...row,unitPrice:row.billableQty?row.total/row.billableQty:0}));return{date,type:"equipment_summary",title:"รายงานรวมยอดอุปกรณ์",purpose:"รายการเบิกอุปกรณ์ประจำวัน",rows,equipmentTotals:{qty:rows.reduce((sum,row)=>sum+row.qty,0),billableQty:rows.reduce((sum,row)=>sum+row.billableQty,0),amount:rows.reduce((sum,row)=>sum+row.total,0)},summary:{bookings:daily.length,pax:rows.reduce((sum,row)=>sum+row.qty,0)}}}
+function dailyEquipmentSummary(bookings,date,masterAddOns=[],paymentMethods=[]){
+  const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===date)
+    .filter(booking=>passengersOf(booking).some(person=>(person.preAddOns||[]).some(addon=>addon.selected!==false)))
+    .sort((a,b)=>String(a.bookingCode||"").localeCompare(String(b.bookingCode||"")));
+  const orderedMaster=[...masterAddOns].sort((a,b)=>Number(a.sort_order??9999)-Number(b.sort_order??9999)||String(a.addon_name||"").localeCompare(String(b.addon_name||""),"th"));
+  const equipmentColumns=orderedMaster.map(item=>({code:item.addon_id,name:item.addon_name||item.addon_id}));
+  const seen=new Set(equipmentColumns.map(item=>item.code)),historical=new Map();
+  for(const booking of daily)for(const person of passengersOf(booking))for(const addon of person.preAddOns||[]){
+    if(addon.selected===false)continue;
+    const code=addon.id||addon.name||"other";
+    if(!seen.has(code))historical.set(code,{code,name:addon.name||code});
+  }
+  equipmentColumns.push(...[...historical.values()].sort((a,b)=>a.name.localeCompare(b.name,"th")));
+  const activeMethods=paymentMethods.filter(method=>method.active_flag!==false),equipmentDefault=defaultPayment(activeMethods,"equipment");
+  const rows=daily.map((booking,index)=>{
+    const people=passengersOf(booking),equipment=Object.fromEntries(equipmentColumns.map(item=>[item.code,0]));
+    let cashCents=0,transferCents=0;
+    for(const person of people)for(const addon of person.preAddOns||[]){
+      if(addon.selected===false)continue;
+      const code=addon.id||addon.name||"other";
+      equipment[code]=(equipment[code]||0)+money(addon.qty||1);
+      const cents=Math.round(equipmentBillableUnits(addon)*money(addon.price)*100);
+      const method=addon.paymentMethod||equipmentDefault||booking.paymentMethod||"";
+      if(paymentKind(method,paymentMethods)==="cash")cashCents+=cents;else transferCents+=cents;
+    }
+    return{no:index+1,bookingCode:booking.bookingCode||"",leader:leaderName(booking),pax:people.length,
+      program:uniqueValues(people,person=>programShort(person.program?.name)),equipment,
+      cash:cashCents/100,transfer:transferCents/100,total:(cashCents+transferCents)/100};
+  });
+  const equipmentTotals={equipment:Object.fromEntries(equipmentColumns.map(item=>[item.code,rows.reduce((sum,row)=>sum+money(row.equipment[item.code]),0)])),
+    cash:sumMoney(rows,row=>row.cash),transfer:sumMoney(rows,row=>row.transfer),total:sumMoney(rows,row=>row.total),
+    pax:rows.reduce((sum,row)=>sum+row.pax,0)};
+  return{date,type:"equipment_summary",title:"ใบรายงานอุปกรณ์",purpose:"จำนวนอุปกรณ์ที่เบิกและรายได้อุปกรณ์ตามวันเดินทางไป",
+    equipmentColumns,rows,equipmentTotals,summary:{bookings:rows.length,pax:equipmentTotals.pax}};
+}
 
 export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows=[],paymentMethods=[],masterAddOns=[],masterIslandAddOns=[],masterAccommodations=[],masterAgents=[],transportationMethods=[],packageCostRates=[],date,toDate,type}){
   const active=bookings.filter(activeBooking);
@@ -426,7 +460,7 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows
   if(type==="register_summary")return dailyRegisterSummary(active,date);
   if(type==="register_summary_range")return rangeRegisterSummary(active,date,toDate);
   if(type==="receipt_summary")return dailyReceiptSummary(active,date,paymentMethods,{masterAddOns,masterIslandAddOns,masterAccommodations,transportationMethods});
-  if(type==="equipment_summary")return dailyEquipmentSummary(active,date);
+  if(type==="equipment_summary")return dailyEquipmentSummary(active,date,masterAddOns,paymentMethods);
   if(type==="management")return{date,type,...managementReport(active,financialRows,expenseRows,date,toDate,masterAddOns,masterAccommodations)};
   if(type==="tour_expense_reference")return tourExpenseReferenceReport(active,date,toDate,paymentMethods);
   if(type==="tent_fee_reference")return tentFeeReferenceReport(active,date,toDate);

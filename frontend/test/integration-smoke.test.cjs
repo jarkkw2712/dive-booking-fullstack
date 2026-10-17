@@ -46,8 +46,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.17-01/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20261017-01`));
+  assert.match(html,/Version 2026\.10\.17-02/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20261017-02`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -177,6 +177,17 @@ test("print center exposes role-specific reports and seven-day management output
   assert.match(css,/#printCenterPage>h1/);
   assert.match(app,/ยอดอุปกรณ์ที่ต้องเบิก/);
   assert.match(app,/ลูกค้าจองเองแสดงจำนวนเพื่อการปฏิบัติงาน แต่ไม่รวมเป็นรายได้/);
+});
+test("equipment sheet prints booking rows and one column per master item on A4",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/reports.js"),"utf8");
+  assert.match(html,/value="equipment_summary"[^>]*>ใบรายงานอุปกรณ์ \(รายวัน\)/);
+  assert.match(app,/function equipmentReportHtml\(report\)/);
+  for(const text of ["ชื่อลูกค้า (หัวหน้าทริป)","จำนวนคน","เงินสด","เงินโอน","รวมเงิน"])assert.match(app,new RegExp(text.replace(/[()]/g,"\\$&")));
+  assert.match(app,/equipment\.map\(item=>`<th>\$\{escapeHtml\(item\.name\)\}/);
+  assert.match(app,/index\+=8/);
+  assert.match(css,/\.equipment-report-page\{page:report/);
+  assert.match(css,/\.equipment-report-table thead\{display:table-header-group/);
+  assert.match(route,/"equipment_summary"\]\.includes\(type\)\?await supabaseAdmin\.from\("master_addons"\)/);
 });
 test("booking list owns flexible document search while print center remains date-based",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");

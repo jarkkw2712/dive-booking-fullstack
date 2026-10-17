@@ -108,16 +108,36 @@ test("daily register receipt and equipment summaries calculate operational total
   const receipt=buildPrintCenterReport({bookings:daily,paymentMethods:[{method_name:"Cash",payment_type:"cash"},{method_name:"Bank",payment_type:"transfer"}],date:"2026-07-23",type:"receipt_summary"});
   assert.equal(receipt.receiptTotals.depositCash,1000);assert.equal(receipt.receiptTotals.creditTransfer,500);assert.equal(receipt.receiptTotals.balanceTransfer,1500);assert.equal(receipt.receiptTotals.grandTotal,3000);
   const equipment=buildPrintCenterReport({bookings:daily,date:"2026-07-23",type:"equipment_summary"});
-  assert.equal(equipment.rows[0].qty,3);assert.equal(equipment.rows[0].total,350);assert.equal(equipment.equipmentTotals.amount,350);
+  assert.equal(equipment.rows[0].pax,2);assert.equal(equipment.rows[0].equipment.fin,3);
+  assert.equal(equipment.rows[0].total,350);assert.equal(equipment.equipmentTotals.total,350);
 });
 
 test("equipment reports keep physical count separate from billable nights",()=>{
   const bookings=[{bookingCode:"N1",travelDate:"2026-10-17",status:"confirmed",passengers:[{program:{programId:"boat_ticket",qty:1,price:1000},preAddOns:[{id:"fin",name:"Fin",selected:true,qty:2,nights:3,price:100,paymentMethod:"Cash"}]}]}];
-  const report=buildPrintCenterReport({bookings,date:"2026-10-17",type:"equipment_summary"});
-  assert.equal(report.rows[0].qty,2);
-  assert.equal(report.rows[0].billableQty,6);
+  const report=buildPrintCenterReport({bookings,date:"2026-10-17",type:"equipment_summary",masterAddOns:[{addon_id:"fin",addon_name:"ฟิน"}],paymentMethods:[{method_id:"cash",method_name:"Cash",payment_type:"cash"}]});
+  assert.equal(report.rows[0].equipment.fin,2);
+  assert.equal(report.rows[0].cash,600);
   assert.equal(report.rows[0].total,600);
-  assert.equal(report.equipmentTotals.amount,600);
+  assert.equal(report.equipmentTotals.total,600);
+});
+
+test("daily equipment sheet has a column for every master item and combines all cash or transfer accounts",()=>{
+  const date="2026-10-17",booking=(code,leader,people)=>({bookingCode:code,travelDate:date,status:"confirmed",leaderFirstName:leader,passengers:people});
+  const bookings=[
+    booking("B2","มาลี",[{program:{programId:"boat_ticket",name:"ตั๋วเรือ"},preAddOns:[{id:"fin",name:"ฟิน",selected:true,qty:1,nights:1,price:75,paymentMethod:"โอนรุ่งฤดี"},{id:"camera",name:"กล้อง",selected:true,qty:1,price:200},{id:"legacy",name:"อุปกรณ์เก่า",selected:true,qty:1,price:30,paymentMethod:"เงินสด"}]}]),
+    booking("B1","สมชาย",[{program:{name:"3 วัน 2 คืน"},preAddOns:[{id:"fin",name:"ฟิน",selected:true,qty:2,nights:3,price:100,paymentMethod:"เงินสด"},{id:"mask",name:"หน้ากาก",selected:true,qty:1,price:50,paymentMethod:"โอนนฤมล"}]},{program:{name:"3 วัน 2 คืน"},preAddOns:[]}]),
+    {...booking("C1","ยกเลิก",[{preAddOns:[{id:"fin",selected:true,qty:10,price:1000}]}]),status:"cancelled"}
+  ];
+  const masterAddOns=[{addon_id:"fin",addon_name:"ฟิน",sort_order:2},{addon_id:"mask",addon_name:"หน้ากาก",sort_order:1},{addon_id:"camera",addon_name:"กล้อง",sort_order:3},{addon_id:"unused",addon_name:"ชูชีพ",sort_order:4}];
+  const paymentMethods=[{method_id:"cash",method_name:"เงินสด",payment_type:"cash",active_flag:true},{method_id:"bank_transfer_naruemon",method_name:"โอนนฤมล",payment_type:"transfer",active_flag:true},{method_id:"bank_transfer_rungruedee",method_name:"โอนรุ่งฤดี",payment_type:"transfer",active_flag:true},{method_id:"bank_transfer_laddawan",method_name:"โอนลัดดาวรรณ์",payment_type:"transfer",default_equipment:true,active_flag:true}];
+  const report=buildPrintCenterReport({bookings,date,type:"equipment_summary",masterAddOns,paymentMethods});
+  assert.deepEqual(report.equipmentColumns.map(item=>item.code),["mask","fin","camera","unused","legacy"]);
+  assert.equal(report.rows.length,2);assert.equal(report.rows[0].leader,"สมชาย");assert.equal(report.rows[0].pax,2);assert.equal(report.rows[0].program,"3D2N");
+  assert.equal(report.rows[0].equipment.fin,2);assert.equal(report.rows[0].equipment.mask,1);assert.equal(report.rows[0].equipment.unused,0);
+  assert.equal(report.rows[0].cash,600);assert.equal(report.rows[0].transfer,50);assert.equal(report.rows[0].total,650);
+  assert.equal(report.rows[1].program,"ตั๋วเรือ");assert.equal(report.rows[1].cash,30);assert.equal(report.rows[1].transfer,275);
+  assert.equal(report.equipmentTotals.equipment.fin,3);assert.equal(report.equipmentTotals.pax,3);
+  assert.equal(report.equipmentTotals.cash,630);assert.equal(report.equipmentTotals.transfer,325);assert.equal(report.equipmentTotals.total,955);
 });
 
 test("equipment nights migration is idempotent and the API prevents silent multi-night loss",()=>{

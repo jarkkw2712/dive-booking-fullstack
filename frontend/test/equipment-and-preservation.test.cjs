@@ -49,3 +49,15 @@ test("CSV parser records only fields explicitly supplied by staff",()=>{
   const row=parsePassengerCsv("ชื่อ,นามสกุล,วิธีเดินทาง,โปรแกรม\nมาลี,ดีใจ,,").rows[0];
   assert.deepEqual(row.providedFields,["firstName","lastName"]);
 });
+
+test("equipment report paginates many master columns and repeats the correct totals",()=>{
+  const columns=Array.from({length:9},(_,index)=>({code:`a${index}`,name:`อุปกรณ์ ${index+1}`}));
+  const report={date:"2026-10-17",title:"ใบรายงานอุปกรณ์",equipmentColumns:columns,rows:[{no:1,leader:"สมชาย",pax:3,program:"3D2N",equipment:{a0:2,a8:1},cash:200,transfer:50,total:250}],equipmentTotals:{pax:3,equipment:{a0:2,a8:1},cash:200,transfer:50,total:250}};
+  const context={report,escapeHtml:value=>String(value),getCompanySettings:()=>({company_name:"Sabina",address:"Phang Nga",phone:"081",tax_id:"-"}),cachedCompanyLogo:()=>"",money:value=>Number(value||0).toFixed(2)};
+  vm.runInNewContext(`${section("function equipmentReportHtml(report)","function excelDate(")};html=equipmentReportHtml(report);`,context);
+  assert.equal((context.html.match(/equipment-report-page/g)||[]).length,2);
+  assert.match(context.html,/ชื่อลูกค้า \(หัวหน้าทริป\)/);
+  assert.match(context.html,/อุปกรณ์ 9/);
+  assert.match(context.html,/สมชาย/);
+  assert.equal((context.html.match(/250\.00/g)||[]).length,4);
+});

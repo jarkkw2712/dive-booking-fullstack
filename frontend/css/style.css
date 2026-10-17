@@ -381,3 +381,18 @@ textarea{min-height:80px}
 .equipment-quantity-fields input{width:88px!important;max-width:100%;margin:0}
 .equipment-quantity-fields .equipment-billable-qty{white-space:nowrap;color:#0f5265;font-size:12px}
 @media(max-width:700px){.equipment-quantity-fields{justify-content:flex-start;width:100%}.equipment-quantity-fields label{flex:1;min-width:85px}}
+.equipment-report-page{page:report;width:297mm;padding:10mm;box-sizing:border-box}
+.equipment-report-note{margin:4px 0 10px;color:#4c6470;font-size:11px}
+.equipment-report-company{display:flex;align-items:flex-start;gap:8px;text-align:right;font-size:10px;max-width:48%}
+.equipment-report-company img{width:45px;height:45px;object-fit:contain;flex:none}
+.equipment-report-company div{display:flex;flex-direction:column;line-height:1.35}
+.equipment-report-company b{font-size:12px}
+.equipment-report-table{width:100%;table-layout:fixed;font-size:10px}
+.equipment-report-table th,.equipment-report-table td{padding:5px 3px;vertical-align:middle;overflow-wrap:anywhere}
+.equipment-report-table .num{text-align:right;white-space:nowrap}
+.equipment-report-table thead th{text-align:center;font-size:9px;line-height:1.25}
+.equipment-report-table .report-total-row th{background:#e5f0f4;font-weight:800}
+.equipment-report-table .equipment-report-empty{text-align:center;padding:18px}
+.equipment-col-no{width:4%}.equipment-col-leader{width:20%}.equipment-col-pax{width:6%}.equipment-col-program{width:11%}.equipment-col-money{width:8%}
+@media(max-width:1000px){.equipment-report-page{width:100%;overflow-x:auto}.equipment-report-table{min-width:950px}}
+@media print{.equipment-report-page{width:auto;padding:0;overflow:visible;break-after:page;page-break-after:always}.equipment-report-page:last-child{break-after:auto;page-break-after:auto}.equipment-report-table{min-width:0;font-size:9px}.equipment-report-table thead{display:table-header-group}.equipment-report-table tr{break-inside:avoid;page-break-inside:avoid}.equipment-report-note{font-size:9px}}
