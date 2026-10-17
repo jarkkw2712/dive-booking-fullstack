@@ -376,3 +376,8 @@ textarea{min-height:80px}
 .booking-accommodation-row select,.booking-accommodation-row input{width:100%}
 .booking-accommodation-row .accommodation-remove{margin-bottom:1px}
 @media(max-width:900px){.booking-accommodation-row{grid-template-columns:1fr 1fr}.booking-accommodation-row .accommodation-remove{grid-column:1/-1}}
+.equipment-quantity-fields{display:flex;align-items:end;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.equipment-quantity-fields label{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:700;white-space:nowrap}
+.equipment-quantity-fields input{width:88px!important;max-width:100%;margin:0}
+.equipment-quantity-fields .equipment-billable-qty{white-space:nowrap;color:#0f5265;font-size:12px}
+@media(max-width:700px){.equipment-quantity-fields{justify-content:flex-start;width:100%}.equipment-quantity-fields label{flex:1;min-width:85px}}

@@ -111,6 +111,27 @@ test("daily register receipt and equipment summaries calculate operational total
   assert.equal(equipment.rows[0].qty,3);assert.equal(equipment.rows[0].total,350);assert.equal(equipment.equipmentTotals.amount,350);
 });
 
+test("equipment reports keep physical count separate from billable nights",()=>{
+  const bookings=[{bookingCode:"N1",travelDate:"2026-10-17",status:"confirmed",passengers:[{program:{programId:"boat_ticket",qty:1,price:1000},preAddOns:[{id:"fin",name:"Fin",selected:true,qty:2,nights:3,price:100,paymentMethod:"Cash"}]}]}];
+  const report=buildPrintCenterReport({bookings,date:"2026-10-17",type:"equipment_summary"});
+  assert.equal(report.rows[0].qty,2);
+  assert.equal(report.rows[0].billableQty,6);
+  assert.equal(report.rows[0].total,600);
+  assert.equal(report.equipmentTotals.amount,600);
+});
+
+test("equipment nights migration is idempotent and the API prevents silent multi-night loss",()=>{
+  const migration=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20261017_044_equipment_nights.sql"),"utf8");
+  const bookingsRoute=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8");
+  const reportsRoute=fs.readFileSync(path.resolve(testDir,"../src/routes/reports.js"),"utf8");
+  assert.match(migration,/add column if not exists nights integer not null default 1/);
+  assert.match(migration,/create or replace function public\.upsert_booking_v24/);
+  assert.match(migration,/create or replace function public\.list_bookings_json_v24/);
+  assert.doesNotMatch(migration,/\bdelete from\b|\btruncate\b/i);
+  assert.match(bookingsRoute,/if\(hasMultiNightEquipment\(booking\)\)/);
+  assert.match(reportsRoute,/list_bookings_json_v24/);
+});
+
 test("receipt summary totals only items enabled for money receipts in current master data",()=>{
   const booking={bookingCode:"R2",travelDate:"2026-07-23",status:"confirmed",totalAmount:5000,depositAmount:500,creditAmount:200,depositPaymentMethod:"Bank",creditPaymentMethod:"Bank",paymentMethod:"Bank",paymentBreakdown:{deposit:{Cash:200,Bank:300}},passengers:[{
     program:{name:"Package",qty:1,price:1000},transportationMethod:"Van",transportationAmount:400,returnTransportationMethod:"Boat",returnTransportationAmount:600,

@@ -46,8 +46,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.15-02/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20261015-02`));
+  assert.match(html,/Version 2026\.10\.17-01/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20261017-01`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -263,7 +263,7 @@ test("Island Add-on uses dedicated master data and prints an isolated dive recei
   assert.match(feature,/function islandAddonRowsForEditor/);assert.match(feature,/function toggleIslandAddonSelection/);assert.match(feature,/ติ๊กรายการที่ลูกค้าซื้อ/);assert.doesNotMatch(feature,/>\+ เพิ่ม Island Add-on จาก Master Data/);
   const bookingEditor=feature.slice(feature.indexOf("islandAddonEditor=function"),feature.indexOf("const groupedItemsBeforeDiveReceipt"));assert.doesNotMatch(bookingEditor,/document-visibility-options/);assert.match(bookingEditor,/type="checkbox"/);
   assert.match(app,/islandAddOns\|\|\[\]\)rows\.push\(\{name:item\.name\|\|"Island Add-on"[^}]*documents:visibilityLabels/);
-  assert.match(app,/\(p\.islandAddOns\|\|\[\]\)\.reduce/);assert.match(financial,/sourceType:"island_addon"/);assert.match(reportService,/\.\.\.\(p\.islandAddOns\|\|\[\]\)/);
+  assert.match(app,/\(p\.islandAddOns\|\|\[\]\)\.reduce/);assert.match(financial,/sourceType:"island_addon"/);assert.match(reportService,/p\.islandAddOns\|\|\[\]/);
   assert.match(masterRoute,/master_island_addons/);assert.match(sql,/create table if not exists master_island_addons/);assert.match(sql,/printDiveReceipt/);assert.match(sql,/upsert_booking_v19/);assert.match(sql,/list_bookings_json_v19/);assert.match(bookingRoute,/upsert_booking_v23/);
   assert.match(sql,/numeric\(14,2\)/);assert.match(sql,/update booking_addons set show_dive_receipt=true where addon_source='island'/);assert.doesNotMatch(sql,/delete from/i);
 });
@@ -286,7 +286,7 @@ test("saved equipment follows Master Data when its old document flags disagree",
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
   const definitions=app.slice(app.indexOf("const documentProfiles="),app.indexOf("function selectedBookingItemsSummaryHtml"));
   const grouped=app.slice(app.indexOf("function documentGroupedItems(booking,profile)"),app.indexOf("function documentInfoLine"));
-  const context={master:{addOns:[{addon_id:"fin",show_money_receipt:false,show_equipment_slip:true}],islandAddOns:[]},passengerTypeLabels:{adult:"ผู้ใหญ่"}};
+  const context={master:{addOns:[{addon_id:"fin",show_money_receipt:false,show_equipment_slip:true}],islandAddOns:[]},passengerTypeLabels:{adult:"ผู้ใหญ่"},equipmentNights:item=>item.nights??1,equipmentBillableQty:item=>(item.qty??1)*(item.nights??1)};
   vm.runInNewContext(`${definitions}\n${grouped}\nresult={equipment:documentGroupedItems({passengers:[{preAddOns:[{id:"fin",name:"Fin",selected:true,qty:2,price:400,documentVisibility:{show_money_receipt:true,show_equipment_slip:false}}]}]},documentProfiles.EQUIPMENT_SLIP),receipt:documentGroupedItems({passengers:[{preAddOns:[{id:"fin",name:"Fin",selected:true,qty:2,price:400,documentVisibility:{show_money_receipt:true,show_equipment_slip:false}}]}]},documentProfiles.MONEY_RECEIPT)};`,context);
   assert.equal(context.result.equipment.length,1);
   assert.equal(context.result.equipment[0].total,800);
