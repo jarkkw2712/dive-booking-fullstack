@@ -7,7 +7,7 @@ const root=path.resolve(__dirname,"..");
 
 test("active HTML loads scripts in dependency order",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
-  const order=["js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/financial.js"].map(file=>html.indexOf(file));
+  const order=["js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/financial.js","js/travelStops.js"].map(file=>html.indexOf(file));
   assert.ok(order.every(index=>index>=0));assert.deepEqual(order,[...order].sort((a,b)=>a-b));
 });
 test("Booking List, Print Center and Financial markup is connected",()=>{
@@ -46,8 +46,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.17-04/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20261017-04`));
+  assert.match(html,/Version 2026\.10\.19-01/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"])assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=20261019-01`));
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -425,17 +425,17 @@ test("active HTML does not contain known Thai mojibake markers",()=>{
   for(const marker of ["เน€เธ","โฐ","เธเธฑ"])assert.equal(html.includes(marker),false);
 });
 test("service-role key is not present in frontend",()=>{
-  const files=["index.html","js/api.js","js/app.js","js/financial.js"].map(file=>fs.readFileSync(path.join(root,file),"utf8")).join("\n");
+  const files=["index.html","js/api.js","js/app.js","js/financial.js","js/travelStops.js"].map(file=>fs.readFileSync(path.join(root,file),"utf8")).join("\n");
   assert.equal(files.includes("SUPABASE_SERVICE_ROLE_KEY"),false);
 });
 test("every HTML click handler has a loaded implementation",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
-  const scripts=["js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/financial.js"].map(file=>fs.readFileSync(path.join(root,file),"utf8")).join("\n");
+  const scripts=["js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/financial.js","js/travelStops.js"].map(file=>fs.readFileSync(path.join(root,file),"utf8")).join("\n");
   const handlers=[...html.matchAll(/onclick=["']([A-Za-z_$][\w$]*)\s*\(/g)].map(match=>match[1]);
   for(const name of new Set(handlers))assert.match(scripts,new RegExp(`(?:function\\s+${name}\\s*\\(|(?:const|let|var)\\s+${name}\\s*=)`),`missing click handler ${name}`);
 });
 test("active scripts do not declare duplicate global functions or constants",()=>{
-  const sources=["js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/financial.js"].map(file=>fs.readFileSync(path.join(root,file),"utf8"));
+  const sources=["js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/financial.js","js/travelStops.js"].map(file=>fs.readFileSync(path.join(root,file),"utf8"));
   const names=sources.flatMap(source=>[...source.matchAll(/^(?:async\s+)?function\s+([A-Za-z_$][\w$]*)|^(?:const|let|var)\s+([A-Za-z_$][\w$]*)/gm)].map(match=>match[1]||match[2]));
   const duplicates=names.filter((name,index)=>names.indexOf(name)!==index);
   assert.deepEqual([...new Set(duplicates)],[]);

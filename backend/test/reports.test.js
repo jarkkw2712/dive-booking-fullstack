@@ -365,7 +365,7 @@ test("reference reports follow travel date, stable payment codes and fixed tent 
   const van=buildPrintCenterReport({bookings:referenceBookings,paymentMethods,date:"2026-09-21",toDate:"2026-09-21",type:"van_daily_reference"});
   assert.deepEqual(van.rows[0],{date:"2026-09-21",cash:0,transfer:500,total:500});assert.deepEqual(van.monthlyRows,[{month:"2026-09",cash:0,transfer:500,total:500}]);assert.deepEqual(van.monthlyTotals,{cash:0,transfer:500,total:500});
   const work=buildPrintCenterReport({bookings:referenceBookings,paymentMethods,date:"2026-09-21",toDate:"2026-09-23",type:"van_work_order_reference"});
-  assert.equal(work.rows.length,2);assert.equal(work.rows[0].location,"บขส.");assert.equal(work.rows[1].location,"สนามบิน");
+  assert.equal(work.rows.length,2);assert.equal(work.rows[0].location,"บขส. → ไม่ระบุ");assert.equal(work.rows[1].location,"สนามบิน → ไม่ระบุ");
   const monthly=buildPrintCenterReport({bookings:referenceBookings,paymentMethods,date:"2026-09-01",toDate:"2026-09-30",type:"tour_monthly_reference"});
   assert.deepEqual(monthly.rows[0],{month:"2026-09",cash:600,transfer:1300,deposit:100,credit:200,rungruedeeTransfer:0});assert.deepEqual(monthly.totals,{cash:600,transfer:1300,deposit:100,credit:200,rungruedeeTransfer:0});assert.equal("remaining" in monthly.rows[0],false);assert.equal("withdrawal" in monthly.rows[0],false);
 });
@@ -429,6 +429,24 @@ test("van report uses each leg's service date and Master Data code even when the
   const unpriced=buildPrintCenterReport({bookings:[{...booking,passengers:[{transportationMethod:"รับบขส.",transportationAmount:0,passengerTravelDate:"2026-09-23"}]}],paymentMethods,transportationMethods,date:"2026-09-23",toDate:"2026-09-23",type:"van_daily_reference"});
   assert.deepEqual(unpriced.summary,{vanLegs:1,unpricedLegs:1});
   assert.equal(unpriced.totals.total,0);
+});
+
+test("additional transport stops appear on their own service dates, payments and receipt visibility",()=>{
+  const paymentMethods=[{method_id:"cash",method_name:"เงินสด",payment_type:"cash"},{method_id:"bank_transfer_laddawan",method_name:"ลัดดาวรรณ์",payment_type:"transfer"}];
+  const transportationMethods=[{method_id:"van_airport",method_name:"รับส่งสนามบิน",show_money_receipt:true},{method_id:"private_car",method_name:"รถส่วนตัว",show_money_receipt:false}];
+  const booking={bookingCode:"MULTI-STOP",travelDate:"2026-10-20",returnDate:"2026-10-23",status:"confirmed",paymentMethod:"เงินสด",totalAmount:2450,leaderFirstName:"สมชาย",passengers:[{passengerType:"adult",program:{programId:"boat_ticket",name:"ตั๋วเรือ",qty:1,price:1500},transportationMethod:"รับส่งสนามบิน",transportationAmount:400,passengerTravelDate:"2026-10-20",outboundDestination:"สนามบิน",outboundTo:"ท่าเรือ",extraTransportStops:[{date:"2026-10-21",from:"ท่าเรือ",to:"โรงแรม",method:"รับส่งสนามบิน",amount:350,paymentMethod:"ลัดดาวรรณ์"},{date:"2026-10-22",from:"โรงแรม",to:"ร้านค้า",method:"รถส่วนตัว",amount:200,paymentMethod:"เงินสด"}]}]};
+  const van=buildPrintCenterReport({bookings:[booking],paymentMethods,transportationMethods,date:"2026-10-20",toDate:"2026-10-22",type:"van_daily_reference"});
+  assert.deepEqual(van.rows.map(row=>row.total),[400,350,0]);assert.equal(van.summary.vanLegs,2);assert.equal(van.monthlyTotals.total,750);
+  const work=buildPrintCenterReport({bookings:[booking],paymentMethods,transportationMethods,date:"2026-10-20",toDate:"2026-10-22",type:"van_work_order_reference"});
+  assert.deepEqual(work.rows.map(row=>row.location),["สนามบิน → ท่าเรือ","ท่าเรือ → โรงแรม"]);
+  const receipt=buildPrintCenterReport({bookings:[booking],paymentMethods,transportationMethods,date:"2026-10-20",type:"receipt_summary"});
+  assert.equal(receipt.rows[0].grandTotal,2250);
+});
+
+test("passenger transport stop migration keeps historical destinations unknown and uses revisioned RPCs",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20261019_045_passenger_transport_stops.sql"),"utf8"),route=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8");
+  for(const expected of ["add column if not exists outbound_to text","add column if not exists return_to text","create table if not exists public.passenger_transport_stops","amount numeric(14,2)","upsert_booking_v25","list_bookings_json_v25","upsert_booking_v24(p_booking)","list_bookings_json_v24()","reload schema"])assert.ok(sql.includes(expected));
+  assert.match(route,/hasNewTravelDetails/);assert.match(route,/migrationRequired:true/);assert.match(route,/list_bookings_json_v25/);assert.doesNotMatch(sql,/update passengers set\s+outbound_to=['"]Sabina/i);
 });
 
 test("agent and daily return travel reports follow the approved workbook logic",()=>{

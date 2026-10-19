@@ -25,7 +25,7 @@ function bookingListFieldValues(booking,metric){
   if(metric==="agents")return[booking.agentName];
   if(metric==="bookingOriginals")return[booking.bookingOriginal];
   if(metric==="customerSources")return[booking.source];
-  if(metric==="transportationMethods")return[booking.transportationMethod,...people.flatMap(person=>[person.transportationMethod,person.returnTransportationMethod])];
+  if(metric==="transportationMethods")return[booking.transportationMethod,...people.flatMap(person=>[person.transportationMethod,person.returnTransportationMethod,...(person.extraTransportStops||[]).map(stop=>stop.method)])];
   if(metric==="islands")return[booking.island,...people.map(person=>person.island)];
   if(metric==="statuses")return[booking.status];
   if(metric==="paymentMethods"){
@@ -34,7 +34,8 @@ function bookingListFieldValues(booking,metric){
       Number(person.transportationAmount)>0?person.transportationPaymentMethod:null,
       Number(person.returnTransportationAmount)>0?person.returnTransportationPaymentMethod:null,
       ...(person.preAddOns||[]).filter(item=>item.selected!==false).map(item=>item.paymentMethod),
-      ...(person.islandAddOns||[]).filter(item=>item.selected!==false).map(item=>item.paymentMethod)
+      ...(person.islandAddOns||[]).filter(item=>item.selected!==false).map(item=>item.paymentMethod),
+      ...(person.extraTransportStops||[]).filter(stop=>Number(stop.amount)>0).map(stop=>stop.paymentMethod)
     ])];
   }
   return[];
