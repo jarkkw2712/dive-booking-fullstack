@@ -373,6 +373,27 @@ function rangeRegisterSummary(bookings,date,toDate){
   const rows=selected.sort((a,b)=>String(a.travelDate).localeCompare(String(b.travelDate))||String(a.bookingCode).localeCompare(String(b.bookingCode))).map((booking,index)=>{const people=passengersOf(booking),counts=passengerCounts(booking);for(const key of Object.keys(totals))totals[key]+=counts[key];return{no:index+1,travelDate:booking.travelDate||"",leader:leaderName(booking),returnDate:booking.returnDate||"",adult:counts.adult,child:counts.child,infant:counts.infant,foc:counts.foc,program:uniqueValues(people,p=>programShort(p.program?.name)),island:uniqueValues(people,p=>p.island),accommodation:bookingAccommodationText(booking),transportation:uniqueValues(people,p=>p.transportationMethod)||booking.transportationMethod||"",agent:booking.agentName||"",note:booking.bookingNote||""}});
   return{date,type:"register_summary_range",title:"ใบสรุปยอดยืนยันการจอง (ช่วงวันที่)",purpose:`รายงานช่วงวันที่ ${date} ถึง ${toDate}`,range:{from:date,to:toDate},rows,registerTotals:totals,manualTotals:{guide:"",mogan:"",parkOfficer:"",grandTotal:""},summary:{bookings:selected.length,pax:Object.values(totals).reduce((sum,value)=>sum+value,0)}};
 }
+function frontChargeReport(bookings,date){
+  const selected=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===date).sort((a,b)=>String(a.bookingCode||"").localeCompare(String(b.bookingCode||"")));
+  const rows=[],totals={people:0,adult:0,child:0,infant:0,foc:0};
+  for(const booking of selected){
+    const groups=new Map();
+    for(const person of passengersOf(booking)){
+      const returnDate=person.passengerReturnDate||booking.returnDate||"",transportation=person.returnTransportationMethod||"",key=JSON.stringify([returnDate,transportation]);
+      if(!groups.has(key))groups.set(key,{returnDate,transportation,people:[]});
+      groups.get(key).people.push(person);
+    }
+    if(!groups.size)groups.set("empty",{returnDate:booking.returnDate||"",transportation:"",people:[]});
+    const accommodation=bookingAccommodationText(booking)||uniqueValues(passengersOf(booking),person=>accommodationLabel[person.parkAccommodationType||""]);
+    for(const group of [...groups.values()].sort((a,b)=>Number(!a.returnDate)-Number(!b.returnDate)||a.returnDate.localeCompare(b.returnDate)||Number(!a.transportation)-Number(!b.transportation)||a.transportation.localeCompare(b.transportation,"th"))){
+      const counts=passengerCounts({passengers:group.people});
+      for(const type of ["adult","child","infant","foc"])totals[type]+=counts[type];
+      totals.people+=group.people.length;
+      rows.push({travelDate:booking.travelDate||"",returnDate:group.returnDate,leader:leaderName(booking),phone:booking.phone||"",people:group.people.length,...counts,program:uniqueValues(group.people,person=>programShort(person.program?.name)),island:uniqueValues(group.people,person=>person.island),accommodation,transportation:group.transportation,agent:booking.agentName||"",note:booking.bookingNote||"",bookingCode:booking.bookingCode||""});
+    }
+  }
+  return{date,type:"front_charge",title:"ใบหน้าชาร์จ",purpose:"รายการ Booking ตามวันเดินทางไป โดยแยกวันและวิธีเดินทางกลับของผู้เดินทาง",rows,totals,summary:{bookings:selected.length,pax:totals.people}};
+}
 const receiptCents=value=>Math.round(Math.max(money(value),0)*100);
 const receiptAmount=cents=>cents/100;
 function receiptDocumentTotal(booking,{masterAddOns,masterIslandAddOns,masterAccommodations,transportationMethods}){
@@ -472,6 +493,7 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows
   const arrivals=entries.filter(row=>row.movement==="arrival");
   if(type==="register_summary")return dailyRegisterSummary(active,date);
   if(type==="register_summary_range")return rangeRegisterSummary(active,date,toDate);
+  if(type==="front_charge")return frontChargeReport(active,date);
   if(type==="receipt_summary")return dailyReceiptSummary(active,date,paymentMethods,{masterAddOns,masterIslandAddOns,masterAccommodations,transportationMethods});
   if(type==="equipment_summary")return dailyEquipmentSummary(active,date,masterAddOns,paymentMethods);
   if(type==="management")return{date,type,...managementReport(active,financialRows,expenseRows,date,toDate,masterAddOns,masterAccommodations)};

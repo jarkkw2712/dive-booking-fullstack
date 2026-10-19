@@ -46,8 +46,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.19-03/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=["css/style.css","js/app.js"].includes(asset)?"20261019-03":asset==="js/travelStops.js"?"20261019-02":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.10\.19-04/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=["css/style.css","js/app.js"].includes(asset)?"20261019-04":asset==="js/travelStops.js"?"20261019-02":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -373,7 +373,7 @@ test("reference reports and category payment defaults are wired end to end",()=>
   for(const name of ["นฤมล","เรืองโรจน์","รุ่งฤดี","ลัดดาวรรณ์","รุจิโรจน์"])assert.ok(sql.includes(name));
   assert.match(app,/function referencePrintReportHtml/);assert.match(app,/function appendReferenceReportTableTotals/);assert.match(app,/คืนละ \(บาท\)/);for(const heading of ["รายงานสรุปรายการทัวร์ (รายเดือน)","รายงานสรุปรายการรถตู้ (รายเดือน)"])assert.ok(app.includes(heading));assert.doesNotMatch(html,/exportReferenceExcelReport\('(tour|van)_monthly_reference'\)/);
   assert.match(app,/function agentReferenceReportHtml/);assert.match(app,/function customerTravelDailyReferenceReportHtml/);assert.match(app,/วันที่จ่าย/);assert.match(app,/วันกลับ/);assert.doesNotMatch(html,/รายงานสรุปรายรับ-รายจ่าย/);
-  assert.match(app,/singleDate=dailySummary\|\|\["customer_travel_daily_reference","package_cost_reference","boat_tent_reference"\]\.includes\(type\)/);assert.match(app,/if\(dailySummary\).*dailySummaryReportHtml/);
+  assert.match(app,/singleDate=dailySummary\|\|\["front_charge","customer_travel_daily_reference","package_cost_reference","boat_tent_reference"\]\.includes\(type\)/);assert.match(app,/if\(dailySummary\).*dailySummaryReportHtml/);
   assert.doesNotMatch(app,/แหล่งข้อมูลและวิธีคำนวณ/);assert.match(css,/reference-tour-table\{font-size:9px/);
   assert.match(app,/transportationPaymentMethod/);assert.match(app,/returnTransportationPaymentMethod/);assert.match(app,/function setEquipmentPaymentMethod/);assert.match(feature,/setIslandPaymentMethod/);assert.match(feature,/groupPaymentHeader/);assert.doesNotMatch(feature.slice(feature.indexOf("islandAddonEditor=function"),feature.indexOf("const groupedItemsBeforeDiveReceipt")),/updateIslandAddon\([^)]*'paymentMethod'/);
   assert.match(css,/passenger-travel-grid\{grid-template-columns:repeat\(5/);assert.match(css,/\.reference-report-portrait\{page:report-portrait/);assert.match(css,/\.reference-report-landscape\{page:report/);
@@ -389,6 +389,17 @@ test("van work order prints each route with method, price, and one total on A4",
   assert.match(context.html,/สนามบิน<\/span> <b aria-hidden="true">→<\/b> <span>ซาบีน่า/);
   assert.match(context.html,/รถตู้/);assert.match(context.html,/850\.00/);
   assert.equal((context.html.match(/class="reference-total-row"/g)||[]).length,1);
+});
+test("front charge print report keeps template columns and handwritten crew fields on A4",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/reports.js"),"utf8");
+  const source=app.slice(app.indexOf("function frontChargeReportHtml"),app.indexOf("function equipmentReportHtml"));
+  const context={getCompanySettings:()=>({company_name:"Sabina Tour"}),referenceReportDate:value=>value,escapeHtml:value=>String(value)};
+  require("node:vm").runInNewContext(`${source}\nhtml=frontChargeReportHtml({date:'2026-10-20',title:'ใบหน้าชาร์จ',rows:[{travelDate:'2026-10-20',returnDate:'2026-10-22',leader:'มาลี',phone:'081',people:2,adult:1,child:1,infant:0,foc:0,program:'3D2N',island:'อ่าวไม้งาม',accommodation:'เต็นท์ใหญ่',transportation:'รถตู้',agent:'Agent',note:''}],totals:{people:2,adult:1,child:1,infant:0,foc:0}});`,context);
+  for(const label of ["พนักงานหน้าท่า","กัปตัน","เด็กเรือ","ไกด์/พนักงานประจำเรือ","วันไป","วันกลับ","เด็กทารก","เกาะ","ที่พัก","การเดินทาง","Agent"] )assert.ok(context.html.includes(label));
+  assert.equal((context.html.match(/<col>/g)||[]).length,15);assert.match(context.html,/front-charge-info-row/);assert.match(context.html,/front-charge-write-line/);
+  assert.match(context.html,/report-daily-landscape front-charge-report/);assert.match(css,/@page report\{size:A4 landscape/);
+  assert.match(context.html,/รถตู้/);assert.doesNotMatch(context.html,/สถานที่พัก|ประเภทที่พัก/);assert.match(context.html,/front-charge-total-row/);
+  assert.match(app,/singleDate=dailySummary\|\|\["front_charge"/);assert.match(app,/if\(type==="front_charge"\).*frontChargeReportHtml/);assert.match(app,/option\[value="front_charge"\]/);assert.match(route,/front_charge:dailyPermissions/);
 });
 test("payment account choices persist and equipment is available for every program",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");

@@ -7,7 +7,7 @@ const router=express.Router();
 router.use(requireAuth);
 const dailyPermissions=["printCounterReport","printDailyReport"];
 const reportPermissions={
-  register_summary:dailyPermissions,register_summary_range:dailyPermissions,receipt_summary:dailyPermissions,equipment_summary:dailyPermissions,
+  register_summary:dailyPermissions,register_summary_range:dailyPermissions,front_charge:dailyPermissions,receipt_summary:dailyPermissions,equipment_summary:dailyPermissions,
   counter:dailyPermissions,boat:["printBoatReport","printDailyReport"],island:["addIslandAddOn","printBoatReport","printDailyReport"],
   insurance:["printInsuranceReport"],driver:dailyPermissions,management:["printDailyReport"],
   tour_expense_reference:dailyPermissions,tent_fee_reference:dailyPermissions,van_daily_reference:dailyPermissions,van_work_order_reference:dailyPermissions,
@@ -38,7 +38,7 @@ router.get("/print-center",async(req,res)=>{
     const transportationMasterResult=type==="receipt_summary"?await supabaseAdmin.from("master_transportation_methods").select("*").eq("active_flag",true).order("sort_order"):["van_daily_reference","van_work_order_reference","van_monthly_reference"].includes(type)?await supabaseAdmin.from("master_transportation_methods").select("method_id,method_name"):type==="customer_travel_daily_reference"?await supabaseAdmin.from("master_transportation_methods").select("method_id,method_name,sort_order").order("sort_order"):{data:[],error:null};
     const packageCostResult=type==="package_cost_reference"?await supabaseAdmin.from("master_package_cost_rates").select("*").eq("active_flag",true).order("sort_order"):{data:[],error:null};
     for(const result of [bookingResult,financialResult,expenseResult,addOnMasterResult,islandAddOnMasterResult,accommodationMasterResult,paymentResult,agentMasterResult,transportationMasterResult,packageCostResult])if(result.error)throw result.error;
-    const dailyOnly=["register_summary","receipt_summary","equipment_summary","customer_travel_daily_reference","package_cost_reference","boat_tent_reference"].includes(type);
+    const dailyOnly=["register_summary","front_charge","receipt_summary","equipment_summary","customer_travel_daily_reference","package_cost_reference","boat_tent_reference"].includes(type);
     res.json(buildPrintCenterReport({bookings:bookingResult.data||[],financialRows:financialResult.data||[],expenseRows:expenseResult.data||[],paymentMethods:paymentResult.data||[],masterAddOns:addOnMasterResult.data||[],masterIslandAddOns:islandAddOnMasterResult.data||[],masterAccommodations:accommodationMasterResult.data||[],masterAgents:agentMasterResult.data||[],transportationMethods:transportationMasterResult.data||[],packageCostRates:packageCostResult.data||[],date,toDate:dailyOnly?date:(to||date),type}));
   }catch(error){console.error("Print center report failed",error);res.status(500).json({error:error.message})}
 });

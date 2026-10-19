@@ -22,6 +22,21 @@ test("Print Center reads v25 booking routes before older compatible functions",(
   assert.match(route,/\["PGRST202","42883"\]\.includes\(bookingResult\.error\?\.code\)/);
 });
 
+test("front charge report separates return dates and methods without repeating passenger totals",()=>{
+  const booking={bookingCode:"CHARGE-1",travelDate:"2026-10-20",returnDate:"2026-10-22",leaderFirstName:"มาลี",leaderLastName:"ใจดี",phone:"0812345678",agentName:"เอเจนต์",bookingNote:"รับที่ท่าเรือ",status:"confirmed",accommodations:[{accommodationId:"large_tent",accommodationName:"เต็นท์ใหญ่",accommodationQty:1,accommodationBookedBy:"company"},{accommodationId:"park_house",accommodationName:"บ้านพัก",accommodationQty:1,accommodationBookedBy:"customer"}],passengers:[
+    {passengerType:"adult",passengerReturnDate:"2026-10-22",returnTransportationMethod:"รถตู้",program:{name:"3 วัน 2 คืน"},island:"อ่าวไม้งาม"},
+    {passengerType:"child",passengerReturnDate:"2026-10-22",returnTransportationMethod:"รถตู้",program:{name:"3 วัน 2 คืน"},island:"อ่าวไม้งาม"},
+    {passengerType:"infant",passengerReturnDate:"2026-10-23",returnTransportationMethod:"รถส่วนตัว",program:{name:"ตั๋วเรือ"},island:"อ่าวช่องขาด"},
+    {passengerType:"foc",passengerReturnDate:"2026-10-23",transportationMethod:"รถตู้",returnTransportationMethod:"",program:{name:"ตั๋วเรือ"},island:"อ่าวช่องขาด"}
+  ]};
+  const report=buildPrintCenterReport({bookings:[booking,{...booking,bookingCode:"CANCELLED",status:"cancelled"},{...booking,bookingCode:"NEXT-DAY",travelDate:"2026-10-21"}],date:"2026-10-20",type:"front_charge"});
+  assert.equal(report.title,"ใบหน้าชาร์จ");assert.equal(report.rows.length,3);assert.equal(report.summary.bookings,1);
+  assert.deepEqual(report.rows.map(row=>[row.returnDate,row.transportation,row.people]),[["2026-10-22","รถตู้",2],["2026-10-23","รถส่วนตัว",1],["2026-10-23","",1]]);
+  assert.deepEqual(report.totals,{people:4,adult:1,child:1,infant:1,foc:1});
+  assert.equal(report.rows[0].program,"3D2N");assert.equal(report.rows[0].island,"อ่าวไม้งาม");assert.match(report.rows[0].accommodation,/เต็นท์ใหญ่/);assert.match(report.rows[0].accommodation,/บ้านพัก/);
+  assert.equal(report.rows[2].transportation,"");assert.equal(report.rows[0].phone,"0812345678");
+});
+
 test("booking list performance migration adds the required read indexes",()=>{
   const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260922_037_booking_list_performance_indexes.sql"),"utf8");
   for(const expected of ["passengers_booking_passenger_no_idx","booking_programs_passenger_idx","booking_addons_passenger_source_idx","bookings_travel_status_idx","bookings_return_status_idx"])assert.match(sql,new RegExp(expected));
