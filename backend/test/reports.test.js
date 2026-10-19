@@ -32,9 +32,12 @@ test("front charge report separates return dates and methods without repeating p
   const report=buildPrintCenterReport({bookings:[booking,{...booking,bookingCode:"CANCELLED",status:"cancelled"},{...booking,bookingCode:"NEXT-DAY",travelDate:"2026-10-21"}],date:"2026-10-20",type:"front_charge"});
   assert.equal(report.title,"ใบหน้าชาร์จ");assert.equal(report.rows.length,3);assert.equal(report.summary.bookings,1);
   assert.deepEqual(report.rows.map(row=>[row.returnDate,row.transportation,row.people]),[["2026-10-22","รถตู้",2],["2026-10-23","รถส่วนตัว",1],["2026-10-23","",1]]);
+  assert.deepEqual(report.rows.map(row=>[row.bookingNo,row.bookingRowSpan,row.isFirstGroup,row.bookingPeople]),[[1,3,true,4],[1,3,false,4],[1,3,false,4]]);
   assert.deepEqual(report.totals,{people:4,adult:1,child:1,infant:1,foc:1});
   assert.equal(report.rows[0].program,"3D2N");assert.equal(report.rows[0].island,"อ่าวไม้งาม");assert.match(report.rows[0].accommodation,/เต็นท์ใหญ่/);assert.match(report.rows[0].accommodation,/บ้านพัก/);
   assert.equal(report.rows[2].transportation,"");assert.equal(report.rows[0].phone,"0812345678");
+  const next=buildPrintCenterReport({bookings:[booking,{...booking,bookingCode:"CHARGE-2",passengers:booking.passengers.slice(0,1)}],date:"2026-10-20",type:"front_charge"});
+  assert.deepEqual(next.rows.map(row=>row.bookingNo),[1,1,1,2]);assert.equal(next.rows.at(-1).bookingPeople,1);assert.equal(next.totals.people,5);
 });
 
 test("booking list performance migration adds the required read indexes",()=>{
@@ -406,6 +409,16 @@ test("boat-ticket totals follow program code, not a package name containing boat
   assert.equal(packages.rows.length,2);
 });
 
+test("tour report shows One Day Trip and Day Trip Overnight within packages without double-counting",()=>{
+  const date="2026-10-20",paymentMethods=[{method_id:"cash",method_name:"เงินสด",payment_type:"cash"},{method_id:"bank_transfer",method_name:"โอน",payment_type:"transfer"}];
+  const booking=(code,paymentMethod,programId,name,price,depositAmount=0)=>({bookingCode:code,travelDate:date,status:"confirmed",paymentMethod,depositAmount,passengers:[{program:{programId,name,qty:1,price}}]});
+  const bookings=[booking("ODT-1","เงินสด","one_day","One Day Trip",2000,200),booking("ODT-2","โอน","custom_one_day","One Day Trip",3000),booking("DPO-1","เงินสด","custom_overnight","Day trip overnight",4000),booking("DPO-2","โอน","day_trip_overnight","Day Trip Overnight",5000),booking("OTHER","เงินสด","three_day","3 Day 2 Night",6000)];
+  const report=buildPrintCenterReport({bookings,paymentMethods,date,toDate:date,type:"tour_expense_reference"}),row=report.rows[0];
+  assert.deepEqual([row.oneDayCash,row.oneDayTransfer,row.dayTripOvernightCash,row.dayTripOvernightTransfer],[1800,3000,4000,5000]);
+  assert.deepEqual([row.packageCash,row.packageTransfer,row.deposit,row.totalRevenue],[11800,8000,200,20000]);
+  assert.deepEqual([report.totals.oneDayCash,report.totals.dayTripOvernightTransfer,report.totals.totalRevenue],[1800,5000,20000]);
+});
+
 test("15 October tour report separates deposits, excludes travel and keeps equipment revenue",()=>{
   const date="2026-10-15",paymentMethods=[
     {method_id:"cash",method_name:"เงินสด",payment_type:"cash"},
@@ -506,6 +519,14 @@ test("agent and daily return travel reports follow the approved workbook logic",
   assert.deepEqual(agent.pages.map(page=>page.agent),["Agent B","Agent A"]);assert.equal(agent.pages[0].rows[0].adult,2);assert.equal(agent.pages[0].rows[0].child,1);assert.equal(agent.pages[0].rows[0].infant,1);assert.equal(agent.pages[0].rows[0].foc,1);assert.equal(agent.pages[0].totals.boatAmount,1000);assert.equal(agent.pages[0].totals.packageAmount,2800);assert.equal(agent.pages[0].totals.total,3800);assert.equal(agent.pages[0].rows[0].paymentDate,"");
   const travel=buildPrintCenterReport({bookings,transportationMethods,date:"2026-09-23",toDate:"2026-09-23",type:"customer_travel_daily_reference"});
   assert.equal(travel.pages.length,1);assert.equal(travel.pages[0].rows.length,1);assert.deepEqual(travel.pages[0].totals,{pax:5,lignite:1,bks:1,privateCar:1,van:1});assert.match(travel.pages[0].rows[0].note,/รถทัวร์ 1 คน/);assert.equal(travel.pages[0].rows[0].arrivalDate,"2026-09-21");
+});
+
+test("daily return travel groups Lignite and BKS by method name rather than code",()=>{
+  const date="2026-10-20",transportationMethods=[{method_id:"route_a",method_name:"รับลิกไนท์"},{method_id:"route_b",method_name:"ส่ง บขส."},{method_id:"lignite",method_name:"รถทัวร์อื่น"}];
+  const bookings=[{bookingCode:"TRAVEL-1",travelDate:"2026-10-18",returnDate:date,status:"confirmed",leaderFirstName:"มาลี",passengers:[{passengerReturnDate:date,returnTransportationMethod:"route_a"},{passengerReturnDate:date,returnTransportationMethod:"ส่ง บขส."},{passengerReturnDate:date,returnTransportationMethod:"lignite"}]}];
+  const report=buildPrintCenterReport({bookings,transportationMethods,date,toDate:date,type:"customer_travel_daily_reference"}),row=report.pages[0].rows[0];
+  assert.deepEqual([row.pax,row.lignite,row.bks,row.van],[3,1,1,0]);
+  assert.match(row.note,/รถทัวร์อื่น|lignite/);
 });
 
 test("payment defaults and per-leg transportation migration is idempotent and non-destructive",()=>{

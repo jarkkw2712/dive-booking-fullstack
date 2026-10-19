@@ -46,8 +46,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.19-04/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=["css/style.css","js/app.js"].includes(asset)?"20261019-04":asset==="js/travelStops.js"?"20261019-02":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.10\.19-05/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=["css/style.css","js/app.js"].includes(asset)?"20261019-05":asset==="js/travelStops.js"?"20261019-02":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -394,12 +394,27 @@ test("front charge print report keeps template columns and handwritten crew fiel
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/reports.js"),"utf8");
   const source=app.slice(app.indexOf("function frontChargeReportHtml"),app.indexOf("function equipmentReportHtml"));
   const context={getCompanySettings:()=>({company_name:"Sabina Tour"}),referenceReportDate:value=>value,escapeHtml:value=>String(value)};
-  require("node:vm").runInNewContext(`${source}\nhtml=frontChargeReportHtml({date:'2026-10-20',title:'ใบหน้าชาร์จ',rows:[{travelDate:'2026-10-20',returnDate:'2026-10-22',leader:'มาลี',phone:'081',people:2,adult:1,child:1,infant:0,foc:0,program:'3D2N',island:'อ่าวไม้งาม',accommodation:'เต็นท์ใหญ่',transportation:'รถตู้',agent:'Agent',note:''}],totals:{people:2,adult:1,child:1,infant:0,foc:0}});`,context);
-  for(const label of ["พนักงานหน้าท่า","กัปตัน","เด็กเรือ","ไกด์/พนักงานประจำเรือ","วันไป","วันกลับ","เด็กทารก","เกาะ","ที่พัก","การเดินทาง","Agent"] )assert.ok(context.html.includes(label));
-  assert.equal((context.html.match(/<col>/g)||[]).length,15);assert.match(context.html,/front-charge-info-row/);assert.match(context.html,/front-charge-write-line/);
+  require("node:vm").runInNewContext(`${source}\nhtml=frontChargeReportHtml({date:'2026-10-20',title:'ใบหน้าชาร์จ',rows:[{bookingNo:1,bookingPeople:3,isFirstGroup:true,travelDate:'2026-10-20',returnDate:'2026-10-22',leader:'มาลี',phone:'081',people:2,adult:1,child:1,infant:0,foc:0,program:'3D2N',island:'อ่าวไม้งาม',accommodation:'เต็นท์ใหญ่',transportation:'รถยนต์ส่วนตัว',agent:'Agent',note:''},{bookingNo:1,bookingPeople:3,isFirstGroup:false,travelDate:'2026-10-20',returnDate:'2026-10-23',leader:'มาลี',phone:'081',people:1,adult:1,child:0,infant:0,foc:0,program:'3D2N',island:'อ่าวไม้งาม',accommodation:'เต็นท์ใหญ่',transportation:'สนามบินภูเก็ต',agent:'Agent',note:''}],totals:{people:3,adult:2,child:1,infant:0,foc:0},summary:{bookings:1}});`,context);
+  for(const label of ["พนักงานหน้าท่า","กัปตัน","เด็กเรือ","ไกด์/พนักงานประจำเรือ","ชื่อเรือ","ลำดับ","วันไป","วันกลับ","เด็กทารก","เกาะ","ที่พัก","การเดินทาง","Agent"] )assert.ok(context.html.includes(label));
+  assert.equal((context.html.match(/<col>/g)||[]).length,16);assert.match(context.html,/front-charge-info-row/);assert.match(context.html,/front-charge-write-line/);
+  assert.equal((context.html.match(/rowspan="2"/g)||[]).length,8);assert.equal((context.html.match(/มาลี/g)||[]).length,1);
+  assert.match(context.html,/รถยนต์ส่วนตัว<small>2 คน<\/small>/);assert.match(context.html,/สนามบินภูเก็ต<small>1 คน<\/small>/);
+  assert.match(context.html,/front-charge-total-pax">3<\/td>/);assert.match(context.html,/รวม 1 Booking/);
   assert.match(context.html,/report-daily-landscape front-charge-report/);assert.match(css,/@page report\{size:A4 landscape/);
-  assert.match(context.html,/รถตู้/);assert.doesNotMatch(context.html,/สถานที่พัก|ประเภทที่พัก/);assert.match(context.html,/front-charge-total-row/);
+  assert.match(context.html,/รถยนต์ส่วนตัว/);assert.doesNotMatch(context.html,/สถานที่พัก|ประเภทที่พัก/);assert.match(context.html,/front-charge-total-row/);
+  const tableBody=context.html.slice(context.html.indexOf('<tbody class="front-charge-booking-group">'));
+  assert.doesNotMatch(tableBody,/front-charge-missing|\.{8,}/);
   assert.match(app,/singleDate=dailySummary\|\|\["front_charge"/);assert.match(app,/if\(type==="front_charge"\).*frontChargeReportHtml/);assert.match(app,/option\[value="front_charge"\]/);assert.match(route,/front_charge:dailyPermissions/);
+});
+test("tour expense report replaces accommodation columns with program breakdowns on landscape A4",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8"),source=app.split("\n").find(line=>line.startsWith("function referencePrintReportHtml"));
+  const context={referenceReportHeader:()=>"<header>Sabina</header>",referenceReportNotes:()=>"",referenceReportDate:value=>value,money:value=>Number(value||0).toFixed(2)};
+  require("node:vm").runInNewContext(`${source}\nhtml=referencePrintReportHtml({type:'tour_expense_reference',rows:[{date:'2026-10-20',oneDayCash:1200,dayTripOvernightTransfer:2400,totalRevenue:3600}],totals:{oneDayCash:1200,dayTripOvernightTransfer:2400,totalRevenue:3600},accountNames:[]});`,context);
+  assert.match(context.html,/reference-report-landscape reference-tour-report/);
+  for(const label of ["ODT สด","ODT โอน","Day Trip Overnight สด","Day Trip Overnight โอน"])assert.ok(context.html.includes(label));
+  assert.doesNotMatch(context.html,/ที่พัก สด|ที่พัก โอน/);
+  assert.match(context.html,/1,200\.00|1200\.00/);assert.match(context.html,/2,400\.00|2400\.00/);
+  assert.match(css,/@page report\{size:A4 landscape/);assert.match(css,/reference-tour-report \.reference-tour-table\{break-inside:auto/);
 });
 test("payment account choices persist and equipment is available for every program",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
