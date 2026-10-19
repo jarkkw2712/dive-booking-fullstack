@@ -15,6 +15,13 @@ test("booking API caches expensive list reads and invalidates after mutations",(
   assert.ok((route.match(/invalidateBookingCache\(\)/g)||[]).length>=4);
 });
 
+test("Print Center reads v25 booking routes before older compatible functions",()=>{
+  const route=fs.readFileSync(path.resolve(testDir,"../src/routes/reports.js"),"utf8");
+  const v25=route.indexOf('rpc("list_bookings_json_v25")'),v24=route.indexOf('rpc("list_bookings_json_v24")');
+  assert.ok(v25>=0&&v24>v25);
+  assert.match(route,/\["PGRST202","42883"\]\.includes\(bookingResult\.error\?\.code\)/);
+});
+
 test("booking list performance migration adds the required read indexes",()=>{
   const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260922_037_booking_list_performance_indexes.sql"),"utf8");
   for(const expected of ["passengers_booking_passenger_no_idx","booking_programs_passenger_idx","booking_addons_passenger_source_idx","bookings_travel_status_idx","bookings_return_status_idx"])assert.match(sql,new RegExp(expected));
@@ -439,8 +446,24 @@ test("additional transport stops appear on their own service dates, payments and
   assert.deepEqual(van.rows.map(row=>row.total),[400,350,0]);assert.equal(van.summary.vanLegs,2);assert.equal(van.monthlyTotals.total,750);
   const work=buildPrintCenterReport({bookings:[booking],paymentMethods,transportationMethods,date:"2026-10-20",toDate:"2026-10-22",type:"van_work_order_reference"});
   assert.deepEqual(work.rows.map(row=>row.location),["สนามบิน → ท่าเรือ","ท่าเรือ → โรงแรม"]);
+  assert.deepEqual(work.rows.map(row=>[row.from,row.to,row.amount]),[["สนามบิน","ท่าเรือ",400],["ท่าเรือ","โรงแรม",350]]);
+  assert.deepEqual(work.summary,{jobs:2,pax:2,amount:750});
   const receipt=buildPrintCenterReport({bookings:[booking],paymentMethods,transportationMethods,date:"2026-10-20",type:"receipt_summary"});
   assert.equal(receipt.rows[0].grandTotal,2250);
+});
+
+test("van work order groups only identical routes and methods and sums passenger prices",()=>{
+  const transportationMethods=[{method_id:"van_airport",method_name:"รับสนามบิน"},{method_id:"van_station",method_name:"รับบขส."}];
+  const booking={bookingCode:"VAN-GROUP",travelDate:"2026-10-20",status:"confirmed",leaderFirstName:"มาลี",passengers:[
+    {transportationMethod:"รับสนามบิน",transportationAmount:400,outboundDestination:"สนามบิน",outboundTo:"ซาบีน่า"},
+    {transportationMethod:"รับสนามบิน",transportationAmount:450,outboundDestination:"สนามบิน",outboundTo:"ซาบีน่า"},
+    {transportationMethod:"รับบขส.",transportationAmount:300,outboundDestination:"สนามบิน",outboundTo:"ซาบีน่า"},
+    {transportationMethod:"รับสนามบิน",transportationAmount:200,outboundDestination:"บขส.",outboundTo:"ซาบีน่า"}
+  ]};
+  const report=buildPrintCenterReport({bookings:[booking],transportationMethods,date:"2026-10-20",type:"van_work_order_reference"});
+  assert.equal(report.rows.length,3);
+  assert.deepEqual(report.rows.map(row=>[row.pax,row.amount]),[[2,850],[1,300],[1,200]]);
+  assert.deepEqual(report.summary,{jobs:3,pax:4,amount:1350});
 });
 
 test("passenger transport stop migration keeps historical destinations unknown and uses revisioned RPCs",()=>{

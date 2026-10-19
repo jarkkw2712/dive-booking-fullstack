@@ -46,8 +46,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.19-02/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=["css/style.css","js/app.js","js/travelStops.js"].includes(asset)?"20261019-02":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.10\.19-03/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=["css/style.css","js/app.js"].includes(asset)?"20261019-03":asset==="js/travelStops.js"?"20261019-02":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -378,6 +378,17 @@ test("reference reports and category payment defaults are wired end to end",()=>
   assert.match(app,/transportationPaymentMethod/);assert.match(app,/returnTransportationPaymentMethod/);assert.match(app,/function setEquipmentPaymentMethod/);assert.match(feature,/setIslandPaymentMethod/);assert.match(feature,/groupPaymentHeader/);assert.doesNotMatch(feature.slice(feature.indexOf("islandAddonEditor=function"),feature.indexOf("const groupedItemsBeforeDiveReceipt")),/updateIslandAddon\([^)]*'paymentMethod'/);
   assert.match(css,/passenger-travel-grid\{grid-template-columns:repeat\(5/);assert.match(css,/\.reference-report-portrait\{page:report-portrait/);assert.match(css,/\.reference-report-landscape\{page:report/);
   assert.match(bookingRoute,/upsert_booking_v23/);assert.match(bookingRoute,/list_bookings_json_v23/);assert.match(sql,/numeric|payment_method/);assert.doesNotMatch(sql,/delete from|truncate/i);
+});
+
+test("van work order prints each route with method, price, and one total on A4",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  const source=app.slice(app.indexOf("function vanWorkOrderReferenceHtml"),app.indexOf("const referencePrintReportHtmlBeforeTemplateReports"));
+  const context={referenceReportHeader:()=>"<header>Sabina</header>",referenceReportNotes:()=>"",referenceReportDate:value=>value,escapeHtml:value=>String(value),money:value=>Number(value||0).toFixed(2)};
+  require("node:vm").runInNewContext(`${source}\nhtml=vanWorkOrderReferenceHtml({type:'van_work_order_reference',rows:[{no:1,date:'2026-10-20',direction:'จุดแวะ 1',leader:'มาลี',phone:'081',pax:2,method:'รถตู้',from:'สนามบิน',to:'ซาบีน่า',amount:850}],summary:{jobs:1,pax:2,amount:850}});`,context);
+  assert.match(context.html,/reference-report-landscape reference-van-work-report/);
+  assert.match(context.html,/สนามบิน<\/span> <b aria-hidden="true">→<\/b> <span>ซาบีน่า/);
+  assert.match(context.html,/รถตู้/);assert.match(context.html,/850\.00/);
+  assert.equal((context.html.match(/class="reference-total-row"/g)||[]).length,1);
 });
 test("payment account choices persist and equipment is available for every program",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");

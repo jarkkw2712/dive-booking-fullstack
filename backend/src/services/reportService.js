@@ -95,13 +95,14 @@ function transportationRevenueLines(booking,paymentMethods,transportationMethods
   const rows=[];
   for(const person of passengersOf(booking)){
     const outboundMethod=person.transportationMethod||booking.transportationMethod||"",outboundAmount=money(person.transportationAmount);
-    if(outboundMethod||outboundAmount)rows.push({source:"transport",direction:"ขาไป",method:outboundMethod,amount:outboundAmount,paymentMethod:person.transportationPaymentMethod||defaultPayment(paymentMethods,isVanMethod(outboundMethod,transportationMethods)?"transport":"general")||booking.paymentMethod||"",operationalDate:person.passengerTravelDate||booking.travelDate||"",destination:[person.outboundDestination||person.transportationDestination||person.pickupLocation||"ไม่ระบุ",person.outboundTo||"ไม่ระบุ"].join(" → ")});
+    if(outboundMethod||outboundAmount){const from=person.outboundDestination||person.transportationDestination||person.pickupLocation||"ไม่ระบุ",to=person.outboundTo||"ไม่ระบุ";rows.push({source:"transport",direction:"ขาไป",method:outboundMethod,amount:outboundAmount,paymentMethod:person.transportationPaymentMethod||defaultPayment(paymentMethods,isVanMethod(outboundMethod,transportationMethods)?"transport":"general")||booking.paymentMethod||"",operationalDate:person.passengerTravelDate||booking.travelDate||"",from,to,destination:`${from} → ${to}`})}
     const returnMethod=person.returnTransportationMethod||"",returnAmount=money(person.returnTransportationAmount);
-    if(returnMethod||returnAmount)rows.push({source:"transport",direction:"ขากลับ",method:returnMethod,amount:returnAmount,paymentMethod:person.returnTransportationPaymentMethod||defaultPayment(paymentMethods,isVanMethod(returnMethod,transportationMethods)?"transport":"general")||booking.paymentMethod||"",operationalDate:person.passengerReturnDate||booking.returnDate||"",destination:[person.returnDestination||"ไม่ระบุ",person.returnTo||"ไม่ระบุ"].join(" → ")});
+    if(returnMethod||returnAmount){const from=person.returnDestination||"ไม่ระบุ",to=person.returnTo||"ไม่ระบุ";rows.push({source:"transport",direction:"ขากลับ",method:returnMethod,amount:returnAmount,paymentMethod:person.returnTransportationPaymentMethod||defaultPayment(paymentMethods,isVanMethod(returnMethod,transportationMethods)?"transport":"general")||booking.paymentMethod||"",operationalDate:person.passengerReturnDate||booking.returnDate||"",from,to,destination:`${from} → ${to}`})}
     for(const [index,stop] of (person.extraTransportStops||[]).entries()){
       const method=stop.method||"",amount=money(stop.amount);
       if(!method&&!amount)continue;
-      rows.push({source:"transport",direction:`จุดแวะ ${index+1}`,method,amount,paymentMethod:stop.paymentMethod||defaultPayment(paymentMethods,isVanMethod(method,transportationMethods)?"transport":"general")||booking.paymentMethod||"",operationalDate:stop.date||"",destination:[stop.from||"ไม่ระบุ",stop.to||"ไม่ระบุ"].join(" → ")});
+      const from=stop.from||"ไม่ระบุ",to=stop.to||"ไม่ระบุ";
+      rows.push({source:"transport",direction:`จุดแวะ ${index+1}`,method,amount,paymentMethod:stop.paymentMethod||defaultPayment(paymentMethods,isVanMethod(method,transportationMethods)?"transport":"general")||booking.paymentMethod||"",operationalDate:stop.date||"",from,to,destination:`${from} → ${to}`});
     }
   }
   return rows;
@@ -220,9 +221,15 @@ function vanDailyReferenceReport(bookings,date,toDate,paymentMethods,transportat
 }
 
 function vanWorkOrderReferenceReport(bookings,date,toDate,paymentMethods,transportationMethods){
-  const groups=new Map();for(const booking of bookings.filter(activeBooking))for(const leg of transportationRevenueLines(booking,paymentMethods,transportationMethods)){if(!isVanMethod(leg.method,transportationMethods)||!leg.operationalDate||leg.operationalDate<date||leg.operationalDate>toDate)continue;const key=[booking.bookingCode,leg.direction,leg.operationalDate,leg.destination].join("|");const row=groups.get(key)||{date:leg.operationalDate,direction:leg.direction,leader:leaderName(booking),phone:booking.phone||"",pax:0,location:leg.destination||"ไม่ระบุ",note:booking.bookingNote||"",bookingCode:booking.bookingCode};row.pax++;groups.set(key,row)}
+  const groups=new Map();
+  for(const booking of bookings.filter(activeBooking))for(const leg of transportationRevenueLines(booking,paymentMethods,transportationMethods)){
+    if(!isVanMethod(leg.method,transportationMethods)||!leg.operationalDate||leg.operationalDate<date||leg.operationalDate>toDate)continue;
+    const key=JSON.stringify([booking.bookingCode,leg.direction,leg.operationalDate,leg.from,leg.to,leg.method]);
+    const row=groups.get(key)||{date:leg.operationalDate,direction:leg.direction,leader:leaderName(booking),phone:booking.phone||"",pax:0,method:leg.method,from:leg.from,to:leg.to,location:leg.destination,note:booking.bookingNote||"",bookingCode:booking.bookingCode,amount:0};
+    row.pax++;row.amount=Math.round((row.amount+leg.amount)*100)/100;groups.set(key,row);
+  }
   const rows=[...groups.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.bookingCode.localeCompare(b.bookingCode)||a.direction.localeCompare(b.direction)).map((row,index)=>({no:index+1,...row}));
-  return{date,type:"van_work_order_reference",title:"ใบงานรับ-ส่งรถตู้",purpose:"รายการปฏิบัติงานรถตู้แยกขาไป ขากลับ และจุดแวะ",range:{from:date,to:toDate},rows,summary:{jobs:rows.length,pax:rows.reduce((sum,row)=>sum+row.pax,0)},sourceNotes:["วันปฏิบัติงานอ้างอิงวันเดินทางรายบุคคลของแต่ละขาและจุดแวะ","จำนวนคือผู้โดยสารที่เลือกวิธีการเดินทางรถตู้ในรายการนั้น"]};
+  return{date,type:"van_work_order_reference",title:"ใบงานรับ-ส่งรถตู้",purpose:"รายการปฏิบัติงานรถตู้แยกขาไป ขากลับ และจุดแวะ",range:{from:date,to:toDate},rows,summary:{jobs:rows.length,pax:rows.reduce((sum,row)=>sum+row.pax,0),amount:sumMoney(rows,row=>row.amount)},sourceNotes:["วันปฏิบัติงานอ้างอิงวันเดินทางรายบุคคลของแต่ละขาและจุดแวะ","จำนวนคือผู้โดยสารที่เลือกวิธีการเดินทางรถตู้ในรายการนั้น","ค่ารถรวมเป็นราคาที่บันทึกใน Booking ของผู้โดยสารทุกคนในแถว"]};
 }
 
 function agentReferenceReport(bookings,date,toDate,masterAgents=[]){
