@@ -84,9 +84,9 @@ const defaultPayment=(methods,scope)=>methods.find(method=>method[paymentDefault
 const namedAccount=name=>namedPaymentAccounts.find(account=>String(name||"").includes(account))||"";
 const isBoatProgram=program=>normalized(program?.programId||program?.id)==="boat_ticket";
 const packageDetail=program=>{
-  const name=normalized(program?.name||program?.programName),id=normalized(program?.programId||program?.id);
-  if(name==="one day trip"||id==="one_day")return"oneDay";
-  if(/^day\s*trip\s*over\s*night$/.test(name)||id==="day_trip_overnight")return"dayTripOvernight";
+  const id=normalized(program?.programId||program?.id);
+  if(id==="one_day")return"oneDay";
+  if(id==="do")return"dayTripOvernight";
   return"";
 };
 const isTentAddon=addon=>normalized(addon?.id||addon?.code)==="tent";
@@ -165,7 +165,7 @@ function tourExpenseReferenceReport(bookings,date,toDate,paymentMethods){
   }),moneyFields=["boatCash","boatTransfer","packageCash","packageTransfer","tentCash","tentTransfer","accommodationCash","accommodationTransfer","oneDayCash","oneDayTransfer","dayTripOvernightCash","dayTripOvernightTransfer","deposit","credit","naruemonTransfer","rungruedeeTransfer","rujirojDepositCash","rujirojDepositTransfer","totalRevenue"],totals=Object.fromEntries(moneyFields.map(field=>[field,sumMoney(rows,row=>row[field])]));
   totals.accounts=Object.fromEntries(namedPaymentAccounts.map(account=>[account,sumMoney(rows,row=>row.accounts?.[account])]));
   const monthly=tourMonthlyReferenceReport(bookings,date,toDate,paymentMethods);
-  return{date,type:"tour_expense_reference",title:"รายงานทัวร์และค่าใช้จ่าย",purpose:"ยอดตามวันเดินทางไป หักมัดจำจากรายการขายและแสดงแยก ไม่รวมค่าเดินทาง",range:{from:date,to:toDate},rows,totals,monthlyRows:monthly.rows,monthlyTotals:monthly.totals,accountNames:namedPaymentAccounts,sourceNotes:["วันที่อ้างอิงวันเดินทางไปของ Booking","ตั๋วเรือใช้ Program code boat_ticket; Program อื่นเป็นแพ็คเกจ","One Day Trip และ Day Trip Overnight เป็นส่วนหนึ่งของยอดแพ็คเกจ ไม่บวกซ้ำในรวมรายได้","ยอดหมวดรายการขายหักมัดจำก่อน โดยตัดจาก Program ก่อน แล้วจึงตัดจากรายการอื่น","โอนนฤมลคือยอดตั๋วเรือโอนหลังหักมัดจำ; โอนรุ่งฤดีคือมัดจำที่โอนเข้ารุ่งฤดี","รวมรายได้รวมอุปกรณ์และ Island Add-on แต่ไม่รวมค่าเดินทาง","เต็นท์ใช้อุปกรณ์ code tent"]};
+  return{date,type:"tour_expense_reference",title:"รายงานทัวร์และค่าใช้จ่าย",purpose:"ยอดตามวันเดินทางไป หักมัดจำจากรายการขายและแสดงแยก ไม่รวมค่าเดินทาง",range:{from:date,to:toDate},rows,totals,monthlyRows:monthly.rows,monthlyTotals:monthly.totals,accountNames:namedPaymentAccounts,sourceNotes:["วันที่อ้างอิงวันเดินทางไปของ Booking","ตั๋วเรือใช้ Program code boat_ticket; Program อื่นเป็นแพ็คเกจ","One Day Trip ใช้ code one_day และ Day Trip Overnight ใช้ code DO; ทั้งคู่เป็นส่วนหนึ่งของยอดแพ็คเกจ ไม่บวกซ้ำในรวมรายได้","ยอดหมวดรายการขายหักมัดจำก่อน โดยตัดจาก Program ก่อน แล้วจึงตัดจากรายการอื่น","โอนนฤมลคือยอดตั๋วเรือโอนหลังหักมัดจำ; โอนรุ่งฤดีคือมัดจำที่โอนเข้ารุ่งฤดี","รวมรายได้รวมอุปกรณ์และ Island Add-on แต่ไม่รวมค่าเดินทาง","เต็นท์ใช้อุปกรณ์ code tent"]};
 }
 
 function tentFeeReferenceReport(bookings,date,toDate){
@@ -392,12 +392,13 @@ function frontChargeReport(bookings,date){
     }
     if(!groups.size)groups.set("empty",{returnDate:booking.returnDate||"",transportation:"",people:[]});
     const accommodation=bookingAccommodationText(booking)||uniqueValues(passengersOf(booking),person=>accommodationLabel[person.parkAccommodationType||""]);
+    const island=uniqueValues(passengersOf(booking),person=>person.island);
     const orderedGroups=[...groups.values()].sort((a,b)=>Number(!a.returnDate)-Number(!b.returnDate)||a.returnDate.localeCompare(b.returnDate)||Number(!a.transportation)-Number(!b.transportation)||a.transportation.localeCompare(b.transportation,"th"));
     for(const [groupIndex,group] of orderedGroups.entries()){
       const counts=passengerCounts({passengers:group.people});
       for(const type of ["adult","child","infant","foc"])totals[type]+=counts[type];
       totals.people+=group.people.length;
-      rows.push({bookingNo:bookingIndex+1,bookingRowSpan:orderedGroups.length,isFirstGroup:groupIndex===0,bookingPeople:passengersOf(booking).length,travelDate:booking.travelDate||"",returnDate:group.returnDate,leader:leaderName(booking),phone:booking.phone||"",people:group.people.length,...counts,program:uniqueValues(group.people,person=>programShort(person.program?.name)),island:uniqueValues(group.people,person=>person.island),accommodation,transportation:group.transportation,agent:booking.agentName||"",note:booking.bookingNote||"",bookingCode:booking.bookingCode||""});
+      rows.push({bookingNo:bookingIndex+1,bookingRowSpan:orderedGroups.length,isFirstGroup:groupIndex===0,bookingPeople:passengersOf(booking).length,travelDate:booking.travelDate||"",returnDate:group.returnDate,leader:leaderName(booking),phone:booking.phone||"",people:group.people.length,...counts,program:uniqueValues(group.people,person=>programShort(person.program?.name)),island,accommodation,transportation:group.transportation,agent:booking.agentName||"",note:booking.bookingNote||"",bookingCode:booking.bookingCode||""});
     }
   }
   return{date,type:"front_charge",title:"ใบหน้าชาร์จ",purpose:"รายการ Booking ตามวันเดินทางไป โดยแยกวันและวิธีเดินทางกลับของผู้เดินทาง",rows,totals,summary:{bookings:selected.length,pax:totals.people}};

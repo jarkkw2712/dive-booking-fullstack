@@ -360,7 +360,8 @@ textarea{min-height:80px}
 .edit-booking-print-actions{border-top:1px solid #dbe2ea;margin-top:12px;padding-top:8px}.edit-booking-print-actions h3{margin:0 0 8px}.edit-booking-print-actions .btn{margin-top:6px}
 .passenger-travel-actions{margin-top:8px}.island-addon-row{border:1px solid #dbe2ea;border-radius:8px;padding:10px;margin:8px 0;background:#f8fafc}.island-addon-row .document-visibility-options{margin:8px 0}.island-addon-row .btn.danger{padding:6px 10px}
 .daily-manual-totals{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin:8px 0}.daily-manual-totals>div{border:1px solid #333;min-height:44px;text-align:center;display:flex;flex-direction:column}.daily-manual-totals span{font-size:11px;padding:3px;border-bottom:1px solid #aaa}.daily-manual-totals b{min-height:20px;padding:3px}.compact-report-table{font-size:9px;width:100%;table-layout:auto}.compact-report-table th,.compact-report-table td{padding:3px;vertical-align:top}.compact-report-table .num,.receipt-summary-table .num{text-align:right;white-space:nowrap}.report-total-row{background:#eef2f6}.report-daily-landscape{page:report}
-.front-charge-report .report-header{align-items:center;margin-bottom:8px;padding-bottom:8px}
+.front-charge-report{background:#fff;color:#111}
+.front-charge-report .report-header{align-items:center;margin-bottom:8px;padding-bottom:8px;border-bottom-color:#111}
 .front-charge-report .report-header h1{font-size:23px}
 .front-charge-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:9.5px;line-height:1.28}
 .front-charge-table col:nth-child(1){width:3%}
@@ -375,18 +376,16 @@ textarea{min-height:80px}
 .front-charge-table col:nth-child(14){width:10%}
 .front-charge-table col:nth-child(15){width:6%}
 .front-charge-table col:nth-child(16){width:7%}
-.front-charge-table th,.front-charge-table td{border:1px solid #9eb0b9;padding:5px 3px;vertical-align:top;overflow-wrap:anywhere}
-.front-charge-table thead tr:last-child th{background:#173f52;color:#fff;text-align:center;vertical-align:middle}
-.front-charge-table .front-charge-info-row th{background:#f0f6f8;color:#173f52;text-align:left;font-size:10px;font-weight:700;vertical-align:middle}
+.front-charge-table th,.front-charge-table td{border:1px solid #888;background:#fff;padding:5px 3px;vertical-align:top;overflow-wrap:anywhere}
+.front-charge-table thead tr:last-child th{background:#fff;color:#111;text-align:center;vertical-align:middle}
+.front-charge-table .front-charge-info-row th{background:#fff;color:#111;text-align:left;font-size:10px;font-weight:700;vertical-align:middle}
 .front-charge-write-line{display:inline-block;min-width:20mm;max-width:100%;font-weight:400;letter-spacing:1px;white-space:nowrap;overflow:hidden}
-.front-charge-missing{color:#738793;white-space:nowrap}
 .front-charge-table .num{text-align:center;white-space:nowrap}
-.front-charge-table .front-charge-booking-cell{vertical-align:middle;font-weight:700;background:#f0f6f8}
-.front-charge-table .front-charge-total-pax{font-size:14px;color:#173f52}
-.front-charge-travel small{display:block;margin-top:3px;color:#0f5265;font-size:11px;font-weight:800}
+.front-charge-table .front-charge-booking-cell{vertical-align:middle;font-weight:700;background:#fff}
+.front-charge-table .front-charge-total-pax{font-size:14px;color:#111}
+.front-charge-travel small{display:block;margin-top:3px;color:#111;font-size:11px;font-weight:800}
 .front-charge-booking-group{break-inside:avoid;page-break-inside:avoid}
-.front-charge-table tbody tr:nth-child(even) td:not([rowspan]){background:#f7fafc}
-.front-charge-total-row th{background:#dbeaf0;color:#173f52;font-weight:900}
+.front-charge-total-row th{background:#fff;color:#111;font-weight:900}
 .front-charge-empty{text-align:center;padding:18px!important}
 @media print{.front-charge-table{font-size:9px;break-inside:auto}.front-charge-table thead{display:table-header-group}.front-charge-table tr{break-inside:avoid}.front-charge-table th,.front-charge-table td{padding:4px 2px}}
 .front-charge-info-grid{display:grid;grid-template-columns:.7fr 1.05fr .75fr .75fr 1.5fr .8fr;align-items:center;gap:6px}.front-charge-info-grid>span{display:flex;align-items:center;gap:4px;min-width:0;white-space:nowrap}.front-charge-info-grid .front-charge-write-line{flex:1;min-width:5mm}
