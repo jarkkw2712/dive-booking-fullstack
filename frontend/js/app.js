@@ -613,7 +613,7 @@ refreshSummary=function(){
   refreshSummaryBeforeHistoricalTravel();
   document.querySelectorAll("#passengerList .passenger-card").forEach((card,index)=>{
     const person=passengers[index];
-    for(const [selector,value] of [[".passenger-travel-outbound select",person?.transportationMethod],[".passenger-travel-return select",person?.returnTransportationMethod||person?.transportationMethod]]){
+    for(const [selector,value] of [[".passenger-travel-outbound select",person?.transportationMethod],[".passenger-travel-return select",person?.returnTransportationMethod]]){
       const select=card.querySelector(selector);if(!select||!value)continue;
       if(![...select.options].some(option=>option.value===value))select.add(new Option(value,value));
       select.value=value;
