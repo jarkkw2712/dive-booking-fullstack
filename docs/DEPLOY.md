@@ -51,6 +51,10 @@ Run these files once, in order, with Supabase SQL Editor:
 41. `database/migrations/20260923_041_link_package_costs_to_programs.sql`
 42. `database/migrations/20260924_042_fast_booking_read_model.sql`
 43. `database/migrations/20261010_043_multiple_booking_accommodations.sql`
+44. `database/migrations/20261017_044_equipment_nights.sql`
+45. `database/migrations/20261019_045_passenger_transport_stops.sql`
+46. `database/migrations/20261020_046_van_quantity_per_leg.sql`
+47. `database/migrations/20261020_047_preserve_vehicle_quantity_on_rollback.sql`
 
 The stabilization and table migrations are idempotent and do not delete existing records. Function/view migrations use `CREATE OR REPLACE`.
 Migration 007 defaults existing passengers to no overnight stay and does not create revenue or financial entries.
@@ -75,8 +79,10 @@ Migration 040 adds editable package-cost rates, island-boat duty Master Data, re
 Migration 041 links every package-cost rate to `master_programs.program_id`. Run it after migration 040 and before deploying frontend version `2026.09.23-21`; verify any custom Program not matching the standard DT, 2/1, 3/2, or 4/3 names in Package Cost Master Data.
 Migration 042 adds the set-based Booking v22 read model. It replaces the slow procedural v1-v21 wrapper chain without changing Booking data or its JSON contract. Run it before deploying frontend version `2026.09.24-22` and the matching backend.
 Migration 043 adds multiple Booking-level accommodation rows, backfills existing passenger accommodation snapshots without deleting history, and exposes Booking RPC v23. Save the Supabase SQL Editor query with the exact filename `20261010_043_multiple_booking_accommodations.sql` before running it.
+Migration 044 adds equipment rental nights and Booking RPC v24. Migration 045 adds passenger route endpoints, extra stops and Booking RPC v25. Migration 046 adds vehicle quantity for outbound, return and extra-stop legs, defaults historical rows to one vehicle, and exposes Booking RPC v26. Apply them in that order before deploying the matching backend/frontend. In Supabase, save the migration with the exact name `20261020_046_van_quantity_per_leg.sql`; the schema change must complete before the new UI can save multiple vehicles. The unit price remains in the existing travel `amount` fields, and each leg total is quantity × unit price.
+Migration 047 keeps the older v25 save RPC available for rollback but makes it reject stale payloads that omit already-saved non-default vehicle quantities. Apply it immediately after 046 with the exact name `20261020_047_preserve_vehicle_quantity_on_rollback.sql`.
 
-For rollback, redeploy the previous backend/frontend revision. Do not drop the migration 035-043 tables, columns, indexes, triggers, or named payment methods: they are backward-compatible and may already contain operational history. Disable unwanted Master Data records instead of deleting them. Existing v21/v22 booking functions remain available if the application must be rolled back.
+For rollback, redeploy the previous backend/frontend revision. Do not drop the migration 035-046 tables, columns, indexes, triggers, or named payment methods: they are backward-compatible and may already contain operational history. Disable unwanted Master Data records instead of deleting them. Existing v21-v25 booking functions remain available if the application must be rolled back. If a Booking has already saved more than one vehicle, use the current version to edit it; the v26 save function rejects older payloads that would erase its quantity.
 
 ## 3. Render
 

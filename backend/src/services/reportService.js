@@ -54,7 +54,7 @@ function passengerRows(entries,{includeHealth=false}={}){
     nationality:person.nationalityType==="foreign"?"ต่างชาติ":"ไทย",
     age:person.age||"",
     phone:person.phone||booking.phone||"",
-    pickupLocation:person.pickupLocation||"",transportationMethod:person.transportationMethod||booking.transportationMethod||"",returnTransportationMethod:person.returnTransportationMethod||person.transportationMethod||booking.transportationMethod||"",transportationAmount:money(person.transportationAmount),returnTransportationAmount:money(person.returnTransportationAmount),passengerTravelDate:person.passengerTravelDate||booking.travelDate||"",outboundDestination:person.outboundDestination||person.transportationDestination||person.pickupLocation||"",passengerReturnDate:person.passengerReturnDate||booking.returnDate||"",returnDestination:person.returnDestination||"",
+    pickupLocation:person.pickupLocation||"",transportationMethod:person.transportationMethod||booking.transportationMethod||"",returnTransportationMethod:person.returnTransportationMethod||person.transportationMethod||booking.transportationMethod||"",transportationQuantity:transportQuantity(person.transportationQuantity),returnTransportationQuantity:transportQuantity(person.returnTransportationQuantity),transportationAmount:transportAmount(person.transportationAmount,person.transportationQuantity),returnTransportationAmount:transportAmount(person.returnTransportationAmount,person.returnTransportationQuantity),passengerTravelDate:person.passengerTravelDate||booking.travelDate||"",outboundDestination:person.outboundDestination||person.transportationDestination||person.pickupLocation||"",passengerReturnDate:person.passengerReturnDate||booking.returnDate||"",returnDestination:person.returnDestination||"",
     program:person.program?.name||"",
     island:person.island||"",
     accommodation:person.accommodationName||bookingAccommodationText(booking)||accommodationLabel[person.parkAccommodationType||"none"]||"",
@@ -95,20 +95,22 @@ const isVanMethod=(name,methods=[])=>{
   return code.includes("van")||code.includes("pv")||/รถตู้|\bvan\b/i.test(String(name||""));
 };
 const lineAmount=(qty,price)=>money(qty||1)*money(price);
+const transportQuantity=value=>{const quantity=Number(value??1);return Number.isInteger(quantity)&&quantity>0?quantity:1};
+const transportAmount=(price,quantity)=>money(price)*transportQuantity(quantity);
 const equipmentBillableUnits=addon=>money(addon.qty||1)*money(addon.nights??1);
 
 function transportationRevenueLines(booking,paymentMethods,transportationMethods=[]){
   const rows=[];
   for(const person of passengersOf(booking)){
-    const outboundMethod=person.transportationMethod||booking.transportationMethod||"",outboundAmount=money(person.transportationAmount);
-    if(outboundMethod||outboundAmount){const from=person.outboundDestination||person.transportationDestination||person.pickupLocation||"ไม่ระบุ",to=person.outboundTo||"ไม่ระบุ";rows.push({source:"transport",direction:"ขาไป",method:outboundMethod,amount:outboundAmount,paymentMethod:person.transportationPaymentMethod||defaultPayment(paymentMethods,isVanMethod(outboundMethod,transportationMethods)?"transport":"general")||booking.paymentMethod||"",operationalDate:person.passengerTravelDate||booking.travelDate||"",from,to,destination:`${from} → ${to}`})}
-    const returnMethod=person.returnTransportationMethod||"",returnAmount=money(person.returnTransportationAmount);
-    if(returnMethod||returnAmount){const from=person.returnDestination||"ไม่ระบุ",to=person.returnTo||"ไม่ระบุ";rows.push({source:"transport",direction:"ขากลับ",method:returnMethod,amount:returnAmount,paymentMethod:person.returnTransportationPaymentMethod||defaultPayment(paymentMethods,isVanMethod(returnMethod,transportationMethods)?"transport":"general")||booking.paymentMethod||"",operationalDate:person.passengerReturnDate||booking.returnDate||"",from,to,destination:`${from} → ${to}`})}
+    const outboundMethod=person.transportationMethod||booking.transportationMethod||"",outboundQuantity=transportQuantity(person.transportationQuantity),outboundAmount=transportAmount(person.transportationAmount,outboundQuantity);
+    if(outboundMethod||outboundAmount){const from=person.outboundDestination||person.transportationDestination||person.pickupLocation||"ไม่ระบุ",to=person.outboundTo||"ไม่ระบุ";rows.push({source:"transport",direction:"ขาไป",method:outboundMethod,quantity:outboundQuantity,amount:outboundAmount,paymentMethod:person.transportationPaymentMethod||defaultPayment(paymentMethods,isVanMethod(outboundMethod,transportationMethods)?"transport":"general")||booking.paymentMethod||"",operationalDate:person.passengerTravelDate||booking.travelDate||"",from,to,destination:`${from} → ${to}`})}
+    const returnMethod=person.returnTransportationMethod||"",returnQuantity=transportQuantity(person.returnTransportationQuantity),returnAmount=transportAmount(person.returnTransportationAmount,returnQuantity);
+    if(returnMethod||returnAmount){const from=person.returnDestination||"ไม่ระบุ",to=person.returnTo||"ไม่ระบุ";rows.push({source:"transport",direction:"ขากลับ",method:returnMethod,quantity:returnQuantity,amount:returnAmount,paymentMethod:person.returnTransportationPaymentMethod||defaultPayment(paymentMethods,isVanMethod(returnMethod,transportationMethods)?"transport":"general")||booking.paymentMethod||"",operationalDate:person.passengerReturnDate||booking.returnDate||"",from,to,destination:`${from} → ${to}`})}
     for(const [index,stop] of (person.extraTransportStops||[]).entries()){
-      const method=stop.method||"",amount=money(stop.amount);
+      const method=stop.method||"",quantity=transportQuantity(stop.quantity),amount=transportAmount(stop.amount,quantity);
       if(!method&&!amount)continue;
       const from=stop.from||"ไม่ระบุ",to=stop.to||"ไม่ระบุ";
-      rows.push({source:"transport",direction:`จุดแวะ ${index+1}`,method,amount,paymentMethod:stop.paymentMethod||defaultPayment(paymentMethods,isVanMethod(method,transportationMethods)?"transport":"general")||booking.paymentMethod||"",operationalDate:stop.date||"",from,to,destination:`${from} → ${to}`});
+      rows.push({source:"transport",direction:`จุดแวะ ${index+1}`,method,quantity,amount,paymentMethod:stop.paymentMethod||defaultPayment(paymentMethods,isVanMethod(method,transportationMethods)?"transport":"general")||booking.paymentMethod||"",operationalDate:stop.date||"",from,to,destination:`${from} → ${to}`});
     }
   }
   return rows;
@@ -232,11 +234,11 @@ function vanWorkOrderReferenceReport(bookings,date,toDate,paymentMethods,transpo
   for(const booking of bookings.filter(activeBooking))for(const leg of transportationRevenueLines(booking,paymentMethods,transportationMethods)){
     if(!isVanMethod(leg.method,transportationMethods)||!leg.operationalDate||leg.operationalDate<date||leg.operationalDate>toDate)continue;
     const key=JSON.stringify([booking.bookingCode,leg.direction,leg.operationalDate,leg.from,leg.to,leg.method]);
-    const row=groups.get(key)||{date:leg.operationalDate,direction:leg.direction,leader:leaderName(booking),phone:booking.phone||"",pax:0,method:leg.method,from:leg.from,to:leg.to,location:leg.destination,note:booking.bookingNote||"",bookingCode:booking.bookingCode,amount:0};
-    row.pax++;row.amount=Math.round((row.amount+leg.amount)*100)/100;groups.set(key,row);
+    const row=groups.get(key)||{date:leg.operationalDate,direction:leg.direction,leader:leaderName(booking),phone:booking.phone||"",pax:0,vehicles:0,method:leg.method,from:leg.from,to:leg.to,location:leg.destination,note:booking.bookingNote||"",bookingCode:booking.bookingCode,amount:0};
+    row.pax++;row.vehicles=Math.max(row.vehicles,leg.quantity);row.amount=Math.round((row.amount+leg.amount)*100)/100;groups.set(key,row);
   }
   const rows=[...groups.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.bookingCode.localeCompare(b.bookingCode)||a.direction.localeCompare(b.direction)).map((row,index)=>({no:index+1,...row}));
-  return{date,type:"van_work_order_reference",title:"ใบงานรับ-ส่งรถตู้",purpose:"รายการปฏิบัติงานรถตู้แยกขาไป ขากลับ และจุดแวะ",range:{from:date,to:toDate},rows,summary:{jobs:rows.length,pax:rows.reduce((sum,row)=>sum+row.pax,0),amount:sumMoney(rows,row=>row.amount)},sourceNotes:["วันปฏิบัติงานอ้างอิงวันเดินทางรายบุคคลของแต่ละขาและจุดแวะ","จำนวนคือผู้โดยสารที่เลือกวิธีการเดินทางรถตู้ในรายการนั้น","ค่ารถรวมเป็นราคาที่บันทึกใน Booking ของผู้โดยสารทุกคนในแถว"]};
+  return{date,type:"van_work_order_reference",title:"ใบงานรับ-ส่งรถตู้",purpose:"รายการปฏิบัติงานรถตู้แยกขาไป ขากลับ และจุดแวะ",range:{from:date,to:toDate},rows,summary:{jobs:rows.length,pax:rows.reduce((sum,row)=>sum+row.pax,0),vehicles:rows.reduce((sum,row)=>sum+row.vehicles,0),amount:sumMoney(rows,row=>row.amount)},sourceNotes:["วันปฏิบัติงานอ้างอิงวันเดินทางรายบุคคลของแต่ละขาและจุดแวะ","ผู้โดยสารนับจากรายชื่อในเส้นทาง; จำนวนรถใช้ค่าสูงสุดในกลุ่มเส้นทางเดียวกันเพื่อไม่ให้นับซ้ำ","ค่ารถรวมคำนวณจากจำนวนรถ × ราคาต่อคันของแต่ละรายการ"]};
 }
 
 function agentReferenceReport(bookings,date,toDate,masterAgents=[]){
@@ -414,9 +416,9 @@ function receiptDocumentTotal(booking,{masterAddOns,masterIslandAddOns,masterAcc
   for(const person of passengersOf(booking)){
     if(person.program)cents+=receiptCents(lineAmount(person.program.qty,person.program.price));
     const outbound=person.transportationMethod||booking.transportationMethod||"";
-    if(transport.get(outbound)?.show_money_receipt===true)cents+=receiptCents(person.transportationAmount);
-    if(transport.get(person.returnTransportationMethod||"")?.show_money_receipt===true)cents+=receiptCents(person.returnTransportationAmount);
-    for(const stop of person.extraTransportStops||[])if(transport.get(stop.method||"")?.show_money_receipt===true)cents+=receiptCents(stop.amount);
+    if(transport.get(outbound)?.show_money_receipt===true)cents+=receiptCents(transportAmount(person.transportationAmount,person.transportationQuantity));
+    if(transport.get(person.returnTransportationMethod||"")?.show_money_receipt===true)cents+=receiptCents(transportAmount(person.returnTransportationAmount,person.returnTransportationQuantity));
+    for(const stop of person.extraTransportStops||[])if(transport.get(stop.method||"")?.show_money_receipt===true)cents+=receiptCents(transportAmount(stop.amount,stop.quantity));
     for(const addon of person.preAddOns||[]){
       if(!addon.selected)continue;
       const visibility=addons.get(addon.id)?.show_money_receipt??addon.documentVisibility?.show_money_receipt??true;

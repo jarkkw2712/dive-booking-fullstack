@@ -15,10 +15,10 @@ test("booking API caches expensive list reads and invalidates after mutations",(
   assert.ok((route.match(/invalidateBookingCache\(\)/g)||[]).length>=4);
 });
 
-test("Print Center reads v25 booking routes before older compatible functions",()=>{
+test("Print Center reads v26 booking quantities before older compatible functions",()=>{
   const route=fs.readFileSync(path.resolve(testDir,"../src/routes/reports.js"),"utf8");
-  const v25=route.indexOf('rpc("list_bookings_json_v25")'),v24=route.indexOf('rpc("list_bookings_json_v24")');
-  assert.ok(v25>=0&&v24>v25);
+  const v26=route.indexOf('rpc("list_bookings_json_v26")'),v25=route.indexOf('rpc("list_bookings_json_v25")'),v24=route.indexOf('rpc("list_bookings_json_v24")');
+  assert.ok(v26>=0&&v25>v26&&v24>v25);
   assert.match(route,/\["PGRST202","42883"\]\.includes\(bookingResult\.error\?\.code\)/);
 });
 
@@ -475,7 +475,7 @@ test("additional transport stops appear on their own service dates, payments and
   const work=buildPrintCenterReport({bookings:[booking],paymentMethods,transportationMethods,date:"2026-10-20",toDate:"2026-10-22",type:"van_work_order_reference"});
   assert.deepEqual(work.rows.map(row=>row.location),["สนามบิน → ท่าเรือ","ท่าเรือ → โรงแรม"]);
   assert.deepEqual(work.rows.map(row=>[row.from,row.to,row.amount]),[["สนามบิน","ท่าเรือ",400],["ท่าเรือ","โรงแรม",350]]);
-  assert.deepEqual(work.summary,{jobs:2,pax:2,amount:750});
+  assert.deepEqual(work.summary,{jobs:2,pax:2,vehicles:2,amount:750});
   const receipt=buildPrintCenterReport({bookings:[booking],paymentMethods,transportationMethods,date:"2026-10-20",type:"receipt_summary"});
   assert.equal(receipt.rows[0].grandTotal,2250);
 });
@@ -491,7 +491,35 @@ test("van work order groups only identical routes and methods and sums passenger
   const report=buildPrintCenterReport({bookings:[booking],transportationMethods,date:"2026-10-20",type:"van_work_order_reference"});
   assert.equal(report.rows.length,3);
   assert.deepEqual(report.rows.map(row=>[row.pax,row.amount]),[[2,850],[1,300],[1,200]]);
-  assert.deepEqual(report.summary,{jobs:3,pax:4,amount:1350});
+  assert.deepEqual(report.summary,{jobs:3,pax:4,vehicles:3,amount:1350});
+});
+
+test("multiple vehicles multiply each leg's unit price without multiplying passengers",()=>{
+  const methods=[{method_id:"van",method_name:"รถตู้",show_money_receipt:true}];
+  const booking={bookingCode:"VAN-QUANTITY",travelDate:"2026-10-20",returnDate:"2026-10-22",status:"confirmed",leaderFirstName:"มาลี",passengers:[
+    {passengerType:"adult",transportationMethod:"รถตู้",transportationAmount:400,transportationQuantity:2,passengerTravelDate:"2026-10-20",outboundDestination:"สนามบิน",outboundTo:"ซาบีน่า",returnTransportationMethod:"รถตู้",returnTransportationAmount:500,returnTransportationQuantity:3,passengerReturnDate:"2026-10-22",returnDestination:"ซาบีน่า",returnTo:"สนามบิน",extraTransportStops:[{date:"2026-10-21",method:"รถตู้",from:"ท่าเรือ",to:"โรงแรม",amount:250,quantity:2}]},
+    {passengerType:"child",transportationMethod:"รถตู้",transportationAmount:0,transportationQuantity:1,passengerTravelDate:"2026-10-20",outboundDestination:"สนามบิน",outboundTo:"ซาบีน่า"}
+  ]};
+  const daily=buildPrintCenterReport({bookings:[booking],transportationMethods:methods,date:"2026-10-20",toDate:"2026-10-22",type:"van_daily_reference"});
+  assert.deepEqual(daily.rows.map(row=>row.total),[800,500,1500]);
+  const work=buildPrintCenterReport({bookings:[booking],transportationMethods:methods,date:"2026-10-20",toDate:"2026-10-22",type:"van_work_order_reference"});
+  assert.deepEqual(work.rows.map(row=>[row.pax,row.vehicles,row.amount]),[[2,2,800],[1,2,500],[1,3,1500]]);
+  assert.deepEqual(work.summary,{jobs:3,pax:4,vehicles:7,amount:2800});
+  const receipt=buildPrintCenterReport({bookings:[booking],transportationMethods:methods,date:"2026-10-20",type:"receipt_summary"});
+  assert.equal(receipt.rows[0].grandTotal,2800);
+});
+
+test("vehicle quantity migration is revisioned, historical rows default to one, and old payloads cannot erase quantities",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20261020_046_van_quantity_per_leg.sql"),"utf8");
+  const rollback=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20261020_047_preserve_vehicle_quantity_on_rollback.sql"),"utf8");
+  const route=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8");
+  for(const expected of ["transportation_quantity integer not null default 1","return_transportation_quantity integer not null default 1","quantity integer not null default 1","upsert_booking_v26","list_bookings_json_v26","upsert_booking_v25(p_booking)","list_bookings_json_v25()","Refresh the page before saving"] )assert.ok(sql.includes(expected));
+  assert.match(route,/hasMultipleTransportVehicles/);
+  assert.match(route,/upsert_booking_v26/);
+  assert.match(route,/list_bookings_json_v26/);
+  assert.match(rollback,/upsert_booking_v25/);
+  assert.match(rollback,/p\.transportation_quantity<>1/);
+  assert.match(rollback,/s\.quantity<>1/);
 });
 
 test("passenger transport stop migration keeps historical destinations unknown and uses revisioned RPCs",()=>{

@@ -24,7 +24,8 @@ router.get("/print-center",async(req,res)=>{
     if(to&&!/^\d{4}-\d{2}-\d{2}$/.test(String(to)))return res.status(400).json({error:"Valid end date is required"});
     if(!reportPermissions[type])return res.status(400).json({error:"Invalid report type"});
     if(req.user?.role!=="admin"&&!reportPermissions[type].some(permission=>req.user?.permissions?.[permission]))return res.status(403).json({error:"Permission denied for this report"});
-    let bookingResult=await supabaseAdmin.rpc("list_bookings_json_v25");
+    let bookingResult=await supabaseAdmin.rpc("list_bookings_json_v26");
+    if(["PGRST202","42883"].includes(bookingResult.error?.code))bookingResult=await supabaseAdmin.rpc("list_bookings_json_v25");
     if(["PGRST202","42883"].includes(bookingResult.error?.code))bookingResult=await supabaseAdmin.rpc("list_bookings_json_v24");
     if(["PGRST202","42883"].includes(bookingResult.error?.code))bookingResult=await supabaseAdmin.rpc("list_bookings_json_v23");
     if(["PGRST202","42883"].includes(bookingResult.error?.code))bookingResult=await supabaseAdmin.rpc("list_bookings_json_v22");

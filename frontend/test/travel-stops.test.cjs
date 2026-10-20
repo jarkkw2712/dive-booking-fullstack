@@ -50,6 +50,9 @@ test("outbound, added stops, and return use the same from-arrow-to editor with p
   assert.match(html,/setPassengerLogistics\(0,'outboundTo'/);
   assert.match(html,/setPassengerLogistics\(0,'returnDestination'/);
   assert.match(html,/updatePassengerTravelStop\(0,0,'from'/);
+  assert.match(html,/setPassengerLogistics\(0,'transportationQuantity'/);
+  assert.match(html,/setPassengerLogistics\(0,'returnTransportationQuantity'/);
+  assert.match(html,/updatePassengerTravelStop\(0,0,'quantity'/);
 });
 
 test("new stop starts from the previous destination and method fills its master price",()=>{
@@ -61,6 +64,9 @@ test("new stop starts from the previous destination and method fills its master 
   assert.equal(context.passengers[0].extraTransportStops[0].from,"ซาบีน่า");
   context.updatePassengerTravelStop(0,0,"method","รถตู้");
   assert.equal(context.passengers[0].extraTransportStops[0].amount,450);
+  assert.equal(context.passengers[0].extraTransportStops[0].quantity,1);
+  context.updatePassengerTravelStop(0,0,"quantity",2);
+  assert.equal(context.passengers[0].extraTransportStops[0].quantity,2);
   assert.equal(context.passengers[0].extraTransportStops[0].paymentMethod,"เงินสด");
   context.updatePassengerTravelStop(0,0,"to","โรงแรม");
   context.addPassengerTravelStop(0);
@@ -69,7 +75,26 @@ test("new stop starts from the previous destination and method fills its master 
 
 test("additional stop prices are summed without changing base travel prices",()=>{
   assert.equal(run("travelStopTotal({extraTransportStops:[{amount:350},{amount:200}]})"),550);
+  assert.equal(run("travelStopTotal({extraTransportStops:[{amount:350,quantity:2},{amount:200,quantity:3}]})"),1300);
   assert.equal(run("travelStopTotal({})"),0);
+});
+
+test("each route leg displays quantity times unit price while historical legs remain one vehicle",()=>{
+  const events=run("travelRouteEvents({transportationAmount:400,transportationQuantity:2,returnTransportationAmount:600,returnTransportationQuantity:3,extraTransportStops:[{amount:250,quantity:2}]},'2026-10-20','2026-10-22')");
+  assert.deepEqual(Array.from(events).map(row=>row.amount),[800,500,1800]);
+  assert.equal(run("travelLegTotal(400,undefined)"),400);
+  assert.equal(run("travelLegTotal(400,2)"),800);
+});
+
+test("apply travel to guests copies van routes without charging the same vehicles per passenger",()=>{
+  const context={travelDetailFields:["transportationMethod","transportationAmount","transportationQuantity","returnTransportationMethod","returnTransportationAmount","returnTransportationQuantity"],val:()=>"",bookingIsVanMethod:value=>value==="รถตู้"};
+  vm.runInNewContext(source,context);
+  const leader={transportationMethod:"รถตู้",transportationAmount:400,transportationQuantity:2,returnTransportationMethod:"รถตู้",returnTransportationAmount:500,returnTransportationQuantity:2,outboundTo:"ซาบีน่า",extraTransportStops:[{method:"รถตู้",amount:250,quantity:2,from:"ท่าเรือ",to:"โรงแรม"}]};
+  const guest={};context.copyLeaderTravelValues(guest,leader);
+  assert.equal(guest.transportationMethod,"รถตู้");assert.equal(guest.outboundTo,"ซาบีน่า");
+  assert.equal(guest.transportationAmount,0);assert.equal(guest.transportationQuantity,1);
+  assert.equal(guest.returnTransportationAmount,0);assert.equal(guest.extraTransportStops[0].amount,0);
+  assert.equal(leader.transportationAmount,400);assert.equal(leader.extraTransportStops[0].amount,250);
 });
 
 test("live booking total and printable stop lines follow transport Master Data visibility",()=>{
@@ -79,10 +104,10 @@ test("live booking total and printable stop lines follow transport Master Data v
     transportationVisibleOnDocument:(leg,booking,profile)=>profile.title==="ใบเสร็จรถตู้"&&leg.transportationMethod==="รถตู้",
     passengerTypeLabels:{adult:"ผู้ใหญ่"},escapeHtml:value=>String(value),money:value=>String(value)};
   vm.runInNewContext(source,context);
-  const booking={passengers:[{passengerType:"adult",nationalityType:"thai",extraTransportStops:[{from:"สนามบิน",to:"ท่าเรือ",method:"รถตู้",amount:400},{from:"ท่าเรือ",to:"โรงแรม",method:"รถส่วนตัว",amount:200}]}]};
-  assert.equal(context.personTotal(booking.passengers[0]),2100);
+  const booking={passengers:[{passengerType:"adult",nationalityType:"thai",extraTransportStops:[{from:"สนามบิน",to:"ท่าเรือ",method:"รถตู้",amount:400,quantity:2},{from:"ท่าเรือ",to:"โรงแรม",method:"รถส่วนตัว",amount:200}]}]};
+  assert.equal(context.personTotal(booking.passengers[0]),2500);
   const van=context.documentGroupedItems(booking,{title:"ใบเสร็จรถตู้"});
-  assert.equal(van.length,1);assert.equal(van[0].total,400);assert.match(van[0].name,/สนามบิน → ท่าเรือ/);
+  assert.equal(van.length,1);assert.equal(van[0].qty,2);assert.equal(van[0].total,800);assert.match(van[0].name,/สนามบิน → ท่าเรือ/);
   assert.equal(context.documentGroupedItems(booking,{title:"ใบสำคัญรับเงิน"}).length,0);
 });
 
