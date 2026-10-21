@@ -1,6 +1,7 @@
 import express from "express";
 import { requireAuth, requirePermission } from "../middleware/auth.js";
 import { supabaseAdmin } from "../services/supabase.js";
+import { bookingSaveError } from "../services/bookingSaveError.js";
 
 const router=express.Router();
 router.use(requireAuth);
@@ -52,8 +53,8 @@ router.post("/check-duplicate",async(req,res)=>{
   }
   res.json({duplicates:[...found.values()]});
 });
-router.post("/",requirePermission("createBooking"),async(req,res)=>{const inputError=equipmentInputError(req.body||{})||travelStopInputError(req.body||{});if(inputError)return res.status(400).json({error:inputError});const {data,error,migrationRequired}=await saveBookingRpc({...req.body,createdBy:req.user.username});if(error)return res.status(migrationRequired?503:500).json({error:error.message});invalidateBookingCache();res.json(data)});
-router.put("/:code",requirePermission("editBooking"),async(req,res)=>{const inputError=equipmentInputError(req.body||{})||travelStopInputError(req.body||{});if(inputError)return res.status(400).json({error:inputError});const {data,error,migrationRequired}=await saveBookingRpc({...req.body,bookingCode:req.params.code,createdBy:req.user.username});if(error)return res.status(migrationRequired?503:500).json({error:error.message});invalidateBookingCache();res.json(data)});
+router.post("/",requirePermission("createBooking"),async(req,res)=>{const inputError=equipmentInputError(req.body||{})||travelStopInputError(req.body||{});if(inputError)return res.status(400).json({error:inputError});const {data,error,migrationRequired}=await saveBookingRpc({...req.body,createdBy:req.user.username});if(error){const failure=bookingSaveError(error,migrationRequired);return res.status(failure.status).json({error:failure.message})}invalidateBookingCache();res.json(data)});
+router.put("/:code",requirePermission("editBooking"),async(req,res)=>{const inputError=equipmentInputError(req.body||{})||travelStopInputError(req.body||{});if(inputError)return res.status(400).json({error:inputError});const {data,error,migrationRequired}=await saveBookingRpc({...req.body,bookingCode:req.params.code,createdBy:req.user.username});if(error){const failure=bookingSaveError(error,migrationRequired);return res.status(failure.status).json({error:failure.message})}invalidateBookingCache();res.json(data)});
 router.post("/:code/cancel",requirePermission("cancelBooking"),async(req,res)=>{if(!String(req.body.reason||"").trim())return res.status(400).json({error:"Cancellation reason is required"});const {data,error}=await supabaseAdmin.rpc("cancel_booking_by_code",{p_booking_code:req.params.code,p_reason:req.body.reason});if(error)return res.status(500).json({error:error.message});invalidateBookingCache();res.json(data)});
 router.get("/:code/timeline",async(req,res)=>{const {data,error}=await supabaseAdmin.from("audit_logs").select("*").eq("booking_code",req.params.code).order("changed_at",{ascending:true});if(error)return res.status(500).json({error:error.message});res.json(data||[])});
 export default router;
