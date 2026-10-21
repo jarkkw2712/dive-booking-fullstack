@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { buildPrintCenterReport } from "../src/services/reportService.js";
 
@@ -466,6 +467,25 @@ test("van report uses each leg's service date and Master Data code even when the
   assert.equal(unpriced.totals.total,0);
 });
 
+test("songthaew report lists BKS and Lignite routes without mixing in van pickup at BKS",()=>{
+  const transportationMethods=[{method_id:"route_a",method_name:"รับลิกไนท์"},{method_id:"route_b",method_name:"ส่ง บขส."},{method_id:"van_bus_station",method_name:"รับบขส."}];
+  const booking={bookingCode:"SONGTHAEW-1",status:"confirmed",travelDate:"2026-10-20",returnDate:"2026-10-22",leaderFirstName:"มาลี",passengers:[
+    {transportationMethod:"route_a",transportationAmount:150,passengerTravelDate:"2026-10-20",outboundDestination:"ลิกไนท์",outboundTo:"ซาบีน่า",returnTransportationMethod:"route_b",returnTransportationAmount:200,passengerReturnDate:"2026-10-22",returnDestination:"ซาบีน่า",returnTo:"บขส."},
+    {transportationMethod:"route_a",transportationAmount:150,passengerTravelDate:"2026-10-20",outboundDestination:"ลิกไนท์",outboundTo:"ซาบีน่า"},
+    {transportationMethod:"รับบขส.",transportationAmount:400,passengerTravelDate:"2026-10-20",outboundDestination:"บขส.",outboundTo:"ซาบีน่า"}
+  ]};
+  const report=buildPrintCenterReport({bookings:[booking],transportationMethods,date:"2026-10-20",toDate:"2026-10-22",type:"songthaew_work_order_reference"});
+  assert.equal(report.title,"รายงานรถสองแถว");
+  assert.deepEqual(report.rows.map(row=>[row.date,row.direction,row.from,row.to,row.pax,row.amount]),[
+    ["2026-10-20","ขาไป","ลิกไนท์","ซาบีน่า",2,300],
+    ["2026-10-22","ขากลับ","ซาบีน่า","บขส.",1,200]
+  ]);
+  assert.deepEqual(report.summary,{jobs:2,pax:3,vehicles:2,amount:500});
+  const van=buildPrintCenterReport({bookings:[booking],transportationMethods,date:"2026-10-20",type:"van_work_order_reference"});
+  assert.equal(van.rows.length,1);
+  assert.equal(van.rows[0].amount,400);
+});
+
 test("additional transport stops appear on their own service dates, payments and receipt visibility",()=>{
   const paymentMethods=[{method_id:"cash",method_name:"เงินสด",payment_type:"cash"},{method_id:"bank_transfer_laddawan",method_name:"ลัดดาวรรณ์",payment_type:"transfer"}];
   const transportationMethods=[{method_id:"van_airport",method_name:"รับส่งสนามบิน",show_money_receipt:true},{method_id:"private_car",method_name:"รถส่วนตัว",show_money_receipt:false}];
@@ -591,6 +611,29 @@ test("boat and tent report reads tents from company-booked accommodation and spl
   ]}];
   const report=buildPrintCenterReport({bookings,paymentMethods,date:"2026-09-23",type:"boat_tent_reference"}),row=report.rows[0];
   assert.equal(row.qty,2);assert.equal(row.boatCash,0);assert.equal(row.boatTransfer,3000);assert.equal(row.discount,200);assert.equal(row.smallTentQty,1);assert.equal(row.largeTentQty,2);assert.equal(row.tentTransfer,1750);assert.equal(row.totalTransfer,4750);assert.equal(row.customerSource,"Facebook");
+});
+test("staff-entered tent nights multiply revenue but do not multiply tent count",()=>{
+  const booking={bookingCode:"TENT-NIGHTS",travelDate:"2026-10-21",returnDate:"2026-10-25",status:"confirmed",paymentMethod:"เงินสด",passengers:[{program:{programId:"boat_ticket",name:"ตั๋วเรือ",qty:1,price:1000}}],accommodations:[
+    {accommodationId:"SB tent",accommodationName:"เต็นท์เล็ก",accommodationBookedBy:"company",accommodationQty:2,accommodationNights:3,accommodationPrice:450},
+    {accommodationId:"park_house",accommodationName:"บ้านพัก",accommodationBookedBy:"company",accommodationQty:1,accommodationNights:8,accommodationPrice:600},
+    {accommodationId:"SB Tent",accommodationName:"เต็นท์ใหญ่",accommodationBookedBy:"customer",accommodationQty:1,accommodationNights:4,accommodationPrice:650}
+  ]};
+  const boat=buildPrintCenterReport({bookings:[booking],date:"2026-10-21",type:"boat_tent_reference"});
+  assert.equal(boat.rows[0].smallTentQty,2);assert.equal(boat.rows[0].tentCash,2700);
+  const tour=buildPrintCenterReport({bookings:[booking],date:"2026-10-21",toDate:"2026-10-21",type:"tour_expense_reference"});
+  assert.equal(tour.rows[0].totalRevenue,4300);
+  const management=buildPrintCenterReport({bookings:[booking],date:"2026-10-21",type:"management",masterAccommodations:[]});
+  assert.equal(management.accommodation.companyRevenue,3300);
+});
+test("booking API rejects invalid staff-entered tent nights before saving",()=>{
+  const route=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8"),source=route.slice(route.indexOf("function accommodationInputError"),route.indexOf("function travelStopInputError"));
+  const context={};vm.runInNewContext(`${source}\ncheck=accommodationInputError`,context);
+  const row={accommodationId:"SB tent",accommodationName:"เต็นท์เล็ก",accommodationQty:2,accommodationPrice:450,accommodationNights:3};
+  assert.equal(context.check({accommodations:[row]}),"");
+  assert.match(context.check({accommodations:[{...row,accommodationNights:0}]}),/จำนวนคืน/);
+  assert.match(context.check({accommodations:[{...row,accommodationNights:1.5}]}),/จำนวนคืน/);
+  assert.match(context.check({accommodations:[{...row,accommodationPrice:-1}]}),/ราคา/);
+  assert.match(route,/equipmentInputError\(req\.body\|\|\{\}\)\|\|accommodationInputError\(req\.body\|\|\{\}\)/);
 });
 
 test("package and island boat migration is revisioned, numeric and non-destructive",()=>{

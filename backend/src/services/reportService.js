@@ -8,7 +8,12 @@ const money=value=>Number(value||0);
 const sumMoney=(values,amount)=>values.reduce((sum,value)=>sum+Math.round(money(amount(value))*100),0)/100;
 const accommodationQuantity=person=>person?.accommodationId?Math.max(Number(person.accommodationQty??1),0):0;
 const accommodationUnitPrice=person=>Math.max(money(person?.accommodationPrice),0);
-const accommodationRevenue=person=>person?.accommodationBookedBy==="company"?accommodationQuantity(person)*accommodationUnitPrice(person):0;
+const accommodationNights=person=>{
+  if(!person?.accommodationId||!tentSize(person))return 1;
+  const nights=Number(person.accommodationNights??1);
+  return Number.isInteger(nights)&&nights>0?nights:1;
+};
+const accommodationRevenue=person=>person?.accommodationBookedBy==="company"?accommodationQuantity(person)*accommodationNights(person)*accommodationUnitPrice(person):0;
 const accommodationLabel={none:"ไม่นอน",park_house:"บ้านพักอุทยาน",park_tent:"เต็นท์อุทยาน"};
 const passengerTypeLabel={adult:"ผู้ใหญ่",child:"เด็ก",infant:"ทารก",foc:"FOC"};
 
@@ -30,9 +35,9 @@ function accommodationSummary(entries){
     none:people.filter(person=>!person.accommodationId).length,
     customerSelfBooked:people.filter(person=>person.accommodationId&&person.accommodationBookedBy!=="company").reduce((sum,person)=>sum+accommodationQuantity(person),0),
     companyBooked:people.filter(person=>person.accommodationId&&person.accommodationBookedBy==="company").reduce((sum,person)=>sum+accommodationQuantity(person),0),
-    customerReferenceValue:people.filter(person=>person.accommodationBookedBy!=="company").reduce((sum,person)=>sum+accommodationQuantity(person)*accommodationUnitPrice(person),0),
+    customerReferenceValue:people.filter(person=>person.accommodationBookedBy!=="company").reduce((sum,person)=>sum+accommodationQuantity(person)*accommodationNights(person)*accommodationUnitPrice(person),0),
     companyRevenue:people.reduce((sum,person)=>sum+accommodationRevenue(person),0),
-    note:"ลูกค้าจองเองเก็บเพื่อการปฏิบัติงานและไม่รวมรายได้; เราจองให้รวมจำนวน × ราคาในยอด Booking"
+    note:"ลูกค้าจองเองเก็บเพื่อการปฏิบัติงานและไม่รวมรายได้; เราจองให้คิดจำนวน × ราคา (เต็นท์คูณจำนวนคืนที่พนักงานกรอก)"
   };
 }
 
@@ -203,7 +208,7 @@ function packageCostReport(bookings,date,packageCostRates=[]){
   return{date,type:"package_cost_reference",title:"แพ็คเกจ",purpose:"ยอดขายและต้นทุนแพ็คเกจประจำวัน",range:{from:date,to:date},rows:rows.map((row,index)=>({no:index+1,...row})),totals,missingRatePrograms:[...new Set(rows.filter(row=>row.missingRates).map(row=>row.program))],sourceNotes:["วันที่อ้างอิงวันเดินทางไปเกาะ","ไม่รวมโปรแกรมตั๋วเรือ","ต้นทุนแต่ละช่องคำนวณจากจำนวน × ค่าคงที่ใน Master Data"]};
 }
 
-function tentSize(person){const value=normalized(`${person.accommodationId||""} ${person.accommodationName||""}`),price=accommodationUnitPrice(person);if(/บ้าน|house|bungalow/.test(value))return"";if(/ใหญ่|large/.test(value))return"large";if(/เล็ก|small/.test(value))return"small";if(/tent|เต็นท์/.test(value))return price>500?"large":"small";if(price===450)return"small";if(price===650)return"large";return""}
+function tentSize(person){const value=normalized(`${person.accommodationId||""} ${person.accommodationName||""}`),price=accommodationUnitPrice(person);if(/บ้าน|house|bungalow/.test(value))return"";if(!/tent|เต็นท์|เตนท์/.test(value))return"";if(/ใหญ่|large/.test(value))return"large";if(/เล็ก|small/.test(value))return"small";return price>500?"large":"small"}
 function boatTentReport(bookings,date,paymentMethods=[]){
   const rows=[];
   for(const booking of bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===date)){
@@ -215,7 +220,7 @@ function boatTentReport(bookings,date,paymentMethods=[]){
     rows.push({returnDate:booking.returnDate||"",leader:leaderName(booking),qty,price:qty?amount/qty:0,boatCash,boatTransfer,discount:Math.max(defaultAmount-amount,0),balance:amount,smallTentQty,largeTentQty,tentCash,tentTransfer,totalCash:boatCash+tentCash,totalTransfer:boatTransfer+tentTransfer,customerSource:booking.source||booking.contactEmail||"",bookingCode:booking.bookingCode||""});
   }
   const fields=["qty","boatCash","boatTransfer","discount","balance","smallTentQty","largeTentQty","tentCash","tentTransfer","totalCash","totalTransfer"],totals=Object.fromEntries(fields.map(field=>[field,rows.reduce((sum,row)=>sum+money(row[field]),0)]));
-  return{date,type:"boat_tent_reference",title:"ตั๋วเรือ - เต็นท์",purpose:"ยอดตั๋วเรือและเต็นท์ประจำวัน",range:{from:date,to:date},rows,totals,sourceNotes:["วันที่อ้างอิงวันเดินทางไปเกาะ","รวมเฉพาะ Program ตั๋วเรือ","เต็นท์อ้างอิงจากที่พักที่เราเป็นผู้จอง ไม่ใช่อุปกรณ์","สด/โอนอ้างอิงช่องทางชำระเงินของ Booking"]};
+  return{date,type:"boat_tent_reference",title:"ตั๋วเรือ - เต็นท์",purpose:"ยอดตั๋วเรือและเต็นท์ประจำวัน",range:{from:date,to:date},rows,totals,sourceNotes:["วันที่อ้างอิงวันเดินทางไปเกาะ","รวมเฉพาะ Program ตั๋วเรือ","เต็นท์อ้างอิงจากที่พักที่เราเป็นผู้จอง ไม่ใช่อุปกรณ์; ยอดเงินคิดจำนวนเต็นท์ × จำนวนคืนที่พนักงานกรอก × ราคาต่อคืน","สด/โอนอ้างอิงช่องทางชำระเงินของ Booking"]};
 }
 
 function vanRevenueLines(bookings,paymentMethods,transportationMethods){
@@ -229,17 +234,19 @@ function vanDailyReferenceReport(bookings,date,toDate,paymentMethods,transportat
   return{date,type:"van_daily_reference",title:"รายงานรถตู้",purpose:"ยอดค่ารถตู้ตามวันให้บริการของแต่ละขา แยกเงินสดและเงินโอน",range:{from:date,to:toDate},rows,totals,summary,monthlyRows:monthly.rows,monthlyTotals:monthly.totals,sourceNotes:["นับขาไป ขากลับ และจุดแวะเพิ่มเติมตามวันให้บริการรายบุคคล","ระบุรถตู้จากรหัสวิธีการเดินทางใน Master Data หรือชื่อรถตู้ของรายการเดิม","เงินสด/โอนใช้ช่องทางชำระของแต่ละขาและ code ใน Payment Method Master"]};
 }
 
-function vanWorkOrderReferenceReport(bookings,date,toDate,paymentMethods,transportationMethods){
+function transportWorkOrderReferenceReport(bookings,date,toDate,paymentMethods,transportationMethods,{type,title,purpose,methodMatches}){
   const groups=new Map();
   for(const booking of bookings.filter(activeBooking))for(const leg of transportationRevenueLines(booking,paymentMethods,transportationMethods)){
-    if(!isVanMethod(leg.method,transportationMethods)||!leg.operationalDate||leg.operationalDate<date||leg.operationalDate>toDate)continue;
+    if(!methodMatches(leg.method,transportationMethods)||!leg.operationalDate||leg.operationalDate<date||leg.operationalDate>toDate)continue;
     const key=JSON.stringify([booking.bookingCode,leg.direction,leg.operationalDate,leg.from,leg.to,leg.method]);
     const row=groups.get(key)||{date:leg.operationalDate,direction:leg.direction,leader:leaderName(booking),phone:booking.phone||"",pax:0,vehicles:0,method:leg.method,from:leg.from,to:leg.to,location:leg.destination,note:booking.bookingNote||"",bookingCode:booking.bookingCode,amount:0};
     row.pax++;row.vehicles=Math.max(row.vehicles,leg.quantity);row.amount=Math.round((row.amount+leg.amount)*100)/100;groups.set(key,row);
   }
   const rows=[...groups.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.bookingCode.localeCompare(b.bookingCode)||a.direction.localeCompare(b.direction)).map((row,index)=>({no:index+1,...row}));
-  return{date,type:"van_work_order_reference",title:"ใบงานรับ-ส่งรถตู้",purpose:"รายการปฏิบัติงานรถตู้แยกขาไป ขากลับ และจุดแวะ",range:{from:date,to:toDate},rows,summary:{jobs:rows.length,pax:rows.reduce((sum,row)=>sum+row.pax,0),vehicles:rows.reduce((sum,row)=>sum+row.vehicles,0),amount:sumMoney(rows,row=>row.amount)},sourceNotes:["วันปฏิบัติงานอ้างอิงวันเดินทางรายบุคคลของแต่ละขาและจุดแวะ","ผู้โดยสารนับจากรายชื่อในเส้นทาง; จำนวนรถใช้ค่าสูงสุดในกลุ่มเส้นทางเดียวกันเพื่อไม่ให้นับซ้ำ","ค่ารถรวมคำนวณจากจำนวนรถ × ราคาต่อคันของแต่ละรายการ"]};
+  return{date,type,title,purpose,range:{from:date,to:toDate},rows,summary:{jobs:rows.length,pax:rows.reduce((sum,row)=>sum+row.pax,0),vehicles:rows.reduce((sum,row)=>sum+row.vehicles,0),amount:sumMoney(rows,row=>row.amount)},sourceNotes:["วันปฏิบัติงานอ้างอิงวันเดินทางรายบุคคลของแต่ละขาและจุดแวะ","ผู้โดยสารนับจากรายชื่อในเส้นทาง; จำนวนรถใช้ค่าสูงสุดในกลุ่มเส้นทางเดียวกันเพื่อไม่ให้นับซ้ำ","ค่ารถรวมคำนวณจากจำนวนรถ × ราคาต่อคันของแต่ละรายการ"]};
 }
+function vanWorkOrderReferenceReport(bookings,date,toDate,paymentMethods,transportationMethods){return transportWorkOrderReferenceReport(bookings,date,toDate,paymentMethods,transportationMethods,{type:"van_work_order_reference",title:"ใบงานรับ-ส่งรถตู้",purpose:"รายการปฏิบัติงานรถตู้แยกขาไป ขากลับ และจุดแวะ",methodMatches:isVanMethod})}
+function songthaewWorkOrderReferenceReport(bookings,date,toDate,paymentMethods,transportationMethods){const report=transportWorkOrderReferenceReport(bookings,date,toDate,paymentMethods,transportationMethods,{type:"songthaew_work_order_reference",title:"รายงานรถสองแถว",purpose:"งานรับ-ส่ง บขส. และลิกไนท์ แยกขาไป ขากลับ และจุดแวะ",methodMatches:(method,methods)=>!isVanMethod(method,methods)&&["lignite","bks"].includes(transportationBucket(method,methods))});report.sourceNotes.push("รวมวิธีเดินทางที่ชื่อใน Master Data เป็น บขส. หรือ ลิกไนท์; ไม่รวมรายการที่รหัสระบุว่าเป็นรถตู้");return report}
 
 function agentReferenceReport(bookings,date,toDate,masterAgents=[]){
   const agentOrder=new Map((masterAgents||[]).map((agent,index)=>[String(agent.agent_name||"").trim(),Number(agent.sort_order??index)])),groups=new Map();
@@ -335,7 +342,7 @@ function managementReport(bookings,financialRows,expenseRows,date,toDate=date,ma
   });
   const today=rows[0]||{};
   const categoryNames=["ค่าตั๋วเรือ","ที่พัก","มัดจำ","ขายเชื่อ","ค่าน้ำ","ค่าน้ำเกาะ","หน้ากาก","ชูชีพ","ฟิน","น้ำแข็ง","เต็นท์","เหมาเรือ","ค่าระวาง","อื่นๆ","รวมรายได้"];
-  const incomeMatrix=categoryNames.map(category=>({category,values:Object.fromEntries(days.map(day=>{const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===day);let amount=0;if(category==="ค่าตั๋วเรือ")amount=daily.flatMap(passengersOf).reduce((sum,p)=>sum+money(p.program?.qty||1)*money(p.program?.price),0);else if(category==="ที่พัก")amount=daily.flatMap(accommodationsOf).reduce((sum,p)=>sum+accommodationRevenue(p),0);else if(category==="มัดจำ")amount=daily.reduce((sum,b)=>sum+money(b.depositAmount),0);else if(category==="ขายเชื่อ")amount=daily.reduce((sum,b)=>sum+money(b.creditAmount),0);else if(category==="รวมรายได้")amount=daily.reduce((sum,b)=>sum+money(b.totalAmount),0);else amount=daily.flatMap(passengersOf).reduce((sum,p)=>sum+(p.preAddOns||[]).filter(a=>a.selected&&incomeCategory(a.name)===category).reduce((value,a)=>value+equipmentBillableUnits(a)*money(a.price),0)+(p.islandAddOns||[]).filter(a=>incomeCategory(a.name)===category).reduce((value,a)=>value+money(a.qty||1)*money(a.price),0),0);return[day,amount]}))}));
+  const incomeMatrix=categoryNames.map(category=>({category,values:Object.fromEntries(days.map(day=>{const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===day);let amount=0;if(category==="ค่าตั๋วเรือ")amount=daily.flatMap(passengersOf).reduce((sum,p)=>sum+money(p.program?.qty||1)*money(p.program?.price),0);else if(category==="ที่พัก")amount=daily.reduce((sum,booking)=>sum+sumMoney(accommodationsOf(booking),accommodationRevenue),0);else if(category==="มัดจำ")amount=daily.reduce((sum,b)=>sum+money(b.depositAmount),0);else if(category==="ขายเชื่อ")amount=daily.reduce((sum,b)=>sum+money(b.creditAmount),0);else if(category==="รวมรายได้")amount=daily.reduce((sum,b)=>sum+money(b.totalAmount),0);else amount=daily.flatMap(passengersOf).reduce((sum,p)=>sum+(p.preAddOns||[]).filter(a=>a.selected&&incomeCategory(a.name)===category).reduce((value,a)=>value+equipmentBillableUnits(a)*money(a.price),0)+(p.islandAddOns||[]).filter(a=>incomeCategory(a.name)===category).reduce((value,a)=>value+money(a.qty||1)*money(a.price),0),0);return[day,amount]}))}));
   const standardExpenseCategories=[
     {code:"boat_fee",name:"ค่าธรรมเนียมเรือ"},{code:"thai_adult_fee",name:"คนไทย - ผู้ใหญ่"},{code:"thai_child_fee",name:"คนไทย - เด็ก"},
     {code:"foreign_adult_fee",name:"ต่างชาติ - ผู้ใหญ่"},{code:"foreign_child_fee",name:"ต่างชาติ - เด็ก"},{code:"tent_fee",name:"ค่าธรรมเนียมกางเต็นท์ (ยอดรวม)"},{code:"ice",name:"ค่าน้ำแข็งประจำวัน"}
@@ -514,6 +521,7 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows
   if(type==="boat_tent_reference")return boatTentReport(active,date,paymentMethods);
   if(type==="van_daily_reference")return vanDailyReferenceReport(active,date,toDate,paymentMethods,transportationMethods);
   if(type==="van_work_order_reference")return vanWorkOrderReferenceReport(active,date,toDate,paymentMethods,transportationMethods);
+  if(type==="songthaew_work_order_reference")return songthaewWorkOrderReferenceReport(active,date,toDate,paymentMethods,transportationMethods);
   if(type==="agent_reference")return agentReferenceReport(active,date,toDate,masterAgents);
   if(type==="customer_travel_daily_reference")return customerTravelDailyReferenceReport(active,date,toDate,transportationMethods);
   if(type==="tour_monthly_reference")return tourMonthlyReferenceReport(active,date,toDate,paymentMethods);

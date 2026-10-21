@@ -46,8 +46,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.21-02/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=asset==="js/app.js"?"20261021-02":["css/style.css","js/financial.js","js/travelStops.js"].includes(asset)?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.10\.21-03/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=["js/app.js","js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":["css/style.css","js/travelStops.js"].includes(asset)?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -327,6 +327,18 @@ test("a booking supports multiple accommodation rows while preserving legacy acc
   assert.match(app,/bookingAccommodations=\[createBookingAccommodation\(\)\]/);assert.match(app,/filter\(row=>row\.accommodationId\)/);assert.doesNotMatch(app,/ยังไม่ได้เพิ่มที่พัก กด/);assert.doesNotMatch(app,/ลูกค้าจองเอง: เก็บเป็นข้อมูล/);
   assert.match(sql,/add column if not exists accommodations jsonb/);assert.match(sql,/upsert_booking_v23/);assert.match(sql,/list_bookings_json_v23/);assert.doesNotMatch(sql,/delete from|truncate/i);
 });
+test("tent accommodation uses staff-entered nights across booking, financial documents and Excel",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),financial=fs.readFileSync(path.join(root,"js","financial.js"),"utf8"),bookingOriginal=fs.readFileSync(path.join(root,"js","bookingOriginal.js"),"utf8");
+  const helpers=app.slice(app.indexOf("function createBookingAccommodation"),app.indexOf("function clearLegacyPassengerAccommodations"));
+  const charge=app.slice(app.indexOf("function bookingAccommodationCharge"),app.indexOf("function bookingAccommodationOptions"));
+  const context={};
+  require("node:vm").runInNewContext(`${helpers}\n${charge}\nresult={total:bookingAccommodationCharge([{accommodationId:'SB tent',accommodationName:'เต็นท์เล็ก',accommodationBookedBy:'company',accommodationQty:2,accommodationNights:3,accommodationPrice:450},{accommodationId:'house',accommodationName:'บ้านพัก',accommodationBookedBy:'company',accommodationQty:2,accommodationNights:9,accommodationPrice:600},{accommodationId:'SB Tent',accommodationName:'เต็นท์ใหญ่',accommodationBookedBy:'customer',accommodationQty:1,accommodationNights:4,accommodationPrice:650}]),old:bookingAccommodationCharge([{accommodationId:'SB tent',accommodationName:'เต็นท์เล็ก',accommodationBookedBy:'company',accommodationQty:2,accommodationPrice:450}])};`,context);
+  assert.equal(context.result.total,3900);assert.equal(context.result.old,900);
+  assert.match(app,/onchange="updateBookingAccommodation\(\$\{index\},'accommodationNights'/);
+  assert.match(app,/qty=accommodationBillableQty\(row\)/);
+  assert.match(financial,/qty:accommodationBillableQty\(row\)/);
+  assert.match(bookingOriginal,/row\[27\]=bookingAccommodationCharge\(accommodations\)/);
+});
 test("insurance submission has a dedicated permission and receipt references follow document rules",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8"),routes=fs.readFileSync(path.resolve(root,"../backend/src/routes/reports.js"),"utf8"),service=fs.readFileSync(path.resolve(root,"../backend/src/services/reportService.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_023_insurance_report_permission.sql"),"utf8");
   assert.match(html,/value="insurance" data-any-permission="printInsuranceReport">ใบส่งประกัน/);assert.match(routes,/insurance:\["printInsuranceReport"\]/);assert.match(sql,/'printInsuranceReport'/);assert.match(sql,/from app_roles/);
@@ -365,7 +377,7 @@ test("changing accommodation owner does not hide the active owner field",()=>{
 
 test("reference reports and category payment defaults are wired end to end",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),feature=fs.readFileSync(path.join(root,"js","islandAddonMaster.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/reports.js"),"utf8"),service=fs.readFileSync(path.resolve(root,"../backend/src/services/reportService.js"),"utf8"),masterRoute=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),bookingRoute=fs.readFileSync(path.resolve(root,"../backend/src/routes/bookings.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260921_035_payment_defaults_transport_methods.sql"),"utf8");
-  for(const type of ["tour_expense_reference","tent_fee_reference","van_daily_reference","van_work_order_reference","agent_reference","customer_travel_daily_reference"]){assert.ok(html.includes(type)||app.includes(type));assert.ok(route.includes(type));assert.ok(service.includes(type))}for(const type of ["tour_monthly_reference","van_monthly_reference"]){assert.ok(route.includes(type));assert.ok(service.includes(type));assert.equal(html.includes(type),false)}
+  for(const type of ["tour_expense_reference","tent_fee_reference","van_daily_reference","van_work_order_reference","songthaew_work_order_reference","agent_reference","customer_travel_daily_reference"]){assert.ok(html.includes(type)||app.includes(type));assert.ok(route.includes(type));assert.ok(service.includes(type))}for(const type of ["tour_monthly_reference","van_monthly_reference"]){assert.ok(route.includes(type));assert.ok(service.includes(type));assert.equal(html.includes(type),false)}
   assert.match(html,/>รายงานรถตู้<\/option>/);assert.doesNotMatch(html,/รายงานรถตู้ \(เฉพาะรถตู้\)/);assert.match(app,/ยังไม่ระบุราคา/);
   assert.match(app,/function bookingIsVanMethod\(value\).*master\.transportationMethods/);
   for(const id of ["mdpDefaultGeneral","mdpDefaultEquipment","mdpDefaultIsland","mdpDefaultTransport"])assert.match(html,new RegExp(`id=["']${id}["']`));
@@ -388,6 +400,16 @@ test("van work order prints each route with method, price, and one total on A4",
   assert.match(context.html,/reference-report-landscape reference-van-work-report/);
   assert.match(context.html,/สนามบิน<\/span> <b aria-hidden="true">→<\/b> <span>ซาบีน่า/);
   assert.match(context.html,/รถตู้/);assert.match(context.html,/850\.00/);
+  assert.equal((context.html.match(/class="reference-total-row"/g)||[]).length,1);
+});
+test("songthaew report prints BKS and Lignite routes separately on landscape A4",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  const source=app.slice(app.indexOf("function vanWorkOrderReferenceHtml"),app.indexOf("const referencePrintReportHtmlBeforeTemplateReports"));
+  const context={referenceReportHeader:()=>"<header>Sabina</header>",referenceReportNotes:()=>"",referenceReportDate:value=>value,escapeHtml:value=>String(value),money:value=>Number(value||0).toFixed(2)};
+  require("node:vm").runInNewContext(`${source}\nhtml=vanWorkOrderReferenceHtml({type:'songthaew_work_order_reference',rows:[{no:1,date:'2026-10-20',direction:'ขาไป',leader:'มาลี',phone:'081',pax:2,vehicles:1,method:'รับลิกไนท์',from:'บขส.',to:'ซาบีน่า',amount:300}],summary:{jobs:1,pax:2,vehicles:1,amount:300}});`,context);
+  assert.match(context.html,/reference-report-landscape reference-van-work-report/);
+  assert.match(context.html,/บขส\.<\/span> <b aria-hidden="true">→<\/b> <span>ซาบีน่า/);
+  assert.match(context.html,/รับลิกไนท์/);assert.match(context.html,/300\.00/);
   assert.equal((context.html.match(/class="reference-total-row"/g)||[]).length,1);
 });
 test("front charge print report keeps template columns and handwritten crew fields on A4",()=>{
