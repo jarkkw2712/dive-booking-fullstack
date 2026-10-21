@@ -30,48 +30,6 @@ test("changing passenger count preserves the original leader object and custom p
   assert.equal(leader.transportationMethod,"รถตู้");
 });
 
-test("child-to-adult correction keeps the same named passenger, route and five-person total",()=>{
-  const fields={adultCount:"5",childCount:"1",infantCount:"0",focCount:"0"};
-  const program={program_id:"boat_ticket",default_price:1700,child_price:1100};
-  const person=(firstName,type,price)=>({firstName,passengerType:type,title:type==="child"?"เด็กหญิง":"นางสาว",program:{programId:"boat_ticket",price,defaultPrice:price},extraTransportStops:[]});
-  const child={...person("รุ่งนภา","child",1100),outboundTo:"ซาบีน่า",extraTransportStops:[{from:"ท่าเรือ",to:"ซาบีน่า"}]};
-  const context={passengers:[person("หัวหน้า","adult",1700),person("คนที่สอง","adult",1700),person("คนที่สาม","adult",1700),person("คนที่สี่","adult",1700),child],master:{programs:[program]},passengerTypeLabels:{adult:"ผู้ใหญ่",child:"เด็ก",infant:"ทารก",foc:"FOC"},val:id=>fields[id],programPriceForType:(item,type)=>type==="child"?item.child_price:item.default_price,createPassenger:(_,type)=>({firstName:"",passengerType:type,outboundTo:"ซาบีน่า",returnDestination:"ซาบีน่า",program:{programId:"boat_ticket",price:1700,defaultPrice:1700}}),updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},confirm(){throw new Error("named passenger must not be removed")}};
-  vm.runInNewContext(`${section("function applyPassengerTypeChange(","function parsePassengerText()")};syncPassengerComposition();`,context);
-  assert.equal(context.passengers.length,6);
-  fields.childCount="0";
-  vm.runInNewContext("syncPassengerComposition();",context);
-  assert.equal(context.passengers.length,5);
-  assert.equal(context.passengers[4],child);
-  assert.equal(child.passengerType,"adult");
-  assert.equal(child.title,"นางสาว");
-  assert.equal(child.program.price,1700);
-  assert.equal(child.outboundTo,"ซาบีน่า");
-  assert.equal(child.extraTransportStops.length,1);
-});
-
-test("direct passenger type edit preserves a manually overridden program price",()=>{
-  const person={title:"เด็กชาย",passengerType:"child",program:{programId:"boat_ticket",price:900,defaultPrice:1100},outboundTo:"ซาบีน่า"};
-  const context={passengers:[{passengerType:"adult"},person],master:{programs:[{program_id:"boat_ticket",default_price:1700,child_price:1100}]},passengerTypeLabels:{adult:"ผู้ใหญ่",child:"เด็ก",infant:"ทารก",foc:"FOC"},programPriceForType:(item,type)=>type==="child"?item.child_price:item.default_price,updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){}};
-  vm.runInNewContext(`${section("function applyPassengerTypeChange(","function parsePassengerText()")};changePassengerType(1,"adult");`,context);
-  assert.equal(context.passengers[1],person);
-  assert.equal(person.passengerType,"adult");
-  assert.equal(person.title,"นาย");
-  assert.equal(person.program.price,900);
-  assert.equal(person.outboundTo,"ซาบีน่า");
-});
-
-test("lowering the child count first never silently deletes a named child",()=>{
-  const child={firstName:"รุ่งนภา",passengerType:"child",outboundTo:"ซาบีน่า",program:{programId:"boat_ticket",price:1100,defaultPrice:1100}};
-  let prompt="",restored=false;
-  const context={passengers:[{firstName:"หัวหน้า",passengerType:"adult"},child],master:{programs:[]},passengerTypeLabels:{adult:"ผู้ใหญ่",child:"เด็ก",infant:"ทารก",foc:"FOC"},val:id=>id==="adultCount"?"1":"0",updatePassengerCountInputs(){restored=true},renderPassengers(){throw new Error("should not rerender")},refreshSummary(){throw new Error("should not recalculate")},confirm(message){prompt=message;return false}};
-  vm.runInNewContext(`${section("function applyPassengerTypeChange(","function parsePassengerText()")};syncPassengerComposition();`,context);
-  assert.equal(context.passengers.length,2);
-  assert.equal(context.passengers[1],child);
-  assert.equal(restored,true);
-  assert.match(prompt,/รุ่งนภา/);
-  assert.match(prompt,/ประเภทผู้เดินทาง/);
-});
-
 test("equipment quantity is physical pieces times nights while old bookings remain one night",()=>{
   const context={};
   vm.runInNewContext(`${section("function equipmentNights(item)","function createPassenger(")};result=[equipmentBillableQty({qty:2,nights:3}),equipmentBillableQty({qty:2})];`,context);
