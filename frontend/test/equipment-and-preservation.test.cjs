@@ -22,12 +22,74 @@ test("existing leader price and travel survive later smart-pasted guest names",(
 
 test("changing passenger count preserves the original leader object and custom price",()=>{
   const leader={firstName:"สมชาย",passengerType:"adult",program:{programId:"boat_ticket",price:1500,defaultPrice:1700},transportationMethod:"รถตู้"};
-  const context={passengers:[leader],master:{programs:[]},val:id=>id==="adultCount"?"2":"0",createPassenger:()=>({passengerType:"adult",program:{price:1700}}),updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},confirm(){return true}};
+  const context={passengers:[leader],master:{programs:[]},val:id=>id==="adultCount"?"2":"0",createPassenger:()=>({passengerType:"adult",program:{price:1700}}),document:{getElementById:()=>({value:""})},updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},confirm(){return true}};
   vm.runInNewContext(`${section("function syncPassengerComposition()","function parsePassengerText()")};syncPassengerComposition();`,context);
   assert.equal(context.passengers.length,2);
   assert.equal(context.passengers[0],leader);
   assert.equal(leader.program.price,1500);
   assert.equal(leader.transportationMethod,"รถตู้");
+});
+
+test("a named child can become an adult without losing custom price or travel details",()=>{
+  const child={title:"เด็กหญิง",firstName:"รุ่งนภา",passengerType:"child",program:{programId:"boat_ticket",price:900,defaultPrice:1100},outboundDestination:"สนามบิน",extraTransportStops:[{from:"ท่าเรือ",to:"ซาบีน่า"}]};
+  const context={passengers:[{title:"นาย",passengerType:"adult"},child],master:{programs:[{program_id:"boat_ticket",default_price:1700,child_price:1100}]},passengerTypeLabels:{adult:"ผู้ใหญ่",child:"เด็ก",infant:"ทารก",foc:"FOC"},programPriceForType:(program,type)=>type==="child"?program.child_price:program.default_price,updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){}};
+  vm.runInNewContext(`${section("function applyPassengerTypeChange(","function parsePassengerText()")};changePassengerType(1,"adult");`,context);
+  assert.equal(context.passengers[1],child);
+  assert.equal(child.passengerType,"adult");assert.equal(child.title,"นางสาว");
+  assert.equal(child.program.price,900);assert.equal(child.program.defaultPrice,1700);
+  assert.equal(child.outboundDestination,"สนามบิน");assert.equal(child.extraTransportStops.length,1);
+});
+
+test("leader passenger type can change without being overwritten by the main booking title",()=>{
+  const leader={title:"นาย",firstName:"หัวหน้า",passengerType:"adult",program:{programId:"boat_ticket",price:1700,defaultPrice:1700}},leaderTitle={value:"นาย"};
+  const context={passengers:[leader],master:{programs:[{program_id:"boat_ticket",default_price:1700,child_price:1100}]},passengerTypeLabels:{adult:"ผู้ใหญ่",child:"เด็ก",infant:"ทารก",foc:"FOC"},programPriceForType:(program,type)=>type==="child"?program.child_price:program.default_price,document:{getElementById:()=>leaderTitle},updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){}};
+  vm.runInNewContext(`${section("function applyPassengerTypeChange(","function parsePassengerText()")};changePassengerType(0,"child");`,context);
+  assert.equal(leader.passengerType,"child");assert.equal(leader.title,"เด็กชาย");assert.equal(leaderTitle.value,"เด็กชาย");assert.equal(leader.program.price,1100);
+});
+
+test("infant and FOC edits use their own program defaults",()=>{
+  const person={title:"นางสาว",passengerType:"adult",program:{programId:"boat_ticket",price:1700,defaultPrice:1700}};
+  const context={passengers:[person],master:{programs:[{program_id:"boat_ticket",default_price:1700,child_price:1100,infant_price:300}]},passengerTypeLabels:{adult:"ผู้ใหญ่",child:"เด็ก",infant:"ทารก",foc:"FOC"},programPriceForType:(program,type)=>type==="foc"?0:type==="infant"?program.infant_price:program.default_price,document:{getElementById:()=>({value:""})},updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){}};
+  vm.runInNewContext(`${section("function applyPassengerTypeChange(","function parsePassengerText()")};changePassengerType(0,"infant");`,context);
+  assert.equal(person.title,"เด็กหญิง");assert.equal(person.program.price,300);
+  vm.runInNewContext('changePassengerType(0,"foc");',context);
+  assert.equal(person.passengerType,"foc");assert.equal(person.program.price,0);
+});
+
+test("changing count composition keeps passenger order and retains existing details",()=>{
+  const child={title:"เด็กชาย",firstName:"ภูมิ",passengerType:"child",program:{programId:"boat_ticket",price:1100,defaultPrice:1100},transportationMethod:"รถตู้"};
+  const fields={adultCount:"2",childCount:"0",infantCount:"0",focCount:"0"},leaderTitle={value:"นาย"};
+  const context={passengers:[{title:"นาย",firstName:"หัวหน้า",passengerType:"adult"},child],master:{programs:[{program_id:"boat_ticket",default_price:1700,child_price:1100}]},val:id=>fields[id],document:{getElementById:()=>leaderTitle},programPriceForType:(program,type)=>type==="child"?program.child_price:program.default_price,createPassenger(){throw new Error("must reuse named passenger")},updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},confirm(){throw new Error("same total must not remove anyone")}};
+  vm.runInNewContext(`${section("function applyPassengerTypeChange(","function parsePassengerText()")};syncPassengerComposition();`,context);
+  assert.equal(context.passengers[1],child);assert.equal(child.passengerType,"adult");assert.equal(child.title,"นาย");assert.equal(child.program.price,1700);assert.equal(child.transportationMethod,"รถตู้");
+});
+
+test("raising adult count then lowering child count keeps the named guest",()=>{
+  const child={title:"เด็กหญิง",firstName:"รุ่งนภา",passengerType:"child",program:{programId:"boat_ticket",price:950,defaultPrice:1100},returnDestination:"ซาบีน่า"};
+  const fields={adultCount:"2",childCount:"1",infantCount:"0",focCount:"0"},leaderTitle={value:"นาย"};
+  const context={passengers:[{title:"นาย",passengerType:"adult"},child],master:{programs:[{program_id:"boat_ticket",default_price:1700,child_price:1100}]},val:id=>fields[id],document:{getElementById:()=>leaderTitle},programPriceForType:(program,type)=>type==="child"?program.child_price:program.default_price,createPassenger:(_,type)=>({passengerType:type,firstName:"",program:{programId:"boat_ticket",price:1700,defaultPrice:1700}}),updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},confirm(){return true}};
+  vm.runInNewContext(`${section("function applyPassengerTypeChange(","function parsePassengerText()")};syncPassengerComposition();`,context);
+  assert.equal(context.passengers.length,3);assert.equal(context.passengers[1],child);
+  fields.childCount="0";vm.runInNewContext("syncPassengerComposition();",context);
+  assert.equal(context.passengers.length,2);assert.equal(context.passengers[1],child);
+  assert.equal(child.passengerType,"adult");assert.equal(child.program.price,950);assert.equal(child.returnDestination,"ซาบีน่า");
+});
+
+test("decreasing passenger count removes only from the end after showing their names",()=>{
+  const passengers=["หัวหน้า","คนที่สอง","คนที่สาม","คนที่สี่"].map((firstName,index)=>({firstName,title:"นาย",passengerType:"adult",program:{price:1700,defaultPrice:1700},isLeader:index===0}));
+  let prompt="";const fields={adultCount:"2",childCount:"0",infantCount:"0",focCount:"0"};
+  const context={passengers,master:{programs:[]},val:id=>fields[id],document:{getElementById:()=>({value:"นาย"})},updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},confirm(message){prompt=message;return true}};
+  vm.runInNewContext(`${section("function applyPassengerTypeChange(","function parsePassengerText()")};syncPassengerComposition();`,context);
+  assert.deepEqual(context.passengers.map(person=>person.firstName),["หัวหน้า","คนที่สอง"]);
+  assert.match(prompt,/คนที่สาม/);assert.match(prompt,/คนที่สี่/);
+  assert.equal(context.passengers[0],passengers[0]);assert.equal(context.passengers[1],passengers[1]);
+});
+
+test("cancelling a count decrease leaves every passenger untouched",()=>{
+  const child={firstName:"รุ่งนภา",passengerType:"child"};let prompt="",restored=false;
+  const context={passengers:[{firstName:"หัวหน้า",passengerType:"adult"},child],master:{programs:[]},val:id=>id==="adultCount"?"1":"0",updatePassengerCountInputs(){restored=true},renderPassengers(){throw new Error("should not rerender")},refreshSummary(){throw new Error("should not recalculate")},confirm(message){prompt=message;return false}};
+  vm.runInNewContext(`${section("function applyPassengerTypeChange(","function parsePassengerText()")};syncPassengerComposition();`,context);
+  assert.equal(context.passengers.length,2);assert.equal(context.passengers[1],child);assert.equal(restored,true);assert.match(prompt,/รุ่งนภา/);
 });
 
 test("equipment quantity is physical pieces times nights while old bookings remain one night",()=>{

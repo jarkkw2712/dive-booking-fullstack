@@ -44,7 +44,7 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
-    <div id="appVersion" class="app-version">Version 2026.10.21-03</div>
+    <div id="appVersion" class="app-version">Version 2026.10.21-04</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
@@ -116,7 +116,7 @@
             <div class="booking-form-section">
               <h3>จำนวนผู้เดินทาง</h3>
               <div class="form-grid booking-count-grid">
-                <div><label>ผู้ใหญ่</label><input id="adultCount" type="number" min="1" value="1" onchange="syncPassengerComposition()"></div>
+                <div><label>ผู้ใหญ่</label><input id="adultCount" type="number" min="0" value="1" onchange="syncPassengerComposition()"></div>
                 <div><label>เด็ก</label><input id="childCount" type="number" min="0" value="0" onchange="syncPassengerComposition()"></div>
                 <div><label>ทารก</label><input id="infantCount" type="number" min="0" value="0" onchange="syncPassengerComposition()"></div>
                 <div><label>Free of Charge (FOC)</label><input id="focCount" type="number" min="0" value="0" onchange="syncPassengerComposition()"></div>
@@ -152,7 +152,7 @@
                 <div class="full"><label>หมายเหตุ Booking</label><textarea id="bookingNote"></textarea></div>
               </div>
             </div>
-            <p class="muted">รายการผู้โดยสารจะปรับอัตโนมัติเมื่อเปลี่ยนจำนวนแต่ละประเภท และสามารถบันทึกไว้ก่อนโดยยังไม่กรอกชื่อลูกทัวร์ได้</p>
+            <p class="muted">เปลี่ยนประเภทของคนเดิมได้ที่รายชื่อคนนั้น หากลดจำนวน ระบบจะลบผู้โดยสารจากท้ายรายการก่อน และสามารถบันทึกไว้ก่อนโดยยังไม่กรอกชื่อลูกทัวร์ได้</p>
           </div>
 
           <div class="card">
@@ -451,7 +451,7 @@
 <script src="js/smartPaste.js?v=20261019-01"></script>
 <script src="js/csvImport.js?v=20261019-01"></script>
 <script src="js/bookingListFilters.js?v=20261019-01"></script>
-<script src="js/app.js?v=20261021-03"></script>
+<script src="js/app.js?v=20261021-04"></script>
 <script src="js/bookingOriginal.js?v=20261021-03"></script>
 <script src="js/islandAddonMaster.js?v=20261019-01"></script>
 <script src="js/financial.js?v=20261021-03"></script>
