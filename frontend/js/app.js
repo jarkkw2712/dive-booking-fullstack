@@ -1,4 +1,4 @@
-let currentUser=null, bookings=[], master={programs:[],addOns:[]}, passengers=[], editingCode=null, pendingNewBookingCode=null, selectedBooking=null,paymentBreakdown={deposit:{},credit:{},remaining:{}};
+let currentUser=null, bookings=[], master={programs:[],addOns:[]}, passengers=[], editingCode=null, pendingNewBookingCode=null, loadedPassengerCount=0, selectedBooking=null,paymentBreakdown={deposit:{},credit:{},remaining:{}};
 let bookingsLoaded=false,bookingsLoadedAt=0,bookingsLoadPromise=null,bookingSearchTimer=null;
 let bookingListActiveFilters=[],bookingListExtraMasters={agents:[],statuses:[]},bookingListExtraMastersLoaded=false,bookingListExtraMastersPromise=null;
 let bookingGroupPaymentSelection={equipment:"",island:""};
@@ -71,7 +71,6 @@ function syncPassengerComposition(){
   const target={adult:Number(val("adultCount")),child:Number(val("childCount")),infant:Number(val("infantCount")),foc:Number(val("focCount"))};
   if(Object.values(target).some(count=>!Number.isInteger(count)||count<0)||Object.values(target).reduce((sum,count)=>sum+count,0)<1){alert("กรุณาระบุจำนวนผู้เดินทางเป็นจำนวนเต็มอย่างน้อย 1 คน");updatePassengerCountInputs();return}
   const targetTotal=Object.values(target).reduce((sum,count)=>sum+count,0);
-  if(typeof editingCode!=="undefined"&&editingCode&&targetTotal<passengers.length){alert("การลดจำนวนคนใน Booking ที่บันทึกแล้วถูกพักไว้ชั่วคราวเพื่อป้องกันข้อมูลการเดินทางเดิมหาย หากต้องการแก้ผู้ใหญ่/เด็ก ให้เปลี่ยนประเภทในบัตรผู้เดินทางแต่ละคน");updatePassengerCountInputs();return}
   if(targetTotal<passengers.length){
     const removed=passengers.slice(targetTotal),names=removed.map(person=>[person.title,person.firstName,person.lastName].filter(Boolean).join(" ")||"ยังไม่กรอกชื่อ").join(", ");
     if(!confirm(`ลดจำนวนผู้เดินทางจะลบจากท้ายรายการ ${removed.length} คน: ${names}\nข้อมูลของคนที่ถูกลบจะหายไป และอาจปรับประเภทผู้เดินทางของคนที่เหลือให้ตรงจำนวน ยืนยันหรือไม่?`)){updatePassengerCountInputs();return}
@@ -180,6 +179,7 @@ async function saveBooking(){
     if(button){button.disabled=false;button.innerText=originalText}
   }
   editingCode=booking.bookingCode;pendingNewBookingCode=null;selectedBooking=recovered||booking;
+  loadedPassengerCount=booking.passengers?.length||0;
   document.getElementById("saveNewBtn").classList.add("hidden");
   document.getElementById("saveEditBtn").classList.remove("hidden");
   toggleEditBookingPrintActions(true);
@@ -197,6 +197,7 @@ async function updateBooking(){
     const booking=buildBooking(),validation=validateBooking(booking);
     if(validation){alert(validation);return false}
     await API.updateBooking(editingCode,booking);
+    loadedPassengerCount=booking.passengers?.length||0;
     selectedBooking=booking;
     try{
       bookings=await API.bookings();
@@ -682,7 +683,7 @@ function standardDocumentHeader(booking,type){const company=getCompanySettings()
 const renderReceiptWithStandardHeader=renderReceipt;renderReceipt=function(booking,type="MONEY_RECEIPT"){const html=renderReceiptWithStandardHeader(booking,type);return html.replace(/<div class="document-header">[\s\S]*?<div class="document-meta">/,`${standardDocumentHeader(booking,type)}<div class="document-meta">`)};
 const refreshSummaryBeforeBulk=refreshSummary;refreshSummary=function(){refreshSummaryBeforeBulk();addLeaderApplyAllButton();renderPaymentBreakdownEditor();applyGroupBookingUi();applyGroupBookingUiV2();applyPaymentScopeEditors()};
 const startNewBookingBase=startNewBooking,loadBookingToFormBase=loadBookingToForm,bookingSearchTextBase=bookingSearchText,selectBookingBase=selectBooking;
-startNewBooking=function(){paymentBreakdown={deposit:{},credit:{},remaining:{}};bookingGroupPaymentSelection={equipment:bookingDefaultPaymentMethod("equipment"),island:bookingDefaultPaymentMethod("island")};startNewBookingBase();passengers.forEach(normalizePassengerPaymentDefaults);const mainPayment=document.getElementById("paymentMethod"),generalDefault=bookingDefaultPaymentMethod("general");if(mainPayment&&generalDefault)mainPayment.value=generalDefault;for(const id of ["boatTicketBookNo","boatTicketNo"])document.getElementById(id).value="";renderPassengers();refreshSummary();renderPaymentBreakdownEditor();toggleEditBookingPrintActions(false)};
+startNewBooking=function(){loadedPassengerCount=0;paymentBreakdown={deposit:{},credit:{},remaining:{}};bookingGroupPaymentSelection={equipment:bookingDefaultPaymentMethod("equipment"),island:bookingDefaultPaymentMethod("island")};startNewBookingBase();passengers.forEach(normalizePassengerPaymentDefaults);const mainPayment=document.getElementById("paymentMethod"),generalDefault=bookingDefaultPaymentMethod("general");if(mainPayment&&generalDefault)mainPayment.value=generalDefault;for(const id of ["boatTicketBookNo","boatTicketNo"])document.getElementById(id).value="";renderPassengers();refreshSummary();renderPaymentBreakdownEditor();toggleEditBookingPrintActions(false)};
 loadBookingToForm=function(booking){paymentBreakdown=structuredClone(booking.paymentBreakdown||{deposit:{},credit:{},remaining:{}});bookingGroupPaymentSelection={equipment:"",island:""};loadBookingToFormBase(booking);centralizeGroupPurchases();const leader=passengers[0];bookingGroupPaymentSelection.equipment=leader?.preAddOns?.find(item=>item.selected&&item.paymentMethod)?.paymentMethod||leader?.preAddOns?.find(item=>item.paymentMethod)?.paymentMethod||bookingDefaultPaymentMethod("equipment");bookingGroupPaymentSelection.island=leader?.islandAddOns?.find(item=>item.paymentMethod)?.paymentMethod||bookingDefaultPaymentMethod("island");passengers.forEach(normalizePassengerPaymentDefaults);renderPassengers();refreshSummary();document.getElementById("boatTicketBookNo").value=booking.boatTicketBookNo||"";document.getElementById("boatTicketNo").value=booking.boatTicketNo||"";renderPaymentBreakdownEditor();toggleEditBookingPrintActions(true)};
 bookingSearchText=function(booking){return `${bookingSearchTextBase(booking)} ${booking.boatTicketBookNo||""} ${booking.boatTicketNo||""}`.toLocaleLowerCase("th-TH")};
 selectBooking=function(booking){selectBookingBase(booking);document.getElementById("bookingDetail").insertAdjacentHTML("beforeend",`<p>เล่มที่ (ตั๋วเรือ): ${escapeHtml(booking.boatTicketBookNo||"-")} | เลขที่ (ตั๋วเรือ): ${escapeHtml(booking.boatTicketNo||"-")}</p>`)};
@@ -728,6 +729,7 @@ createPassenger=function(index=0,type="adult"){
 };
 const loadBookingToFormBeforeEquipmentRows=loadBookingToForm;
 loadBookingToForm=function(booking){
+  loadedPassengerCount=booking.passengers?.length||0;
   loadBookingToFormBeforeEquipmentRows(booking);
   const saved=(booking.passengers||[]).flatMap(person=>(person.preAddOns||[]).filter(item=>item.selected!==false));
   const leader=passengers[0];
@@ -763,7 +765,7 @@ function updateEquipmentQuantity(passengerIndex,itemIndex,field,value){
   item[field]=number;renderPassengers();refreshSummary();
 }
 const buildBookingBeforeEquipmentNights=buildBooking;
-buildBooking=function(){const booking=buildBookingBeforeEquipmentNights();booking.preAddOnRevenue=(booking.passengers||[]).reduce((sum,person)=>sum+(person.preAddOns||[]).filter(item=>item.selected).reduce((value,item)=>value+equipmentBillableQty(item)*Number(item.price||0),0),0);return booking};
+buildBooking=function(){const booking=buildBookingBeforeEquipmentNights();booking.preAddOnRevenue=(booking.passengers||[]).reduce((sum,person)=>sum+(person.preAddOns||[]).filter(item=>item.selected).reduce((value,item)=>value+equipmentBillableQty(item)*Number(item.price||0),0),0);if(editingCode){booking.expectedPassengerCount=loadedPassengerCount;booking.allowPassengerReduction=booking.passengers.length<loadedPassengerCount}return booking};
 const validateBookingBeforeEquipmentNights=validateBooking;
 validateBooking=function(booking){const base=validateBookingBeforeEquipmentNights(booking);if(base)return base;for(const person of booking.passengers||[])for(const item of person.preAddOns||[]){if(item.selected===false)continue;const nights=Number(item.nights??1),qty=Number(item.qty??1);if(!Number.isInteger(nights)||nights<1||nights>365)return"จำนวนคืนอุปกรณ์ต้องเป็นจำนวนเต็ม 1–365";if(!Number.isInteger(qty)||qty<1)return"จำนวนอุปกรณ์ต้องเป็นจำนวนเต็มมากกว่า 0"}return""};
 const documentGroupedItemsBeforeEquipmentNights=documentGroupedItems;

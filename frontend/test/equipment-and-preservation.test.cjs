@@ -125,12 +125,28 @@ test("cancelling a count decrease leaves every passenger untouched",()=>{
   assert.equal(context.passengers.length,2);assert.equal(context.passengers[1],child);assert.equal(restored,true);assert.match(prompt,/รุ่งนภา/);
 });
 
-test("saved booking refuses passenger deletion while route details must be preserved",()=>{
-  const rows=[{firstName:"หัวหน้า",passengerType:"adult"},{firstName:"ลูกทัวร์",passengerType:"adult",outboundTo:"ซาบีน่า"}];
-  let notice="",restored=false;
-  const context={editingCode:"BK123",passengers:rows,val:id=>id==="adultCount"?"1":"0",updatePassengerCountInputs(){restored=true},alert(message){notice=message},renderPassengers(){throw new Error("must not render")},refreshSummary(){throw new Error("must not recalculate")}};
-  vm.runInNewContext(`${section("function syncPassengerComposition()","function parsePassengerText()")};syncPassengerComposition();`,context);
-  assert.equal(context.passengers.length,2);assert.equal(restored,true);assert.match(notice,/ถูกพักไว้ชั่วคราว/);
+test("saved booking may remove the last passenger after naming them in the confirmation",()=>{
+  const rows=[{firstName:"หัวหน้า",passengerType:"adult",program:{price:1500},outboundTo:"ท่าเรือ"},{firstName:"ลูกทัวร์",passengerType:"adult",outboundTo:"ซาบีน่า"}];
+  let prompt="";
+  const context={editingCode:"BK123",passengers:rows,master:{programs:[]},val:id=>id==="adultCount"?"1":"0",document:{getElementById:()=>({value:""})},updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},confirm(message){prompt=message;return true}};
+  vm.runInNewContext(`${section("function applyPassengerTypeChange(","function parsePassengerText()")};syncPassengerComposition();`,context);
+  assert.equal(context.passengers.length,1);assert.equal(context.passengers[0],rows[0]);
+  assert.equal(context.passengers[0].program.price,1500);assert.equal(context.passengers[0].outboundTo,"ท่าเรือ");
+  assert.match(prompt,/ลูกทัวร์/);
+});
+
+test("saved booking reduction uses a revisioned RPC and retains the expected count",()=>{
+  const route=fs.readFileSync(path.resolve(__dirname,"../../backend/src/routes/bookings.js"),"utf8");
+  const sql=fs.readFileSync(path.resolve(__dirname,"../../database/migrations/20261022_048_safe_passenger_reduction.sql"),"utf8");
+  assert.match(app,/booking\.expectedPassengerCount=loadedPassengerCount/);
+  assert.match(app,/booking\.allowPassengerReduction=booking\.passengers\.length<loadedPassengerCount/);
+  assert.match(route,/if\(booking\.allowPassengerReduction\)[\s\S]*?upsert_booking_v27/);
+  assert.match(sql,/v_result:=public\.upsert_booking_v24\(p_booking\)/);
+  assert.match(sql,/Passenger count changed\. Reload the Booking/);
+  assert.match(sql,/PASSENGER_COUNT_REDUCED/);
+  assert.match(sql,/transportation_quantity=coalesce/);
+  assert.match(sql,/insert into public\.passenger_transport_stops/);
+  assert.match(sql,/revoke all on function public\.upsert_booking_v27\(jsonb\) from public, anon, authenticated/);
 });
 
 test("new booking reuses its code after an uncertain failed save and prevents a duplicate retry",async()=>{
