@@ -94,11 +94,13 @@ function parsePassengerText(){
   const result=parseSmartPasteText(document.getElementById("passengerText").value);
   if(!result.ok){alert(result.error+"\nตัวอย่าง: 1. นาย สมชาย ใจดี");return}
   const prior=passengers.map(person=>structuredClone(person)),next=[...prior],used=new Set();
-  const nameKey=person=>[person?.firstName,person?.lastName].filter(Boolean).join(" ").trim().toLocaleLowerCase("th-TH");
+  const namePart=value=>String(value||"").normalize("NFC").replace(/\s+/g," ").trim().toLocaleLowerCase("th-TH");
+  const nameKey=person=>namePart([person?.firstName,person?.lastName].filter(Boolean).join(" "));
   const reserveLeader=Boolean(nameKey(prior[0]));
   for(const person of result.passengers){
     const type=["เด็กชาย","เด็กหญิง"].includes(person.title)?"child":"adult",key=nameKey(person);
     let index=next.findIndex((existing,i)=>!used.has(i)&&nameKey(existing)===key);
+    if(index<0&&reserveLeader&&!used.has(0)&&namePart(next[0].firstName)===namePart(person.firstName)&&(!namePart(next[0].lastName)||!namePart(person.lastName)))index=0;
     if(index<0)index=next.findIndex((existing,i)=>i>=(reserveLeader?1:0)&&!used.has(i)&&!nameKey(existing));
     if(index<0){index=next.length;next.push(createPassenger(index,type))}
     const existing=next[index];

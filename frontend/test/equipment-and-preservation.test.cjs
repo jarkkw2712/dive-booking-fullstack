@@ -20,6 +20,25 @@ test("existing leader price and travel survive later smart-pasted guest names",(
   assert.equal(fields.leaderFirstName.value,"สมชาย");
 });
 
+test("smart paste of the same leader completes the surname without creating a second guest",()=>{
+  const fields=Object.fromEntries(["passengerText","leaderTitle","leaderFirstName","leaderLastName"].map(id=>[id,{value:""}]));
+  const leader={title:"นาย",firstName:"สมชาย",lastName:"",passengerType:"adult",program:{price:1500},transportationMethod:"รถตู้"};
+  const context={passengers:[leader],document:{getElementById:id=>fields[id]},parseSmartPasteText:()=>({ok:true,passengers:[{title:"นาย",firstName:"สมชาย",lastName:"ใจดี"}]}),createPassenger(){throw new Error("same leader must not create another passenger")},structuredClone,updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},alert(){throw new Error("unexpected alert")}};
+  vm.runInNewContext(`${section("function parsePassengerText()","function renderPassengers()")};parsePassengerText();`,context);
+  assert.equal(context.passengers.length,1);
+  assert.equal(context.passengers[0].lastName,"ใจดี");
+  assert.equal(context.passengers[0].program.price,1500);
+  assert.equal(context.passengers[0].transportationMethod,"รถตู้");
+  assert.equal(fields.leaderLastName.value,"ใจดี");
+});
+
+test("smart paste recognizes whitespace-only differences in an existing leader name",()=>{
+  const fields=Object.fromEntries(["passengerText","leaderTitle","leaderFirstName","leaderLastName"].map(id=>[id,{value:""}]));
+  const context={passengers:[{title:"นาย",firstName:"สมชาย ",lastName:" ใจดี",passengerType:"adult",program:{price:1500}}],document:{getElementById:id=>fields[id]},parseSmartPasteText:()=>({ok:true,passengers:[{title:"นาย",firstName:"สมชาย",lastName:"ใจดี"}]}),createPassenger(){throw new Error("same leader must not create another passenger")},structuredClone,updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},alert(){throw new Error("unexpected alert")}};
+  vm.runInNewContext(`${section("function parsePassengerText()","function renderPassengers()")};parsePassengerText();`,context);
+  assert.equal(context.passengers.length,1);
+});
+
 test("smart paste fills blank guests and matches named guests without overwriting their details",()=>{
   const fields=Object.fromEntries(["passengerText","leaderTitle","leaderFirstName","leaderLastName"].map(id=>[id,{value:""}]));
   const leader={title:"นาย",firstName:"หัวหน้า",lastName:"ทริป",passengerType:"adult",program:{price:1500}};
