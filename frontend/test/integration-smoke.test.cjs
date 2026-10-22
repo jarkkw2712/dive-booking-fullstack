@@ -46,8 +46,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.21-04/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=asset==="js/app.js"?"20261021-04":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":["css/style.css","js/travelStops.js"].includes(asset)?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.10\.22-01/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=asset==="js/app.js"?"20261022-01":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":["css/style.css","js/travelStops.js"].includes(asset)?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -105,7 +105,7 @@ test("booking dropdowns are master-driven and new booking fully resets edit stat
   assert.match(app,/master\.transportationMethods/);
   assert.match(app,/master\.paymentMethods/);
   assert.match(app,/async function openNewBooking\(\)\{try\{await loadMaster\(\)/);
-  assert.match(app,/function startNewBooking\(\)\{editingCode=null;selectedBooking=null/);
+  assert.match(app,/function startNewBooking\(\)\{editingCode=null;pendingNewBookingCode=null;selectedBooking=null/);
   for(const field of ["travelDate","returnDate","leaderFirstName","phone","contactEmail","receiptBookNo","manualReceiptNo","bookingNote","passengerText"])assert.match(app,new RegExp(field));
   for(const table of ["master_customer_sources","master_transportation_methods","master_payment_methods"])assert.match(masterRoute,new RegExp(table));
 });

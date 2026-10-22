@@ -20,6 +20,20 @@ test("existing leader price and travel survive later smart-pasted guest names",(
   assert.equal(fields.leaderFirstName.value,"สมชาย");
 });
 
+test("smart paste fills blank guests and matches named guests without overwriting their details",()=>{
+  const fields=Object.fromEntries(["passengerText","leaderTitle","leaderFirstName","leaderLastName"].map(id=>[id,{value:""}]));
+  const leader={title:"นาย",firstName:"หัวหน้า",lastName:"ทริป",passengerType:"adult",program:{price:1500}};
+  const named={title:"เด็กหญิง",firstName:"มาลี",lastName:"ดีใจ",passengerType:"child",program:{price:900},outboundTo:"ท่าเรือ",extraTransportStops:[{to:"โรงแรม"}]};
+  const blank={title:"",firstName:"",lastName:"",passengerType:"adult",program:{price:1700},transportationMethod:"รถตู้"};
+  const context={passengers:[leader,named,blank],document:{getElementById:id=>fields[id]},parseSmartPasteText:()=>({ok:true,passengers:[{title:"นาย",firstName:"สมชาย",lastName:"มาใหม่"},{title:"เด็กหญิง",firstName:"มาลี",lastName:"ดีใจ"}]}),createPassenger(){throw new Error("unused blank should be filled")},structuredClone,updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},alert(){throw new Error("unexpected alert")}};
+  vm.runInNewContext(`${section("function parsePassengerText()","function renderPassengers()")};parsePassengerText();`,context);
+  assert.deepEqual(Array.from(context.passengers,person=>person.firstName),["หัวหน้า","มาลี","สมชาย"]);
+  assert.equal(context.passengers[1].program.price,900);
+  assert.equal(context.passengers[1].outboundTo,"ท่าเรือ");
+  assert.equal(context.passengers[1].extraTransportStops[0].to,"โรงแรม");
+  assert.equal(context.passengers[2].transportationMethod,"รถตู้");
+});
+
 test("changing passenger count preserves the original leader object and custom price",()=>{
   const leader={firstName:"สมชาย",passengerType:"adult",program:{programId:"boat_ticket",price:1500,defaultPrice:1700},transportationMethod:"รถตู้"};
   const context={passengers:[leader],master:{programs:[]},val:id=>id==="adultCount"?"2":"0",createPassenger:()=>({passengerType:"adult",program:{price:1700}}),document:{getElementById:()=>({value:""})},updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},confirm(){return true}};
@@ -90,6 +104,27 @@ test("cancelling a count decrease leaves every passenger untouched",()=>{
   const context={passengers:[{firstName:"หัวหน้า",passengerType:"adult"},child],master:{programs:[]},val:id=>id==="adultCount"?"1":"0",updatePassengerCountInputs(){restored=true},renderPassengers(){throw new Error("should not rerender")},refreshSummary(){throw new Error("should not recalculate")},confirm(message){prompt=message;return false}};
   vm.runInNewContext(`${section("function applyPassengerTypeChange(","function parsePassengerText()")};syncPassengerComposition();`,context);
   assert.equal(context.passengers.length,2);assert.equal(context.passengers[1],child);assert.equal(restored,true);assert.match(prompt,/รุ่งนภา/);
+});
+
+test("saved booking refuses passenger deletion while route details must be preserved",()=>{
+  const rows=[{firstName:"หัวหน้า",passengerType:"adult"},{firstName:"ลูกทัวร์",passengerType:"adult",outboundTo:"ซาบีน่า"}];
+  let notice="",restored=false;
+  const context={editingCode:"BK123",passengers:rows,val:id=>id==="adultCount"?"1":"0",updatePassengerCountInputs(){restored=true},alert(message){notice=message},renderPassengers(){throw new Error("must not render")},refreshSummary(){throw new Error("must not recalculate")}};
+  vm.runInNewContext(`${section("function syncPassengerComposition()","function parsePassengerText()")};syncPassengerComposition();`,context);
+  assert.equal(context.passengers.length,2);assert.equal(restored,true);assert.match(notice,/ถูกพักไว้ชั่วคราว/);
+});
+
+test("new booking reuses its code after an uncertain failed save and prevents a duplicate retry",async()=>{
+  const notices=[],codes=[],button={disabled:false,innerText:"บันทึก Booking",classList:{add(){}}},editButton={classList:{remove(){}}};
+  let clock=1000,attempt=0;
+  const context={pendingNewBookingCode:null,editingCode:null,selectedBooking:null,bookings:[],Date:{now:()=>++clock},document:{getElementById:id=>id==="saveNewBtn"?button:editButton},buildBooking(){return{bookingCode:context.pendingNewBookingCode}},validateBooking:()=>"",API:{duplicate:async()=>({duplicates:[]}),saveBooking:async booking=>{codes.push(booking.bookingCode);if(++attempt===1)throw Error("timeout")},bookings:async()=>[]},toggleEditBookingPrintActions(){},loadBookingList:async()=>{},alert:message=>notices.push(message),console:{error(){},warn(){}}};
+  vm.runInNewContext(`${section("async function saveBooking()","async function updateBooking()")};globalThis.runSave=saveBooking;`,context);
+  assert.equal(await context.runSave(),false);
+  assert.match(notices[0],/timeout/);
+  assert.equal(await context.runSave(),true);
+  assert.deepEqual(codes,["BK1001","BK1001"]);
+  assert.equal(context.editingCode,"BK1001");
+  assert.equal(context.pendingNewBookingCode,null);
 });
 
 test("equipment quantity is physical pieces times nights while old bookings remain one night",()=>{
