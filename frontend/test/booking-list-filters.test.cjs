@@ -63,13 +63,13 @@ test("Booking List has separate search, results and detail panels",()=>{
   for(const name of ["booking-list-search-panel","booking-list-results-panel","booking-list-detail-panel"])assert.match(html,new RegExp(name));
   assert.match(css,/\.booking-list-workspace\{display:grid;grid-template-columns:[^}]* [^}]* [^}]*;/);
 });
-test("result summary shows only booking and passenger counts while other amounts stay untouched",()=>{
+test("result summary hides totals and each result respects viewMoney",()=>{
   const app=fs.readFileSync(path.resolve(__dirname,"../js/app.js"),"utf8");
   const list=app.slice(app.indexOf("function renderBookingList(){"),app.indexOf("function selectBookingByCode("));
   const css=fs.readFileSync(path.resolve(__dirname,"../css/style.css"),"utf8");
   assert.match(list,/<span>Booking<\/span>/);
   assert.match(list,/<span>ผู้เดินทาง<\/span>/);
   assert.doesNotMatch(list,/<span>ยอด Booking<\/span>/);
-  assert.match(list,/\$\{money\(b\.totalAmount\)\} บาท/);
+  assert.match(list,/hasPermission\("viewMoney"\)\?` \| \$\{money\(b\.totalAmount\)\}/);
   assert.match(css,/\.booking-list-result-summary\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
 });

@@ -6,18 +6,18 @@ const vm=require("node:vm");
 const app=fs.readFileSync(path.resolve(__dirname,"../js/app.js"),"utf8");
 const section=(start,end)=>app.slice(app.indexOf(start),app.indexOf(end));
 
-test("existing leader price and travel survive later smart-pasted guest names",()=>{
+test("first smart-pasted name replaces the leader identity without resetting price or travel",()=>{
   const fields=Object.fromEntries(["passengerText","leaderTitle","leaderFirstName","leaderLastName"].map(id=>[id,{value:""}]));
   const leader={title:"นาย",firstName:"สมชาย",lastName:"ใจดี",passengerType:"adult",isLeader:true,program:{programId:"boat_ticket",price:1500,defaultPrice:1700},transportationMethod:"รถตู้",transportationAmount:400,returnTransportationMethod:"รถส่วนตัว",returnDestination:"ท่าเรือ",preAddOns:[{id:"fin",selected:true,qty:2,nights:3,price:100}]};
   const context={passengers:[leader],document:{getElementById:id=>fields[id]},parseSmartPasteText:()=>({ok:true,passengers:[{title:"นางสาว",firstName:"มาลี",lastName:"ดีใจ"}]}),createPassenger:()=>({passengerType:"adult",program:{programId:"boat_ticket",price:1700},preAddOns:[]}),structuredClone,updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},alert(){throw new Error("unexpected alert")}};
   vm.runInNewContext(`${section("function parsePassengerText()","function renderPassengers()")};parsePassengerText();`,context);
-  assert.equal(context.passengers.length,2);
+  assert.equal(context.passengers.length,1);
   assert.equal(context.passengers[0].program.price,1500);
   assert.equal(context.passengers[0].transportationMethod,"รถตู้");
   assert.equal(context.passengers[0].returnTransportationMethod,"รถส่วนตัว");
   assert.equal(context.passengers[0].preAddOns[0].nights,3);
-  assert.equal(context.passengers[1].firstName,"มาลี");
-  assert.equal(fields.leaderFirstName.value,"สมชาย");
+  assert.equal(context.passengers[0].firstName,"มาลี");
+  assert.equal(fields.leaderFirstName.value,"มาลี");
 });
 
 test("smart paste of the same leader completes the surname without creating a second guest",()=>{
@@ -39,18 +39,42 @@ test("smart paste recognizes whitespace-only differences in an existing leader n
   assert.equal(context.passengers.length,1);
 });
 
-test("smart paste fills blank guests and matches named guests without overwriting their details",()=>{
+test("smart paste treats row one as leader and matches remaining named guests",()=>{
   const fields=Object.fromEntries(["passengerText","leaderTitle","leaderFirstName","leaderLastName"].map(id=>[id,{value:""}]));
   const leader={title:"นาย",firstName:"หัวหน้า",lastName:"ทริป",passengerType:"adult",program:{price:1500}};
   const named={title:"เด็กหญิง",firstName:"มาลี",lastName:"ดีใจ",passengerType:"child",program:{price:900},outboundTo:"ท่าเรือ",extraTransportStops:[{to:"โรงแรม"}]};
   const blank={title:"",firstName:"",lastName:"",passengerType:"adult",program:{price:1700},transportationMethod:"รถตู้"};
   const context={passengers:[leader,named,blank],document:{getElementById:id=>fields[id]},parseSmartPasteText:()=>({ok:true,passengers:[{title:"นาย",firstName:"สมชาย",lastName:"มาใหม่"},{title:"เด็กหญิง",firstName:"มาลี",lastName:"ดีใจ"}]}),createPassenger(){throw new Error("unused blank should be filled")},structuredClone,updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},alert(){throw new Error("unexpected alert")}};
   vm.runInNewContext(`${section("function parsePassengerText()","function renderPassengers()")};parsePassengerText();`,context);
-  assert.deepEqual(Array.from(context.passengers,person=>person.firstName),["หัวหน้า","มาลี","สมชาย"]);
+  assert.deepEqual(Array.from(context.passengers,person=>person.firstName),["สมชาย","มาลี",""]);
   assert.equal(context.passengers[1].program.price,900);
   assert.equal(context.passengers[1].outboundTo,"ท่าเรือ");
   assert.equal(context.passengers[1].extraTransportStops[0].to,"โรงแรม");
+  assert.equal(context.passengers[0].program.price,1500);
   assert.equal(context.passengers[2].transportationMethod,"รถตู้");
+});
+
+test("four pasted names replace one leader and fill three guest slots, never five people",()=>{
+  const fields=Object.fromEntries(["passengerText","leaderTitle","leaderFirstName","leaderLastName"].map(id=>[id,{value:""}]));
+  const leader={title:"นาย",firstName:"หัวหน้า",lastName:"เดิม",passengerType:"adult",program:{price:1500}};
+  const names=["คนหนึ่ง","คนสอง","คนสาม","คนสี่"].map(firstName=>({title:"นาย",firstName,lastName:"ทดสอบ"}));
+  const context={passengers:[leader],document:{getElementById:id=>fields[id]},parseSmartPasteText:()=>({ok:true,passengers:names}),createPassenger:()=>({passengerType:"adult",program:{price:1700}}),structuredClone,updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},alert(){throw new Error("unexpected alert")}};
+  vm.runInNewContext(`${section("function parsePassengerText()","function renderPassengers()")};parsePassengerText();`,context);
+  assert.equal(context.passengers.length,4);
+  assert.deepEqual(Array.from(context.passengers,person=>person.firstName),names.map(person=>person.firstName));
+  assert.equal(context.passengers[0].program.price,1500);
+  assert.equal(context.passengers.filter(person=>person.isLeader).length,1);
+});
+
+test("re-pasting four changed names over four named passengers does not append duplicates",()=>{
+  const fields=Object.fromEntries(["passengerText","leaderTitle","leaderFirstName","leaderLastName"].map(id=>[id,{value:""}]));
+  const prior=["หัวหน้าเดิม","แขกเดิมหนึ่ง","แขกเดิมสอง","แขกเดิมสาม"].map((firstName,index)=>({title:"นาย",firstName,lastName:"เดิม",passengerType:"adult",program:{price:1000+index},isLeader:index===0}));
+  const names=["หัวหน้าใหม่","แขกใหม่หนึ่ง","แขกใหม่สอง","แขกใหม่สาม"].map(firstName=>({title:"นาย",firstName,lastName:"ใหม่"}));
+  const context={passengers:prior,document:{getElementById:id=>fields[id]},parseSmartPasteText:()=>({ok:true,passengers:names}),createPassenger(){throw new Error("existing passenger slots must be reused")},structuredClone,updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},alert(){throw new Error("unexpected alert")}};
+  vm.runInNewContext(`${section("function parsePassengerText()","function renderPassengers()")};parsePassengerText();`,context);
+  assert.equal(context.passengers.length,4);
+  assert.deepEqual(Array.from(context.passengers,person=>person.firstName),names.map(person=>person.firstName));
+  assert.deepEqual(Array.from(context.passengers,person=>person.program.price),[1000,1001,1002,1003]);
 });
 
 test("changing passenger count preserves the original leader object and custom price",()=>{

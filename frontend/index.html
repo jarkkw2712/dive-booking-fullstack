@@ -44,13 +44,13 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
-    <div id="appVersion" class="app-version">Version 2026.10.22-02</div>
+    <div id="appVersion" class="app-version">Version 2026.10.23-01</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
     <button onclick="showPage('bookingListPage')">Booking List</button>
-    <button data-any-permission="printCounterReport,printBoatReport,printDailyReport,printInsuranceReport,addIslandAddOn" onclick="showPage('printCenterPage')">Print Center</button>
-    <button data-permission="manageOperatingExpenses" onclick="showPage('expensePage')">ค่าใช้จ่าย</button>
+    <button data-any-permission="printCounterReport,printBoatReport,printDailyReport,printInsuranceReport,printManagementReport,addIslandAddOn" onclick="showPage('printCenterPage')">Print Center</button>
+    <button data-permission="viewOperatingExpenses" onclick="showPage('expensePage')">ค่าใช้จ่าย</button>
     <button data-permission="manageIslandBoatOperations" onclick="showPage('islandBoatPage')">เรือบนเกาะ</button>
     <button data-permission="viewFinancial" onclick="showPage('financialPage')">Financial</button>
     <button data-permission="editMasterData" onclick="showPage('companyPage')">Company Profile</button>
@@ -68,7 +68,7 @@
       <div class="kpi-grid">
         <div class="kpi"><span>Bookings Today</span><b id="kpiBookings">0</b></div>
         <div class="kpi"><span>Pax Today</span><b id="kpiPax">0</b></div>
-        <div class="kpi"><span>Revenue Today</span><b id="kpiRevenue">0</b></div>
+        <div class="kpi" data-permission="viewMoney"><span>Revenue Today</span><b id="kpiRevenue">0</b></div>
         <div class="kpi"><span>Checked-in</span><b id="kpiCheckin">0</b></div>
       </div>
       <div class="card dashboard-chart-card">
@@ -175,15 +175,15 @@
           <button id="saveNewBtn" class="btn primary full-btn" onclick="saveBooking()">บันทึก Booking ใหม่</button>
           <button id="saveEditBtn" class="btn primary full-btn hidden" data-permission="editBooking" onclick="updateBooking()">บันทึกการแก้ไข</button>
           <button class="btn soft full-btn" onclick="startNewBooking()">+ เริ่ม Booking ใหม่</button>
-          <button id="newBookingPrintButton" class="btn soft full-btn" onclick="printCurrentReceipt()">พิมพ์ใบยืนยันการจอง</button>
+          <button id="newBookingPrintButton" class="btn soft full-btn" data-permission="printReceipt" onclick="printCurrentReceipt()">พิมพ์ใบยืนยันการจอง</button>
           <div id="editBookingPrintActions" class="hidden edit-booking-print-actions">
             <h3>พิมพ์เอกสาร Booking นี้</h3>
-            <button class="btn soft full-btn" onclick="printCurrentDocument('REGISTER')">ใบยืนยันการจอง</button>
-            <button class="btn soft full-btn" onclick="printCurrentDocument('MONEY_RECEIPT')">ใบสำคัญรับเงิน</button>
-            <button class="btn soft full-btn" onclick="printCurrentDocument('EQUIPMENT_SLIP')">ใบเสร็จอุปกรณ์</button>
+            <button class="btn soft full-btn" data-permission="printReceipt" onclick="printCurrentDocument('REGISTER')">ใบยืนยันการจอง</button>
+            <button class="btn soft full-btn" data-permission="printReceipt" onclick="printCurrentDocument('MONEY_RECEIPT')">ใบสำคัญรับเงิน</button>
+            <button class="btn soft full-btn" data-permission="printReceipt" onclick="printCurrentDocument('EQUIPMENT_SLIP')">ใบเสร็จอุปกรณ์</button>
             <button class="btn soft full-btn" data-permission="printDiveReceipt" onclick="printCurrentDocument('DIVE_RECEIPT')">ใบเสร็จดำน้ำ</button>
-            <button class="btn soft full-btn" onclick="printCurrentDocument('VAN_RECEIPT')">ใบเสร็จรถตู้</button>
-            <button class="btn soft full-btn" onclick="printCurrentDocument('BOAT_TICKET')">ตั๋วเรือ</button>
+            <button class="btn soft full-btn" data-permission="printReceipt" onclick="printCurrentDocument('VAN_RECEIPT')">ใบเสร็จรถตู้</button>
+            <button class="btn soft full-btn" data-permission="printBoatReport" onclick="printCurrentDocument('BOAT_TICKET')">ตั๋วเรือ</button>
             <button class="btn soft full-btn" data-permission="printIslandPurchaseOrder" onclick="printCurrentDocument('ISLAND_PURCHASE_ORDER')">ใบสั่งซื้อจากเกาะ</button>
           </div>
           <button class="btn danger full-btn" onclick="cancelBooking()">ยกเลิก Booking</button>
@@ -223,21 +223,21 @@
           <div class="btn-row">
             <button class="btn primary" data-permission="editBooking" onclick="editSelectedBooking()">เปิดแก้ไข Booking</button>
             <button class="btn soft" data-permission="editBooking" onclick="backToBookingEditor()">ย้อนกลับไปหน้าแก้ไข</button>
-            <button class="btn soft" onclick="printSelectedReceipt('REGISTER')">ใบยืนยันการจอง</button>
-            <button class="btn soft" onclick="printSelectedReceipt('MONEY_RECEIPT')">ใบสำคัญรับเงิน</button>
-            <button class="btn soft" onclick="printSelectedReceipt('EQUIPMENT_SLIP')">ใบเสร็จอุปกรณ์</button>
+            <button class="btn soft" data-permission="printReceipt" onclick="printSelectedReceipt('REGISTER')">ใบยืนยันการจอง</button>
+            <button class="btn soft" data-permission="printReceipt" onclick="printSelectedReceipt('MONEY_RECEIPT')">ใบสำคัญรับเงิน</button>
+            <button class="btn soft" data-permission="printReceipt" onclick="printSelectedReceipt('EQUIPMENT_SLIP')">ใบเสร็จอุปกรณ์</button>
             <button class="btn soft" data-permission="printDiveReceipt" onclick="printSelectedReceipt('DIVE_RECEIPT')">ใบเสร็จดำน้ำ</button>
-            <button class="btn soft" onclick="printSelectedReceipt('VAN_RECEIPT')">ใบเสร็จรถตู้</button>
-            <button class="btn soft" onclick="printSelectedReceipt('BOAT_TICKET')">ตั๋วเรือ</button>
+            <button class="btn soft" data-permission="printReceipt" onclick="printSelectedReceipt('VAN_RECEIPT')">ใบเสร็จรถตู้</button>
+            <button class="btn soft" data-permission="printBoatReport" onclick="printSelectedReceipt('BOAT_TICKET')">ตั๋วเรือ</button>
             <button class="btn soft" data-permission="printIslandPurchaseOrder" onclick="printSelectedReceipt('ISLAND_PURCHASE_ORDER')">ใบสั่งซื้อจากเกาะ</button>
-            <button class="btn soft" onclick="loadTimeline()">Timeline</button>
+            <button class="btn soft" data-permission="viewAudit" onclick="loadTimeline()">Timeline</button>
           </div>
           <div id="timelineRoot"></div>
         </div>
       </div>
     </section>
 
-    <section id="printCenterPage" class="page" data-any-permission="printCounterReport,printBoatReport,printDailyReport,printInsuranceReport,addIslandAddOn">
+    <section id="printCenterPage" class="page" data-any-permission="printCounterReport,printBoatReport,printDailyReport,printInsuranceReport,printManagementReport,addIslandAddOn">
       <h1>Print Center</h1>
       <div class="card">
         <h2>เลือกช่วงวันที่ของรายงาน</h2>
@@ -266,15 +266,15 @@
       <div id="printCenterOutput" class="card print-doc"></div>
     </section>
 
-    <section id="expensePage" class="page" data-permission="manageOperatingExpenses">
+    <section id="expensePage" class="page" data-permission="viewOperatingExpenses">
       <h1>ค่าใช้จ่ายรายวัน</h1>
       <div class="card">
         <div class="section-title-row"><div><h2>ค่าใช้จ่ายสำหรับรายงาน CEO</h2><p class="muted">เลือกวันที่แล้วระบบจะโหลด revision ล่าสุด ข้อมูล revision เดิมไม่ถูกลบ</p></div></div>
         <div class="form-grid"><div><label>วันที่</label><input id="expenseDate" type="date" onchange="loadDailyExpenses()"></div></div>
         <div id="ceoExpenseRows"></div>
-        <button class="btn soft" onclick="addDailyExpenseRow()">+ เพิ่มค่าใช้จ่ายอื่น</button>
+        <button class="btn soft" data-permission="editOperatingExpenses" onclick="addDailyExpenseRow()">+ เพิ่มค่าใช้จ่ายอื่น</button>
         <div class="form-grid one"><div><label>หมายเหตุค่าใช้จ่าย</label><input id="ceoExpenseNote"></div></div>
-        <button class="btn primary" onclick="saveDailyExpenses()">บันทึกค่าใช้จ่ายของวันนี้</button>
+        <button class="btn primary" data-permission="editOperatingExpenses" onclick="saveDailyExpenses()">บันทึกค่าใช้จ่ายของวันนี้</button>
         <div id="ceoExpenseStatus" class="muted"></div>
       </div>
     </section>
@@ -450,7 +450,7 @@
 <script src="js/smartPaste.js?v=20261019-01"></script>
 <script src="js/csvImport.js?v=20261019-01"></script>
 <script src="js/bookingListFilters.js?v=20261019-01"></script>
-<script src="js/app.js?v=20261022-02"></script>
+<script src="js/app.js?v=20261023-01"></script>
 <script src="js/bookingOriginal.js?v=20261021-03"></script>
 <script src="js/islandAddonMaster.js?v=20261019-01"></script>
 <script src="js/financial.js?v=20261021-03"></script>

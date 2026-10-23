@@ -1,4 +1,7 @@
 import { financialService as service } from "../services/financialService.js";
+import { bankReferencesForUser, bookingForUser } from "../services/permissionViews.js";
+
+const visible = (data,user) => bankReferencesForUser(bookingForUser(data,user),user);
 
 const run = handler => async (req, res) => {
   try { res.json(await handler(req)); }
@@ -10,9 +13,9 @@ const run = handler => async (req, res) => {
 };
 
 export const financialController = {
-  bundle: run(req => service.bundle(req.params.code)),
-  summary: run(req => service.summary(req.params.code)),
-  timeline: run(req => service.timeline(req.params.code)),
+  bundle: run(async req => visible(await service.bundle(req.params.code),req.user)),
+  summary: run(async req => visible(await service.summary(req.params.code),req.user)),
+  timeline: run(async req => visible(await service.timeline(req.params.code),req.user)),
   createInvoice: run(req => service.createInvoice(req.params.code, req.body, req.user)),
   createPayment: run(req => service.createPayment(req.params.code, req.body, req.user)),
   verifyPayment: run(req => service.paymentAction(req.params.id, "verify", req.body.reason, req.user)),
@@ -25,5 +28,5 @@ export const financialController = {
   approveRefund: run(req => service.refundAction(req.params.id, "approve", req.user)),
   rejectRefund: run(req => service.refundAction(req.params.id, "reject", req.user)),
   payRefund: run(req => service.refundAction(req.params.id, "mark-paid", req.user)),
-  report: run(req => service.report(req.params.type, req.query.date || new Date().toISOString().slice(0,10)))
+  report: run(async req => visible(await service.report(req.params.type, req.query.date || new Date().toISOString().slice(0,10)),req.user))
 };

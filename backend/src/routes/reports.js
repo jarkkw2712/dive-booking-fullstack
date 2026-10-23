@@ -2,6 +2,7 @@ import express from "express";
 import { requireAuth } from "../middleware/auth.js";
 import { supabaseAdmin } from "../services/supabase.js";
 import { buildPrintCenterReport } from "../services/reportService.js";
+import { can } from "../services/permissionViews.js";
 
 const router=express.Router();
 router.use(requireAuth);
@@ -9,13 +10,14 @@ const dailyPermissions=["printCounterReport","printDailyReport"];
 const reportPermissions={
   register_summary:dailyPermissions,register_summary_range:dailyPermissions,front_charge:dailyPermissions,receipt_summary:dailyPermissions,equipment_summary:dailyPermissions,
   counter:dailyPermissions,boat:["printBoatReport","printDailyReport"],island:["addIslandAddOn","printBoatReport","printDailyReport"],
-  insurance:["printInsuranceReport"],driver:dailyPermissions,management:["printDailyReport"],
+  insurance:["printInsuranceReport"],driver:dailyPermissions,management:["printManagementReport"],
   tour_expense_reference:dailyPermissions,tent_fee_reference:dailyPermissions,van_daily_reference:dailyPermissions,van_work_order_reference:dailyPermissions,songthaew_work_order_reference:dailyPermissions,
   package_cost_reference:dailyPermissions,boat_tent_reference:dailyPermissions,
   agent_reference:dailyPermissions,customer_travel_daily_reference:dailyPermissions,
   tour_monthly_reference:dailyPermissions,van_monthly_reference:dailyPermissions
 };
 const paymentReportTypes=new Set(["receipt_summary","tour_expense_reference","van_daily_reference","van_work_order_reference","tour_monthly_reference","van_monthly_reference","boat_tent_reference"]);
+const nonFinancialReportTypes=new Set(["boat","island","insurance","driver","customer_travel_daily_reference","register_summary","register_summary_range","front_charge","songthaew_work_order_reference"]);
 
 router.get("/print-center",async(req,res)=>{
   try{
@@ -24,6 +26,7 @@ router.get("/print-center",async(req,res)=>{
     if(to&&!/^\d{4}-\d{2}-\d{2}$/.test(String(to)))return res.status(400).json({error:"Valid end date is required"});
     if(!reportPermissions[type])return res.status(400).json({error:"Invalid report type"});
     if(req.user?.role!=="admin"&&!reportPermissions[type].some(permission=>req.user?.permissions?.[permission]))return res.status(403).json({error:"Permission denied for this report"});
+    if(!nonFinancialReportTypes.has(type)&&!can(req.user,"viewMoney"))return res.status(403).json({error:"Permission denied: viewMoney"});
     let bookingResult=await supabaseAdmin.rpc("list_bookings_json_v26");
     if(["PGRST202","42883"].includes(bookingResult.error?.code))bookingResult=await supabaseAdmin.rpc("list_bookings_json_v25");
     if(["PGRST202","42883"].includes(bookingResult.error?.code))bookingResult=await supabaseAdmin.rpc("list_bookings_json_v24");

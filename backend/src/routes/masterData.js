@@ -1,6 +1,7 @@
 import express from "express";
 import { requireAuth } from "../middleware/auth.js";
 import { supabaseAdmin } from "../services/supabase.js";
+import { bookingForUser } from "../services/permissionViews.js";
 
 const router=express.Router();
 router.use(requireAuth);
@@ -11,7 +12,7 @@ router.get("/",async(req,res)=>{
   const entries=await Promise.all(Object.entries(tables).map(async([key,table])=>[key,await supabaseAdmin.from(table).select("*").eq("active_flag",true).order("sort_order")]));
   const failed=entries.find(([key,result])=>result.error&&!fallbacks[key]);
   if(failed)return res.status(500).json({error:failed[1].error.message});
-  res.json(Object.fromEntries(entries.map(([key,result])=>[key,result.error?fallbacks[key]:result.data||[]])));
+  res.json(bookingForUser(Object.fromEntries(entries.map(([key,result])=>[key,result.error?fallbacks[key]:result.data||[]])),req.user));
 });
 
 export default router;

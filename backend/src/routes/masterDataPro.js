@@ -2,6 +2,7 @@ import express from "express";
 import { requireAuth, requirePermission } from "../middleware/auth.js";
 import { supabaseAdmin } from "../services/supabase.js";
 import { writeAudit } from "../services/auditService.js";
+import { bookingForUser } from "../services/permissionViews.js";
 
 const router=express.Router();
 router.use(requireAuth);
@@ -13,7 +14,7 @@ function payloadFor(category,body,{includeCode=false}={}){const [,id,name,price]
 const paymentDefaultFields=["default_general","default_equipment","default_island","default_transport"];
 async function clearCompetingPaymentDefaults(category,payload,currentId){if(category!=="payment_methods")return;for(const field of paymentDefaultFields){if(!payload[field])continue;let query=supabaseAdmin.from("master_payment_methods").update({[field]:false}).eq(field,true);if(currentId)query=query.neq("method_id",currentId);const {error}=await query;if(error)throw error}}
 
-router.get("/:cat",async(req,res)=>{try{const [table]=cfg(req.params.cat),{data,error}=await supabaseAdmin.from(table).select("*").order("sort_order");if(error)throw error;res.json(data||[])}catch(error){res.status(500).json({error:error.message})}});
+router.get("/:cat",async(req,res)=>{try{const [table]=cfg(req.params.cat),{data,error}=await supabaseAdmin.from(table).select("*").order("sort_order");if(error)throw error;res.json(bookingForUser(data||[],req.user))}catch(error){res.status(500).json({error:error.message})}});
 router.post("/:cat",requirePermission("editMasterData"),async(req,res)=>{try{const [table,id]=cfg(req.params.cat),payload=payloadFor(req.params.cat,req.body,{includeCode:true});await clearCompetingPaymentDefaults(req.params.cat,payload,payload[id]);const {data,error}=await supabaseAdmin.from(table).upsert(payload,{onConflict:id}).select().single();if(error)throw error;await writeAudit(req,{action:"MASTER_DATA_CREATED",detail:`เพิ่ม Master Data: ${req.params.cat}`,entityType:req.params.cat,entityId:String(data[id]),after:data});res.json(data)}catch(error){res.status(400).json({error:error.message})}});
 router.put("/:cat/:id",requirePermission("editMasterData"),async(req,res)=>{try{const [table,id]=cfg(req.params.cat),{data:before}=await supabaseAdmin.from(table).select("*").eq(id,req.params.id).maybeSingle(),payload=payloadFor(req.params.cat,req.body);await clearCompetingPaymentDefaults(req.params.cat,payload,req.params.id);const {data,error}=await supabaseAdmin.from(table).update(payload).eq(id,req.params.id).select().single();if(error)throw error;await writeAudit(req,{action:"MASTER_DATA_UPDATED",detail:`แก้ไข Master Data: ${req.params.cat}`,entityType:req.params.cat,entityId:req.params.id,before,after:data});res.json(data)}catch(error){res.status(400).json({error:error.message})}});
 

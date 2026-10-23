@@ -2,13 +2,18 @@ import jwt from "jsonwebtoken";
 
 export async function validateAuthenticatedUser(payload,lookupUser=async userId=>{
   const {supabaseAdmin}=await import("../services/supabase.js");
-  const {data,error}=await supabaseAdmin.from("app_users").select("user_id,active_flag,session_version").eq("user_id",userId).maybeSingle();
+  const {data,error}=await supabaseAdmin.from("app_users").select("user_id,username,display_name,email,role_id,active_flag,session_version").eq("user_id",userId).maybeSingle();
   if(error)throw error;
   return data;
+},lookupPermissions=async roleId=>{
+  const {supabaseAdmin}=await import("../services/supabase.js");
+  const {data,error}=await supabaseAdmin.from("role_permissions").select("permission_key,allowed").eq("role_id",roleId);
+  if(error)throw error;
+  return Object.fromEntries((data||[]).map(row=>[row.permission_key,row.allowed===true]));
 }){
-  const user=await lookupUser(payload.userId);
-  if(!user?.active_flag||Number(payload.sessionVersion||0)!==Number(user.session_version||0))throw new Error("SESSION_REVOKED");
-  return payload;
+  const [user,permissions]=await Promise.all([lookupUser(payload.userId),lookupPermissions(payload.role)]);
+  if(!user?.active_flag||Number(payload.sessionVersion||0)!==Number(user.session_version||0)||user.role_id!==payload.role)throw new Error("SESSION_REVOKED");
+  return {...payload,username:user.username,displayName:user.display_name,email:user.email,role:user.role_id,permissions};
 }
 
 export async function requireAuth(req,res,next){
