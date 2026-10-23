@@ -70,20 +70,31 @@ function changePassengerType(index,type){
 function syncPassengerComposition(){
   const target={adult:Number(val("adultCount")),child:Number(val("childCount")),infant:Number(val("infantCount")),foc:Number(val("focCount"))};
   if(Object.values(target).some(count=>!Number.isInteger(count)||count<0)||Object.values(target).reduce((sum,count)=>sum+count,0)<1){alert("กรุณาระบุจำนวนผู้เดินทางเป็นจำนวนเต็มอย่างน้อย 1 คน");updatePassengerCountInputs();return}
-  const targetTotal=Object.values(target).reduce((sum,count)=>sum+count,0);
-  if(targetTotal<passengers.length){
-    const removed=passengers.slice(targetTotal),names=removed.map(person=>[person.title,person.firstName,person.lastName].filter(Boolean).join(" ")||"ยังไม่กรอกชื่อ").join(", ");
-    if(!confirm(`ลดจำนวนผู้เดินทางจะลบจากท้ายรายการ ${removed.length} คน: ${names}\nข้อมูลของคนที่ถูกลบจะหายไป และอาจปรับประเภทผู้เดินทางของคนที่เหลือให้ตรงจำนวน ยืนยันหรือไม่?`)){updatePassengerCountInputs();return}
-  }
-  const next=passengers.slice(0,targetTotal),counts={adult:0,child:0,infant:0,foc:0};
-  for(const person of next)counts[person.passengerType||"adult"]++;
-  for(const type of Object.keys(target))while(next.length<targetTotal&&counts[type]<target[type]){next.push(createPassenger(next.length,type));counts[type]++}
+  const leaderType=passengers[0]?.passengerType||"adult";
+  if(target[leaderType]===0){alert(`หัวหน้าทริปยังเป็น${passengerTypeLabels[leaderType]} กรุณาเปลี่ยนประเภทหัวหน้าทริปก่อนลดจำนวน${passengerTypeLabels[leaderType]}เป็น 0`);updatePassengerCountInputs();return}
+  const types=passengers.map(person=>person.passengerType||"adult"),counts={adult:0,child:0,infant:0,foc:0},changes=[];
+  for(const type of types)counts[type]++;
+  // Reuse an existing guest when one category rises and another falls.
   for(const type of Object.keys(target))while(counts[type]<target[type]){
-    const surplus=Object.keys(target).find(other=>other!==type&&counts[other]>target[other]);
-    if(!surplus)break;
-    const index=next.findLastIndex(person=>(person.passengerType||"adult")===surplus);
-    applyPassengerTypeChange(next[index],type);counts[surplus]--;counts[type]++;
+    const source=types.findLastIndex((current,index)=>index>0&&counts[current]>target[current]);
+    if(source<0)break;
+    counts[types[source]]--;counts[type]++;types[source]=type;changes.push([source,type]);
   }
+  // Remove the last guest within each reduced category, not the last guest overall.
+  const removedIndexes=new Set();
+  for(const type of Object.keys(target))while(counts[type]>target[type]){
+    const index=types.findLastIndex((current,position)=>position>0&&!removedIndexes.has(position)&&current===type);
+    if(index<0){alert("ไม่สามารถลบหัวหน้าทริปอัตโนมัติได้ กรุณาปรับประเภทหัวหน้าทริปก่อน");updatePassengerCountInputs();return}
+    removedIndexes.add(index);counts[type]--;
+  }
+  if(removedIndexes.size){
+    const removed=passengers.filter((_,index)=>removedIndexes.has(index));
+    const names=removed.map(person=>`${passengerTypeLabels[person.passengerType||"adult"]}: ${[person.title,person.firstName,person.lastName].filter(Boolean).join(" ")||"ยังไม่กรอกชื่อ"}`).join(", ");
+    if(!confirm(`ลดจำนวนผู้เดินทางจะลบ ${removed.length} คน: ${names}\nข้อมูลของคนที่ถูกลบจะหายไป ยืนยันหรือไม่?`)){updatePassengerCountInputs();return}
+  }
+  for(const [index,type] of changes)applyPassengerTypeChange(passengers[index],type);
+  const next=passengers.filter((_,index)=>!removedIndexes.has(index));
+  for(const type of Object.keys(target))while(counts[type]<target[type]){next.push(createPassenger(next.length,type));counts[type]++}
   passengers=next;
   passengers.forEach((person,index)=>person.isLeader=index===0);
   document.getElementById("leaderTitle").value=passengers[0].title||"";
@@ -186,6 +197,7 @@ async function saveBooking(){
   }
   editingCode=booking.bookingCode;pendingNewBookingCode=null;selectedBooking=recovered||booking;
   loadedPassengerCount=booking.passengers?.length||0;
+  passengers.forEach((person,index)=>person._originalPassengerNo=index+1);
   document.getElementById("saveNewBtn").classList.add("hidden");
   document.getElementById("saveEditBtn").classList.remove("hidden");
   toggleEditBookingPrintActions(true);
@@ -204,6 +216,7 @@ async function updateBooking(){
     if(validation){alert(validation);return false}
     await API.updateBooking(editingCode,booking);
     loadedPassengerCount=booking.passengers?.length||0;
+    passengers.forEach((person,index)=>person._originalPassengerNo=index+1);
     selectedBooking=booking;
     try{
       bookings=await API.bookings();
@@ -237,7 +250,7 @@ function selectBookingByCode(code){const booking=bookings.find(row=>row.bookingC
 function bookingSearchText(booking){return[booking.bookingCode,booking.receiptBookNo,booking.manualReceiptNo,booking.leaderTitle,booking.leaderFirstName,booking.leaderLastName,booking.phone,booking.contactEmail,booking.source,booking.agentName,booking.transportationMethod,booking.paymentMethod,booking.status,...(booking.passengers||[]).flatMap(person=>[person.title,person.firstName,person.lastName,person.phone])].filter(Boolean).join(" ").toLocaleLowerCase("th-TH")}
 function clearBookingListFilters(){document.getElementById("blDate").value="";document.getElementById("blDateMode").value="any";document.getElementById("blStatus").value="";document.getElementById("blSearch").value="";document.getElementById("blMetric").value="";bookingListActiveFilters=[];updateBookingListValueOptions();renderBookingList()}
 function selectBooking(b){selectedBooking=b;const deposit=Number(b.depositAmount||0),balance=Math.max(Number(b.totalAmount||0)-deposit,0);document.getElementById("bookingDetail").innerHTML=`<h2>${escapeHtml(b.bookingCode)}</h2><p>${escapeHtml([b.leaderFirstName,b.leaderLastName].filter(Boolean).join(" "))}</p><p>${escapeHtml(b.travelDate||"ยังไม่ระบุวัน")} | ${escapeHtml(b.status)}</p><p>โทร: ${escapeHtml(b.phone||"-")}${b.contactEmail?` | ติดต่อได้จาก: ${escapeHtml(b.contactEmail)}`:""}</p><p>ช่องทาง: ${escapeHtml(b.source||"-")} | วิธีเดินทาง: ${escapeHtml(b.transportationMethod||"-")} | ชำระเงิน: ${escapeHtml(b.paymentMethod||"-")}</p><p>เล่มที่: ${escapeHtml(b.receiptBookNo||"-")} | เลขที่: ${escapeHtml(b.manualReceiptNo||"-")}</p>${hasPermission("viewMoney")?`<p>ยอดรวม ${money(b.totalAmount)} บาท | มัดจำ ${money(deposit)} บาท | คงเหลือ ${money(balance)} บาท</p>`:""}${(b.passengers||[]).map((p,i)=>`<div class="service">${i+1}. ${escapeHtml([p.firstName,p.lastName].filter(Boolean).join(" ")||"ยังไม่ระบุชื่อลูกทัวร์")} - ${escapeHtml(p.program?.name||"")}</div>`).join("")}`;}
-function editSelectedBooking(){if(!selectedBooking)return;loadBookingToForm(selectedBooking);showPage("bookingPage")}
+function editSelectedBooking(){if(!selectedBooking)return;loadBookingToForm(selectedBooking);passengers.forEach((person,index)=>person._originalPassengerNo=index+1);showPage("bookingPage")}
 function backToBookingEditor(){if(selectedBooking)return editSelectedBooking();if(editingCode)return showPage("bookingPage");alert("กรุณาเลือก Booking ที่ต้องการแก้ไข")}
 function setSelectValueWithHistory(id,value){const select=document.getElementById(id);if(!select)return;if(value&&![...select.options].some(option=>option.value===value))select.add(new Option(`${value} (รายการเดิม)`,value));select.value=value||""}
 function loadBookingToForm(b){editingCode=b.bookingCode;pendingNewBookingCode=null;["tripType","travelDate","returnDate","leaderTitle","leaderFirstName","leaderLastName","phone","contactEmail","agentName","status","depositAmount","creditAmount","receiptBookNo","manualReceiptNo","bookingNote"].forEach(id=>{const el=document.getElementById(id);if(el)el.value=b[id]??""});for(const id of ["source","paymentMethod","depositPaymentMethod","creditPaymentMethod"])setSelectValueWithHistory(id,b[id]);passengers=b.passengers?.length?b.passengers.map((person,index)=>{const saved=person.preAddOns||[],savedById=new Map(saved.map(item=>[item.id,item])),current=(master.addOns||[]).map(item=>savedById.get(item.addon_id)||{id:item.addon_id,name:item.addon_name,selected:false,qty:1,price:Number(item.default_price||0),defaultPrice:Number(item.default_price||0)}),currentIds=new Set(current.map(item=>item.id)),historical=saved.filter(item=>!currentIds.has(item.id));return{...person,preAddOns:[...current,...historical],foodAllergy:person.foodAllergy||"",passengerType:person.passengerType||"adult",nationalityType:person.nationalityType||"thai",returnTransportationMethod:person.returnTransportationMethod||person.transportationMethod||"",returnTransportationAmount:Number(person.returnTransportationAmount||0),returnTransportationQuantity:Number(person.returnTransportationQuantity??1),outboundDestination:person.outboundDestination||person.transportationDestination||"",transportationAmount:Number(person.transportationAmount||0),transportationQuantity:Number(person.transportationQuantity??1),extraTransportStops:(person.extraTransportStops||[]).map(stop=>({...stop,quantity:Number(stop.quantity??1)})),accommodationQty:Number(person.accommodationQty??(person.accommodationId?1:0)),accommodationPrice:Number(person.accommodationPrice||0),accommodationDefaultPrice:Number(person.accommodationDefaultPrice||0),isLeader:index===0}}):[createPassenger(0,"adult")];updatePassengerCountInputs();toggleReturnDate();renderPassengers();refreshSummary();document.getElementById("saveNewBtn").classList.add("hidden");document.getElementById("saveEditBtn").classList.remove("hidden");}
@@ -776,7 +789,7 @@ function updateEquipmentQuantity(passengerIndex,itemIndex,field,value){
   item[field]=number;renderPassengers();refreshSummary();
 }
 const buildBookingBeforeEquipmentNights=buildBooking;
-buildBooking=function(){const booking=buildBookingBeforeEquipmentNights();booking.preAddOnRevenue=(booking.passengers||[]).reduce((sum,person)=>sum+(person.preAddOns||[]).filter(item=>item.selected).reduce((value,item)=>value+equipmentBillableQty(item)*Number(item.price||0),0),0);if(editingCode){booking.expectedPassengerCount=loadedPassengerCount;booking.allowPassengerReduction=booking.passengers.length<loadedPassengerCount}return booking};
+buildBooking=function(){const booking=buildBookingBeforeEquipmentNights();booking.preAddOnRevenue=(booking.passengers||[]).reduce((sum,person)=>sum+(person.preAddOns||[]).filter(item=>item.selected).reduce((value,item)=>value+equipmentBillableQty(item)*Number(item.price||0),0),0);if(editingCode){booking.expectedPassengerCount=loadedPassengerCount;booking.allowPassengerReduction=booking.passengers.length<loadedPassengerCount;if(booking.allowPassengerReduction)booking.retainedPassengerNos=booking.passengers.map(person=>person._originalPassengerNo||0)}return booking};
 const validateBookingBeforeEquipmentNights=validateBooking;
 validateBooking=function(booking){const base=validateBookingBeforeEquipmentNights(booking);if(base)return base;for(const person of booking.passengers||[])for(const item of person.preAddOns||[]){if(item.selected===false)continue;const nights=Number(item.nights??1),qty=Number(item.qty??1);if(!Number.isInteger(nights)||nights<1||nights>365)return"จำนวนคืนอุปกรณ์ต้องเป็นจำนวนเต็ม 1–365";if(!Number.isInteger(qty)||qty<1)return"จำนวนอุปกรณ์ต้องเป็นจำนวนเต็มมากกว่า 0"}return""};
 const documentGroupedItemsBeforeEquipmentNights=documentGroupedItems;

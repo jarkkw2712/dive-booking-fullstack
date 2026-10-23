@@ -125,7 +125,7 @@ test("passenger composition auto-builds adult child infant and FOC placeholders"
   assert.match(app,/function changePassengerType\(index,type\)/);
   assert.match(app,/onchange="changePassengerType\(\$\{passengerIndex\},this\.value\)"/);
   assert.match(html,/id="adultCount"[^>]*min="0"/);
-  assert.match(app,/passengers\.slice\(0,targetTotal\)/);
+  assert.match(app,/passengers\.filter\(\(_,index\)=>!removedIndexes\.has\(index\)\)/);
   assert.match(app,/passengerTypeLabels=\{adult:"ผู้ใหญ่",child:"เด็ก",infant:"ทารก",foc:"FOC"\}/);
   assert.match(app,/ผู้โดยสารคนที่/);
   assert.match(app,/if\(passengerType==="foc"\)return 0/);

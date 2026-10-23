@@ -121,30 +121,55 @@ test("changing count composition keeps passenger order and retains existing deta
   assert.equal(context.passengers[1],child);assert.equal(child.passengerType,"adult");assert.equal(child.title,"นาย");assert.equal(child.program.price,1700);assert.equal(child.transportationMethod,"รถตู้");
 });
 
-test("raising adult count then lowering child count keeps the named guest",()=>{
+test("lowering child count removes the last child, not a newly added adult",()=>{
   const child={title:"เด็กหญิง",firstName:"รุ่งนภา",passengerType:"child",program:{programId:"boat_ticket",price:950,defaultPrice:1100},returnDestination:"ซาบีน่า"};
   const fields={adultCount:"2",childCount:"1",infantCount:"0",focCount:"0"},leaderTitle={value:"นาย"};
-  const context={passengers:[{title:"นาย",passengerType:"adult"},child],master:{programs:[{program_id:"boat_ticket",default_price:1700,child_price:1100}]},val:id=>fields[id],document:{getElementById:()=>leaderTitle},programPriceForType:(program,type)=>type==="child"?program.child_price:program.default_price,createPassenger:(_,type)=>({passengerType:type,firstName:"",program:{programId:"boat_ticket",price:1700,defaultPrice:1700}}),updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},confirm(){return true}};
+  const context={passengers:[{title:"นาย",passengerType:"adult"},child],master:{programs:[{program_id:"boat_ticket",default_price:1700,child_price:1100}]},passengerTypeLabels:{adult:"ผู้ใหญ่",child:"เด็ก",infant:"ทารก",foc:"FOC"},val:id=>fields[id],document:{getElementById:()=>leaderTitle},programPriceForType:(program,type)=>type==="child"?program.child_price:program.default_price,createPassenger:(_,type)=>({passengerType:type,firstName:"",program:{programId:"boat_ticket",price:1700,defaultPrice:1700}}),updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},confirm(){return true}};
   vm.runInNewContext(`${section("function applyPassengerTypeChange(","function parsePassengerText()")};syncPassengerComposition();`,context);
   assert.equal(context.passengers.length,3);assert.equal(context.passengers[1],child);
   fields.childCount="0";vm.runInNewContext("syncPassengerComposition();",context);
-  assert.equal(context.passengers.length,2);assert.equal(context.passengers[1],child);
-  assert.equal(child.passengerType,"adult");assert.equal(child.program.price,950);assert.equal(child.returnDestination,"ซาบีน่า");
+  assert.equal(context.passengers.length,2);assert.notEqual(context.passengers[1],child);
+  assert.equal(context.passengers[1].passengerType,"adult");
+  assert.equal(child.program.price,950);assert.equal(child.returnDestination,"ซาบีน่า");
 });
 
 test("decreasing passenger count removes only from the end after showing their names",()=>{
   const passengers=["หัวหน้า","คนที่สอง","คนที่สาม","คนที่สี่"].map((firstName,index)=>({firstName,title:"นาย",passengerType:"adult",program:{price:1700,defaultPrice:1700},isLeader:index===0}));
   let prompt="";const fields={adultCount:"2",childCount:"0",infantCount:"0",focCount:"0"};
-  const context={passengers,master:{programs:[]},val:id=>fields[id],document:{getElementById:()=>({value:"นาย"})},updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},confirm(message){prompt=message;return true}};
+  const context={passengers,master:{programs:[]},passengerTypeLabels:{adult:"ผู้ใหญ่",child:"เด็ก",infant:"ทารก",foc:"FOC"},val:id=>fields[id],document:{getElementById:()=>({value:"นาย"})},updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},confirm(message){prompt=message;return true}};
   vm.runInNewContext(`${section("function applyPassengerTypeChange(","function parsePassengerText()")};syncPassengerComposition();`,context);
   assert.deepEqual(context.passengers.map(person=>person.firstName),["หัวหน้า","คนที่สอง"]);
   assert.match(prompt,/คนที่สาม/);assert.match(prompt,/คนที่สี่/);
   assert.equal(context.passengers[0],passengers[0]);assert.equal(context.passengers[1],passengers[1]);
 });
 
+test("reducing adults removes the last adult but keeps child and FOC",()=>{
+  const rows=[
+    {firstName:"หัวหน้า",passengerType:"adult",_originalPassengerNo:1,program:{price:1500}},
+    {firstName:"ผู้ใหญ่คนที่สอง",passengerType:"adult",_originalPassengerNo:2,program:{price:1400}},
+    {firstName:"เด็ก",passengerType:"child",_originalPassengerNo:3,program:{price:900}},
+    {firstName:"FOC",passengerType:"foc",_originalPassengerNo:4,program:{price:0}}
+  ];
+  const fields={adultCount:"1",childCount:"1",infantCount:"0",focCount:"1"};let prompt="";
+  const context={passengers:rows,master:{programs:[]},passengerTypeLabels:{adult:"ผู้ใหญ่",child:"เด็ก",infant:"ทารก",foc:"FOC"},val:id=>fields[id],document:{getElementById:()=>({value:""})},updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},confirm(message){prompt=message;return true}};
+  vm.runInNewContext(`${section("function applyPassengerTypeChange(","function parsePassengerText()")};syncPassengerComposition();`,context);
+  assert.deepEqual(Array.from(context.passengers,person=>person.firstName),["หัวหน้า","เด็ก","FOC"]);
+  assert.deepEqual(Array.from(context.passengers,person=>person._originalPassengerNo),[1,3,4]);
+  assert.equal(context.passengers[1],rows[2]);assert.equal(context.passengers[2],rows[3]);
+  assert.match(prompt,/ผู้ใหญ่คนที่สอง/);assert.doesNotMatch(prompt,/FOC:/);
+});
+
+test("leader cannot be removed by setting their category to zero",()=>{
+  const rows=[{firstName:"หัวหน้า",passengerType:"adult"},{firstName:"เด็ก",passengerType:"child"}];
+  const fields={adultCount:"0",childCount:"1",infantCount:"0",focCount:"0"};let notice="",restored=false;
+  const context={passengers:rows,passengerTypeLabels:{adult:"ผู้ใหญ่",child:"เด็ก",infant:"ทารก",foc:"FOC"},val:id=>fields[id],alert(message){notice=message},updatePassengerCountInputs(){restored=true},renderPassengers(){throw Error("unexpected render")},refreshSummary(){throw Error("unexpected summary")}};
+  vm.runInNewContext(`${section("function syncPassengerComposition()","function parsePassengerText()")};syncPassengerComposition();`,context);
+  assert.equal(context.passengers.length,2);assert.equal(restored,true);assert.match(notice,/หัวหน้าทริป/);
+});
+
 test("cancelling a count decrease leaves every passenger untouched",()=>{
   const child={firstName:"รุ่งนภา",passengerType:"child"};let prompt="",restored=false;
-  const context={passengers:[{firstName:"หัวหน้า",passengerType:"adult"},child],master:{programs:[]},val:id=>id==="adultCount"?"1":"0",updatePassengerCountInputs(){restored=true},renderPassengers(){throw new Error("should not rerender")},refreshSummary(){throw new Error("should not recalculate")},confirm(message){prompt=message;return false}};
+  const context={passengers:[{firstName:"หัวหน้า",passengerType:"adult"},child],master:{programs:[]},passengerTypeLabels:{adult:"ผู้ใหญ่",child:"เด็ก",infant:"ทารก",foc:"FOC"},val:id=>id==="adultCount"?"1":"0",updatePassengerCountInputs(){restored=true},renderPassengers(){throw new Error("should not rerender")},refreshSummary(){throw new Error("should not recalculate")},confirm(message){prompt=message;return false}};
   vm.runInNewContext(`${section("function applyPassengerTypeChange(","function parsePassengerText()")};syncPassengerComposition();`,context);
   assert.equal(context.passengers.length,2);assert.equal(context.passengers[1],child);assert.equal(restored,true);assert.match(prompt,/รุ่งนภา/);
 });
@@ -152,7 +177,7 @@ test("cancelling a count decrease leaves every passenger untouched",()=>{
 test("saved booking may remove the last passenger after naming them in the confirmation",()=>{
   const rows=[{firstName:"หัวหน้า",passengerType:"adult",program:{price:1500},outboundTo:"ท่าเรือ"},{firstName:"ลูกทัวร์",passengerType:"adult",outboundTo:"ซาบีน่า"}];
   let prompt="";
-  const context={editingCode:"BK123",passengers:rows,master:{programs:[]},val:id=>id==="adultCount"?"1":"0",document:{getElementById:()=>({value:""})},updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},confirm(message){prompt=message;return true}};
+  const context={editingCode:"BK123",passengers:rows,master:{programs:[]},passengerTypeLabels:{adult:"ผู้ใหญ่",child:"เด็ก",infant:"ทารก",foc:"FOC"},val:id=>id==="adultCount"?"1":"0",document:{getElementById:()=>({value:""})},updatePassengerCountInputs(){},renderPassengers(){},refreshSummary(){},confirm(message){prompt=message;return true}};
   vm.runInNewContext(`${section("function applyPassengerTypeChange(","function parsePassengerText()")};syncPassengerComposition();`,context);
   assert.equal(context.passengers.length,1);assert.equal(context.passengers[0],rows[0]);
   assert.equal(context.passengers[0].program.price,1500);assert.equal(context.passengers[0].outboundTo,"ท่าเรือ");
@@ -173,10 +198,21 @@ test("saved booking reduction uses a revisioned RPC and retains the expected cou
   assert.match(sql,/revoke all on function public\.upsert_booking_v27\(jsonb\) from public, anon, authenticated/);
 });
 
+test("middle passenger reduction sends original ordinals to the category-safe RPC",()=>{
+  const route=fs.readFileSync(path.resolve(__dirname,"../../backend/src/routes/bookings.js"),"utf8");
+  const sql=fs.readFileSync(path.resolve(__dirname,"../../database/migrations/20261023044513_category_safe_passenger_reduction.sql"),"utf8");
+  assert.match(app,/person\._originalPassengerNo=index\+1/);
+  assert.match(app,/booking\.retainedPassengerNos=booking\.passengers\.map\(person=>person\._originalPassengerNo\|\|0\)/);
+  assert.match(route,/categorySafe\?"upsert_booking_v28":"upsert_booking_v27"/);
+  assert.match(sql,/where p\.booking_id=v_booking_id and not \(p\.passenger_no=any\(v_seen\)\)/);
+  assert.match(sql,/where booking_id=v_booking_id and passenger_no=v_source_no/);
+  assert.match(sql,/revoke all on function public\.upsert_booking_v28\(jsonb\) from public, anon, authenticated/);
+});
+
 test("new booking reuses its code after an uncertain failed save and prevents a duplicate retry",async()=>{
   const notices=[],codes=[],button={disabled:false,innerText:"บันทึก Booking",classList:{add(){}}},editButton={classList:{remove(){}}};
   let clock=1000,attempt=0;
-  const context={pendingNewBookingCode:null,editingCode:null,selectedBooking:null,bookings:[],Date:{now:()=>++clock},document:{getElementById:id=>id==="saveNewBtn"?button:editButton},buildBooking(){return{bookingCode:context.pendingNewBookingCode}},validateBooking:()=>"",API:{duplicate:async()=>({duplicates:[]}),saveBooking:async booking=>{codes.push(booking.bookingCode);if(++attempt===1)throw Error("timeout")},bookings:async()=>[]},toggleEditBookingPrintActions(){},loadBookingList:async()=>{},alert:message=>notices.push(message),console:{error(){},warn(){}}};
+  const context={pendingNewBookingCode:null,editingCode:null,selectedBooking:null,bookings:[],passengers:[],Date:{now:()=>++clock},document:{getElementById:id=>id==="saveNewBtn"?button:editButton},buildBooking(){return{bookingCode:context.pendingNewBookingCode}},validateBooking:()=>"",API:{duplicate:async()=>({duplicates:[]}),saveBooking:async booking=>{codes.push(booking.bookingCode);if(++attempt===1)throw Error("timeout")},bookings:async()=>[]},toggleEditBookingPrintActions(){},loadBookingList:async()=>{},alert:message=>notices.push(message),console:{error(){},warn(){}}};
   vm.runInNewContext(`${section("async function saveBooking()","async function updateBooking()")};globalThis.runSave=saveBooking;`,context);
   assert.equal(await context.runSave(),false);
   assert.match(notices[0],/timeout/);
