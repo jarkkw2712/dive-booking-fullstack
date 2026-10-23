@@ -332,6 +332,19 @@ test("CEO operating expenses reduce daily net without rewriting prior revisions"
   assert.equal(report.rows[0].operatingExpenses,600);assert.equal(report.rows[0].netAfterExpenses,report.rows[0].expectedRevenue-600);assert.equal(report.expenseMatrix.length,7);assert.equal(report.expenseDetails.length,2);assert.equal(report.summary.totalOperatingExpenses,600);
 });
 
+test("categorized manual expenses show their detail and aggregate without losing totals",()=>{
+  const day="2026-10-23",expenseRows=[
+    {expense_date:day,category_code:"other_a",category_name_snapshot:"ค่ารถ (ระบุทะเบียน)",expense_group_code:"transportation",expense_item_code:"vehicle_expense",expense_detail:"ทะเบียน กข 1234",amount:250},
+    {expense_date:day,category_code:"other_b",category_name_snapshot:"ค่ารถ (ระบุทะเบียน)",expense_group_code:"transportation",expense_item_code:"vehicle_expense",expense_detail:"ทะเบียน กข 1234",amount:300},
+    {expense_date:day,category_code:"other_c",category_name_snapshot:"คืนเงินค่าทัวร์ / คืนเงินมัดจำลูกค้า",expense_group_code:"customer_refunds",expense_item_code:"customer_refund",expense_detail:"ลูกค้า A",amount:100}
+  ];
+  const report=buildPrintCenterReport({bookings:[],expenseRows,date:day,toDate:day,type:"management"});
+  assert.equal(report.summary.operatingExpenses,650);
+  assert.equal(report.expenseMatrix.find(row=>row.category==="ค่ารถ (ระบุทะเบียน) — ทะเบียน กข 1234").values[day],550);
+  assert.equal(report.expenseMatrix.find(row=>row.category==="คืนเงินค่าทัวร์ / คืนเงินมัดจำลูกค้า — ลูกค้า A").values[day],100);
+  assert.equal(report.expenseDetails.length,3);
+});
+
 test("booking dropdown migration adds editable masters and transportation snapshot",()=>{
   const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20260731_011_booking_dropdown_master_data.sql"),"utf8");
   assert.match(sql,/create table if not exists master_customer_sources/);
@@ -566,14 +579,14 @@ test("agent and daily return travel reports follow the approved workbook logic",
   const agent=buildPrintCenterReport({bookings,masterAgents:agents,date:"2026-09-21",toDate:"2026-09-22",type:"agent_reference"});
   assert.deepEqual(agent.pages.map(page=>page.agent),["Agent B","Agent A"]);assert.equal(agent.pages[0].rows[0].adult,2);assert.equal(agent.pages[0].rows[0].child,1);assert.equal(agent.pages[0].rows[0].infant,1);assert.equal(agent.pages[0].rows[0].foc,1);assert.equal(agent.pages[0].totals.boatAmount,1000);assert.equal(agent.pages[0].totals.packageAmount,2800);assert.equal(agent.pages[0].totals.total,3800);assert.equal(agent.pages[0].rows[0].paymentDate,"");
   const travel=buildPrintCenterReport({bookings,transportationMethods,date:"2026-09-23",toDate:"2026-09-23",type:"customer_travel_daily_reference"});
-  assert.equal(travel.pages.length,1);assert.equal(travel.pages[0].rows.length,1);assert.deepEqual(travel.pages[0].totals,{pax:5,lignite:1,bks:1,privateCar:1,van:1});assert.match(travel.pages[0].rows[0].note,/รถทัวร์ 1 คน/);assert.equal(travel.pages[0].rows[0].arrivalDate,"2026-09-21");
+  assert.equal(travel.pages.length,1);assert.equal(travel.pages[0].rows.length,1);assert.deepEqual(travel.pages[0].totals,{pax:5,adult:2,child:1,infant:1,foc:1,lignite:1,bks:1,privateCar:1,van:2});assert.match(travel.pages[0].rows[0].note,/รถทัวร์ 1 คน/);assert.equal(travel.pages[0].rows[0].arrivalDate,"2026-09-21");
 });
 
 test("daily return travel groups Lignite and BKS by method name rather than code",()=>{
   const date="2026-10-20",transportationMethods=[{method_id:"route_a",method_name:"รับลิกไนท์"},{method_id:"route_b",method_name:"ส่ง บขส."},{method_id:"lignite",method_name:"รถทัวร์อื่น"}];
   const bookings=[{bookingCode:"TRAVEL-1",travelDate:"2026-10-18",returnDate:date,status:"confirmed",leaderFirstName:"มาลี",passengers:[{passengerReturnDate:date,returnTransportationMethod:"route_a"},{passengerReturnDate:date,returnTransportationMethod:"ส่ง บขส."},{passengerReturnDate:date,returnTransportationMethod:"lignite"}]}];
   const report=buildPrintCenterReport({bookings,transportationMethods,date,toDate:date,type:"customer_travel_daily_reference"}),row=report.pages[0].rows[0];
-  assert.deepEqual([row.pax,row.lignite,row.bks,row.van],[3,1,1,0]);
+  assert.deepEqual([row.pax,row.adult,row.lignite,row.bks,row.van],[3,3,1,1,1]);
   assert.match(row.note,/รถทัวร์อื่น|lignite/);
 });
 

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sabina Tour Booking</title>
-  <link rel="stylesheet" href="css/style.css?v=20261020-01">
+  <link rel="stylesheet" href="css/style.css?v=20261023-03">
 </head>
 <body>
 <div id="globalSavingIndicator" class="saving-indicator hidden" role="status" aria-live="polite">
@@ -44,7 +44,7 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
-    <div id="appVersion" class="app-version">Version 2026.10.23-02</div>
+    <div id="appVersion" class="app-version">Version 2026.10.23-03</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
@@ -272,7 +272,7 @@
         <div class="section-title-row"><div><h2>ค่าใช้จ่ายสำหรับรายงาน CEO</h2><p class="muted">เลือกวันที่แล้วระบบจะโหลด revision ล่าสุด ข้อมูล revision เดิมไม่ถูกลบ</p></div></div>
         <div class="form-grid"><div><label>วันที่</label><input id="expenseDate" type="date" onchange="loadDailyExpenses()"></div></div>
         <div id="ceoExpenseRows"></div>
-        <button class="btn soft" data-permission="editOperatingExpenses" onclick="addDailyExpenseRow()">+ เพิ่มค่าใช้จ่ายอื่น</button>
+        <button class="btn soft" data-permission="editOperatingExpenses" onclick="addDailyExpenseRow()">+ เพิ่มบรรทัดค่าใช้จ่าย</button>
         <div class="form-grid one"><div><label>หมายเหตุค่าใช้จ่าย</label><input id="ceoExpenseNote"></div></div>
         <button class="btn primary" data-permission="editOperatingExpenses" onclick="saveDailyExpenses()">บันทึกค่าใช้จ่ายของวันนี้</button>
         <div id="ceoExpenseStatus" class="muted"></div>
@@ -446,11 +446,11 @@
   </div>
 </div>
 
-<script src="js/api.js?v=20261019-01"></script>
+<script src="js/api.js?v=20261023-03"></script>
 <script src="js/smartPaste.js?v=20261019-01"></script>
 <script src="js/csvImport.js?v=20261019-01"></script>
 <script src="js/bookingListFilters.js?v=20261019-01"></script>
-<script src="js/app.js?v=20261023-02"></script>
+<script src="js/app.js?v=20261023-03"></script>
 <script src="js/bookingOriginal.js?v=20261021-03"></script>
 <script src="js/islandAddonMaster.js?v=20261019-01"></script>
 <script src="js/financial.js?v=20261021-03"></script>

@@ -36,6 +36,7 @@ const API={
   master:()=>apiFetch("/master-data"),
   report:(date,type,to=date)=>apiFetch(`/reports/print-center?date=${encodeURIComponent(date)}&to=${encodeURIComponent(to)}&type=${encodeURIComponent(type)}`),
   operatingExpenses:(from,to=from)=>apiFetch(`/operating-expenses?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
+  expenseCategories:()=>apiFetch("/operating-expenses/categories"),
   saveOperatingExpenses:(date,data)=>apiFetch(`/operating-expenses/${encodeURIComponent(date)}`,{method:"POST",body:JSON.stringify(data)}),
   islandBoatOperations:date=>apiFetch(`/island-boat-operations?date=${encodeURIComponent(date)}`),
   saveIslandBoatOperations:(date,data)=>apiFetch(`/island-boat-operations/${encodeURIComponent(date)}`,{method:"POST",body:JSON.stringify(data)}),
