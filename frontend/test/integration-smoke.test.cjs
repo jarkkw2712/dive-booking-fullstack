@@ -46,8 +46,18 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.23-04/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=["css/style.css","js/app.js"].includes(asset)?"20261023-04":asset==="js/api.js"?"20261023-03":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":asset==="js/travelStops.js"?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.10\.23-05/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=["css/style.css","js/app.js"].includes(asset)?"20261023-05":asset==="js/api.js"?"20261023-03":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":asset==="js/travelStops.js"?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+});
+test("package PDF keeps mixed adult and child prices in one row and warns on unassigned tent stays",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  const source=app.slice(app.indexOf("function packageCostReferenceHtml"),app.indexOf("function boatTentReferenceHtml"));
+  const context={money:value=>Number(value||0).toLocaleString("en-US"),escapeHtml:value=>String(value??""),referenceReportDate:value=>value,referenceReportHeader:()=>"",referenceReportNotes:()=>""};
+  vm.runInNewContext(`${source}\nrender=packageCostReferenceHtml`,context);
+  const html=context.render({date:"2026-10-23",rows:[{no:1,leader:"เทียนทิพย์ บุญศรีวงษ์",program:"One Day Trip",qty:3,price:null,priceBreakdown:[{price:2500,qty:2},{price:1500,qty:1}],amount:6500,parkFee:300,parkTent:0}],tentAllocationWarnings:["คณะผสม (BK1)"],totals:{qty:3,amount:6500,parkFee:300,parkTent:0}});
+  assert.match(html,/2,500×2<br>1,500×1/);
+  assert.equal((html.match(/เทียนทิพย์ บุญศรีวงษ์/g)||[]).length,1);
+  assert.match(html,/คณะผสม \(BK1\)/);
 });
 test("dashboard charts monthly bookings and revenue with daily detail",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");

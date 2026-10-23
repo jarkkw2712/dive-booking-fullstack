@@ -632,9 +632,53 @@ test("package report multiplies passenger quantity by editable master cost rates
     {program_id:"package_2d1n",program_key:"2/1",cost_code:"agent",unit_rate:500,active_flag:true},
     {program_id:"other_program",program_key:"2/1",cost_code:"park_food",unit_rate:99999,active_flag:true}
   ];
-  const bookings=[{bookingCode:"PKG",travelDate:"2026-09-23",status:"confirmed",leaderFirstName:"ลูกค้า",passengers:[{program:{programId:"package_2d1n",name:"2 วัน 1 คืน",qty:2,price:5000}}]}];
+  const bookings=[{bookingCode:"PKG",travelDate:"2026-09-23",status:"confirmed",leaderFirstName:"ลูกค้า",accommodations:[{accommodationId:"tent_small",accommodationName:"เต็นท์เล็ก",accommodationQty:1}],passengers:[{program:{programId:"package_2d1n",name:"2 วัน 1 คืน",qty:2,price:5000}}]}];
   const report=buildPrintCenterReport({bookings,packageCostRates,date:"2026-09-23",type:"package_cost_reference"}),row=report.rows[0];
   assert.equal(row.qty,2);assert.equal(row.amount,10000);assert.equal(row.parkTotal,2480);assert.equal(row.sabinaTotal,3250);assert.equal(row.balance,4270);assert.deepEqual(report.missingRatePrograms,[]);
+});
+
+test("package report keeps adult and child prices in one booking-program row",()=>{
+  const booking={bookingCode:"TIANTHIP-EXAMPLE",travelDate:"2026-10-23",status:"confirmed",leaderFirstName:"เทียนทิพย์",leaderLastName:"บุญศรีวงษ์",passengers:[
+    {passengerType:"adult",program:{programId:"one_day",name:"One Day Trip",qty:1,price:2500}},
+    {passengerType:"adult",program:{programId:"one_day",name:"One Day Trip",qty:1,price:2500}},
+    {passengerType:"child",program:{programId:"one_day",name:"One Day Trip",qty:1,price:1500}}
+  ]};
+  const packageCostRates=[{program_id:"one_day",cost_code:"park_fee",unit_rate:100,active_flag:true},{program_id:"one_day",cost_code:"park_tent",unit_rate:80,active_flag:true},{program_id:"one_day",cost_code:"sabina_tent",unit_rate:225,active_flag:true}];
+  const report=buildPrintCenterReport({bookings:[booking],packageCostRates,date:"2026-10-23",type:"package_cost_reference"});
+  assert.equal(report.rows.length,1);
+  assert.equal(report.rows[0].qty,3);
+  assert.equal(report.rows[0].amount,6500);
+  assert.equal(report.rows[0].price,null);
+  assert.deepEqual(report.rows[0].priceBreakdown,[{price:2500,qty:2},{price:1500,qty:1}]);
+  assert.equal(report.rows[0].parkFee,300);
+  assert.equal(report.rows[0].parkTent,0);
+  assert.equal(report.rows[0].sabinaTent,0);
+  assert.equal(report.rows[0].parkTotal,300);
+  assert.equal(report.totals.qty,3);
+  const frontend=fs.readFileSync(path.resolve(testDir,"../../frontend/js/app.js"),"utf8");
+  assert.match(frontend,/prices\.length>1\?prices\.map\(item=>/);
+  assert.match(frontend,/ผู้เดินทางคนนี้พักเต็นท์/);
+  assert.match(frontend,/parkAccommodationType=this\.checked\?'park_tent':'none'/);
+});
+
+test("package tent costs count only identified tent guests in a mixed-stay booking",()=>{
+  const rates=[{program_id:"package_2d1n",cost_code:"park_fee",unit_rate:100,active_flag:true},{program_id:"package_2d1n",cost_code:"park_tent",unit_rate:160,active_flag:true},{program_id:"package_2d1n",cost_code:"sabina_tent",unit_rate:225,active_flag:true}];
+  const booking={bookingCode:"MIXED-STAY",travelDate:"2026-10-23",status:"confirmed",leaderFirstName:"คณะผสม",accommodations:[{accommodationId:"tent_small",accommodationName:"เต็นท์เล็ก",accommodationQty:1},{accommodationId:"park_house",accommodationName:"บ้านพัก",accommodationQty:1}],passengers:[
+    {parkAccommodationType:"park_tent",program:{programId:"package_2d1n",name:"2 วัน 1 คืน",qty:1,price:5000}},
+    {parkAccommodationType:"none",program:{programId:"package_2d1n",name:"2 วัน 1 คืน",qty:1,price:5000}}
+  ]};
+  const report=buildPrintCenterReport({bookings:[booking],packageCostRates:rates,date:"2026-10-23",type:"package_cost_reference"});
+  assert.equal(report.rows[0].qty,2);
+  assert.equal(report.rows[0].tentQty,1);
+  assert.equal(report.rows[0].parkFee,200);
+  assert.equal(report.rows[0].parkTent,160);
+  assert.equal(report.rows[0].sabinaTent,225);
+  assert.deepEqual(report.tentAllocationWarnings,[]);
+  booking.passengers[0].parkAccommodationType="none";
+  const unassigned=buildPrintCenterReport({bookings:[booking],packageCostRates:rates,date:"2026-10-23",type:"package_cost_reference"});
+  assert.equal(unassigned.rows[0].parkTent,0);
+  assert.equal(unassigned.rows[0].sabinaTent,0);
+  assert.equal(unassigned.tentAllocationWarnings.length,1);
 });
 
 test("boat and tent report reads tents from company-booked accommodation and splits by payment type",()=>{
