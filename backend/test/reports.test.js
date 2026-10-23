@@ -98,7 +98,7 @@ test("management report supports custom ranges and transposed income categories"
   assert.ok(report.incomeMatrix.some(row=>row.category==="ค่าตั๋วเรือ"));
   assert.ok(report.incomeMatrix.some(row=>row.category==="ขายเชื่อ"));
   assert.ok(report.incomeMatrix.some(row=>row.category==="รวมรายได้"));
-  assert.equal(report.expenseMatrix.length,7);
+  assert.equal(report.expenseMatrix.length,4);
   assert.ok(report.expenseMatrix.every(row=>Object.values(row.values).every(value=>value===0)));
 });
 
@@ -329,7 +329,27 @@ test("Island Add-on visibility is matched to the correct saved row",()=>{
 });
 test("CEO operating expenses reduce daily net without rewriting prior revisions",()=>{
   const report=buildPrintCenterReport({bookings,financialRows:[],expenseRows:[{expense_date:"2026-07-23",category_code:"boat_fee",category_name_snapshot:"ค่าธรรมเนียมเรือ",amount:100},{expense_date:"2026-07-23",category_code:"ice",category_name_snapshot:"ค่าน้ำแข็ง",amount:500}],date:"2026-07-23",toDate:"2026-07-24",type:"management"});
-  assert.equal(report.rows[0].operatingExpenses,600);assert.equal(report.rows[0].netAfterExpenses,report.rows[0].expectedRevenue-600);assert.equal(report.expenseMatrix.length,7);assert.equal(report.expenseDetails.length,2);assert.equal(report.summary.totalOperatingExpenses,600);
+  assert.equal(report.rows[0].operatingExpenses,600);assert.equal(report.rows[0].netAfterExpenses,report.rows[0].expectedRevenue-600);assert.equal(report.expenseMatrix.length,4);assert.equal(report.expenseDetails.length,2);assert.equal(report.summary.totalOperatingExpenses,600);
+});
+
+test("legacy park, tent and ice expenses display in the new four report categories without changing totals",()=>{
+  const date="2026-10-15",expenseRows=[
+    {expense_date:date,category_code:"boat_fee",category_name_snapshot:"ค่าธรรมเนียมเรือ",amount:100},
+    {expense_date:date,category_code:"thai_adult_fee",category_name_snapshot:"คนไทย - ผู้ใหญ่",amount:400},
+    {expense_date:date,category_code:"thai_child_fee",category_name_snapshot:"คนไทย - เด็ก",amount:100},
+    {expense_date:date,category_code:"ice",category_name_snapshot:"ค่าน้ำแข็งประจำวัน",amount:150},
+    {expense_date:date,category_code:"tent_fee",category_name_snapshot:"ค่าธรรมเนียมกางเต็นท์ (ยอดรวม)",amount:80}
+  ];
+  const report=buildPrintCenterReport({bookings:[],expenseRows,date,type:"management"});
+  assert.deepEqual(report.expenseMatrix.map(row=>[row.category,row.values[date]]),[["ค่าธรรมเนียมเรือ",100],["ค่าธรรมเนียมอุทยาน",500],["ค่าธรรมเนียมกางเต็นท์",80],["ค่าน้ำแข็ง",150]]);
+  assert.equal(report.rows[0].operatingExpenses,830);
+  const current=buildPrintCenterReport({bookings:[],expenseRows:[
+    {expense_date:date,category_code:"park_boat_total",category_name_snapshot:"ค่าธรรมเนียมเรือ",amount:100},
+    {expense_date:date,category_code:"park_people_total",category_name_snapshot:"ค่าธรรมเนียมอุทยาน",amount:500},
+    {expense_date:date,category_code:"other_tent",category_name_snapshot:"ค่าธรรมเนียมกางเต็นท์",expense_item_code:"park_tent_fee",amount:80},
+    {expense_date:date,category_code:"other_ice",category_name_snapshot:"ค่าน้ำแข็ง",expense_item_code:"ice",amount:150}
+  ],date,type:"management"});
+  assert.deepEqual(current.expenseMatrix,report.expenseMatrix);
 });
 
 test("categorized manual expenses show their detail and aggregate without losing totals",()=>{
