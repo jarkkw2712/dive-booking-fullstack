@@ -209,18 +209,19 @@ function packageCostReport(bookings,date,packageCostRates=[]){
 }
 
 function tentSize(person){const value=normalized(`${person.accommodationId||""} ${person.accommodationName||""}`),price=accommodationUnitPrice(person);if(/บ้าน|house|bungalow/.test(value))return"";if(!/tent|เต็นท์|เตนท์/.test(value))return"";if(/ใหญ่|large/.test(value))return"large";if(/เล็ก|small/.test(value))return"small";return price>500?"large":"small"}
-function boatTentReport(bookings,date,paymentMethods=[]){
+function boatTentReport(bookings,date,paymentMethods=[],masterPrograms=[]){
   const rows=[];
+  const boatMaster=masterPrograms.find(program=>normalized(program.program_id)==="boat_ticket");
   for(const booking of bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===date)){
     const people=passengersOf(booking),boatPeople=people.filter(person=>person.program&&isBoatProgram(person.program));if(!boatPeople.length)continue;
-    const qty=boatPeople.reduce((sum,person)=>sum+Math.max(money(person.program?.qty||1),0),0),amount=boatPeople.reduce((sum,person)=>sum+lineAmount(person.program?.qty,person.program?.price),0),defaultAmount=boatPeople.reduce((sum,person)=>sum+lineAmount(person.program?.qty,person.program?.defaultPrice??person.program?.price),0),kind=paymentKind(booking.paymentMethod,paymentMethods);
+    const qty=boatPeople.reduce((sum,person)=>sum+Math.max(money(person.program?.qty||1),0),0),amount=sumMoney(boatPeople,person=>lineAmount(person.program?.qty,person.program?.price)),price=money(boatMaster?.default_price??boatPeople[0].program?.defaultPrice??boatPeople[0].program?.price),defaultAmount=qty*price,kind=paymentKind(booking.paymentMethod,paymentMethods);
     let smallTentQty=0,largeTentQty=0,tentAmount=0;
     for(const person of accommodationsOf(booking)){if(!person.accommodationId||person.accommodationBookedBy!=="company")continue;const size=tentSize(person);if(!size)continue;const accommodationQty=accommodationQuantity(person);if(size==="large")largeTentQty+=accommodationQty;else smallTentQty+=accommodationQty;tentAmount+=accommodationRevenue(person)}
     const tentKind=paymentKind(booking.paymentMethod,paymentMethods),boatCash=kind==="cash"?amount:0,boatTransfer=kind==="transfer"?amount:0,tentCash=tentKind==="cash"?tentAmount:0,tentTransfer=tentKind==="transfer"?tentAmount:0;
-    rows.push({returnDate:booking.returnDate||"",leader:leaderName(booking),qty,price:qty?amount/qty:0,boatCash,boatTransfer,discount:Math.max(defaultAmount-amount,0),balance:amount,smallTentQty,largeTentQty,tentCash,tentTransfer,totalCash:boatCash+tentCash,totalTransfer:boatTransfer+tentTransfer,customerSource:booking.source||booking.contactEmail||"",bookingCode:booking.bookingCode||""});
+    rows.push({returnDate:booking.returnDate||"",leader:leaderName(booking),qty,price,boatCash,boatTransfer,discount:Math.max(defaultAmount-amount,0),balance:amount,smallTentQty,largeTentQty,tentCash,tentTransfer,totalCash:boatCash+tentCash,totalTransfer:boatTransfer+tentTransfer,customerSource:booking.source||booking.contactEmail||"",bookingCode:booking.bookingCode||""});
   }
   const fields=["qty","boatCash","boatTransfer","discount","balance","smallTentQty","largeTentQty","tentCash","tentTransfer","totalCash","totalTransfer"],totals=Object.fromEntries(fields.map(field=>[field,rows.reduce((sum,row)=>sum+money(row[field]),0)]));
-  return{date,type:"boat_tent_reference",title:"ตั๋วเรือ - เต็นท์",purpose:"ยอดตั๋วเรือและเต็นท์ประจำวัน",range:{from:date,to:date},rows,totals,sourceNotes:["วันที่อ้างอิงวันเดินทางไปเกาะ","รวมเฉพาะ Program ตั๋วเรือ","เต็นท์อ้างอิงจากที่พักที่เราเป็นผู้จอง ไม่ใช่อุปกรณ์; ยอดเงินคิดจำนวนเต็นท์ × จำนวนคืนที่พนักงานกรอก × ราคาต่อคืน","สด/โอนอ้างอิงช่องทางชำระเงินของ Booking"]};
+  return{date,type:"boat_tent_reference",title:"ตั๋วเรือ - เต็นท์",purpose:"ยอดตั๋วเรือและเต็นท์ประจำวัน",range:{from:date,to:date},rows,totals,sourceNotes:["วันที่อ้างอิงวันเดินทางไปเกาะ","จำนวนรวมผู้โดยสารตั๋วเรือ; ราคาอ้างอิงราคาเริ่มต้นตั๋วเรือจาก Master Data","จำนวนเงินและคงเหลือเป็นยอดขายตั๋วเรือสุทธิที่บันทึกจริง ไม่ใช่จำนวน × ราคาเริ่มต้น; ส่วนลดเป็นผลต่างจากยอดราคาเริ่มต้น","เต็นท์อ้างอิงจากที่พักที่เราเป็นผู้จอง ไม่ใช่อุปกรณ์; ยอดเงินคิดจำนวนเต็นท์ × จำนวนคืนที่พนักงานกรอก × ราคาต่อคืน","สด/โอนอ้างอิงช่องทางชำระเงินของ Booking"]};
 }
 
 function vanRevenueLines(bookings,paymentMethods,transportationMethods){
@@ -503,7 +504,7 @@ function dailyEquipmentSummary(bookings,date,masterAddOns=[],paymentMethods=[]){
     equipmentColumns,rows,equipmentTotals,summary:{bookings:rows.length,pax:equipmentTotals.pax}};
 }
 
-export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows=[],paymentMethods=[],masterAddOns=[],masterIslandAddOns=[],masterAccommodations=[],masterAgents=[],transportationMethods=[],packageCostRates=[],date,toDate,type}){
+export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows=[],paymentMethods=[],masterPrograms=[],masterAddOns=[],masterIslandAddOns=[],masterAccommodations=[],masterAgents=[],transportationMethods=[],packageCostRates=[],date,toDate,type}){
   const active=bookings.filter(activeBooking);
   toDate=toDate||(type==="management"?isoDate(date,6):date);
   const selectedDays=reportDays(date,toDate),entries=selectedDays.flatMap(day=>movements(active,day).map(row=>({...row,date:day})));
@@ -517,7 +518,7 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows
   if(type==="tour_expense_reference")return tourExpenseReferenceReport(active,date,toDate,paymentMethods);
   if(type==="tent_fee_reference")return tentFeeReferenceReport(active,date,toDate);
   if(type==="package_cost_reference")return packageCostReport(active,date,packageCostRates);
-  if(type==="boat_tent_reference")return boatTentReport(active,date,paymentMethods);
+  if(type==="boat_tent_reference")return boatTentReport(active,date,paymentMethods,masterPrograms);
   if(type==="van_daily_reference")return vanDailyReferenceReport(active,date,toDate,paymentMethods,transportationMethods);
   if(type==="van_work_order_reference")return vanWorkOrderReferenceReport(active,date,toDate,paymentMethods,transportationMethods);
   if(type==="songthaew_work_order_reference")return songthaewWorkOrderReferenceReport(active,date,toDate,paymentMethods,transportationMethods);

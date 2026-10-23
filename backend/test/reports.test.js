@@ -645,6 +645,17 @@ test("boat and tent report reads tents from company-booked accommodation and spl
   const report=buildPrintCenterReport({bookings,paymentMethods,date:"2026-09-23",type:"boat_tent_reference"}),row=report.rows[0];
   assert.equal(row.qty,2);assert.equal(row.boatCash,0);assert.equal(row.boatTransfer,3000);assert.equal(row.discount,200);assert.equal(row.smallTentQty,1);assert.equal(row.largeTentQty,2);assert.equal(row.tentTransfer,1750);assert.equal(row.totalTransfer,4750);assert.equal(row.customerSource,"Facebook");
 });
+test("boat and tent report shows current master price but uses the actual net boat sale",()=>{
+  const passengers=Array.from({length:11},(_,index)=>({passengerType:index===10?"foc":"adult",program:{programId:"boat_ticket",qty:1,price:index===10?0:1300,defaultPrice:1500}}));
+  const booking={bookingCode:"RATTANA-EXAMPLE",travelDate:"2026-10-23",status:"pending",leaderFirstName:"รัตนา",leaderLastName:"สุภอุดร",paymentMethod:"โอนนฤมล",totalAmount:29800,depositAmount:1000,creditAmount:29800,passengers};
+  const report=buildPrintCenterReport({bookings:[booking],masterPrograms:[{program_id:"boat_ticket",default_price:1700}],paymentMethods:[{method_id:"bank_transfer_naruemon",method_name:"โอนนฤมล",payment_type:"transfer"}],date:"2026-10-23",type:"boat_tent_reference"});
+  assert.deepEqual({qty:report.rows[0].qty,price:report.rows[0].price,boatCash:report.rows[0].boatCash,boatTransfer:report.rows[0].boatTransfer,discount:report.rows[0].discount,balance:report.rows[0].balance},{qty:11,price:1700,boatCash:0,boatTransfer:13000,discount:5700,balance:13000});
+  assert.equal(report.totals.boatTransfer,13000);
+  assert.match(report.sourceNotes.join(" "),/Master Data/);
+  const route=fs.readFileSync(path.resolve(testDir,"../src/routes/reports.js"),"utf8");
+  assert.match(route,/master_programs"\)\.select\("program_id,default_price"\)\.eq\("program_id","boat_ticket"\)/);
+  assert.match(route,/masterPrograms:programMasterResult\.data\|\|\[\]/);
+});
 test("staff-entered tent nights multiply revenue but do not multiply tent count",()=>{
   const booking={bookingCode:"TENT-NIGHTS",travelDate:"2026-10-21",returnDate:"2026-10-25",status:"confirmed",paymentMethod:"เงินสด",passengers:[{program:{programId:"boat_ticket",name:"ตั๋วเรือ",qty:1,price:1000}}],accommodations:[
     {accommodationId:"SB tent",accommodationName:"เต็นท์เล็ก",accommodationBookedBy:"company",accommodationQty:2,accommodationNights:3,accommodationPrice:450},
