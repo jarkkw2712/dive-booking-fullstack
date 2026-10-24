@@ -46,8 +46,15 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.24-02/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=asset==="css/style.css"?"20261024-02":asset==="js/app.js"?"20261024-01":asset==="js/api.js"?"20261023-03":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":asset==="js/travelStops.js"?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.10\.24-03/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=asset==="css/style.css"?"20261024-03":asset==="js/app.js"?"20261024-01":asset==="js/api.js"?"20261023-03":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":asset==="js/travelStops.js"?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+});
+test("booking form uses the available desktop width without stretching other pages",()=>{
+  const css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
+  assert.match(css,/\.content\{padding:24px;max-width:1400px\}/);
+  assert.match(css,/\.content:has\(#bookingPage\.active\)\{max-width:none\}/);
+  assert.match(css,/\.booking-grid\{display:grid;grid-template-columns:minmax\(390px,1\.15fr\) minmax\(550px,1\.3fr\)/);
+  assert.match(css,/@media\(max-width:1280px\)\{\.booking-grid\{grid-template-columns:minmax\(0,1\.1fr\) minmax\(0,\.9fr\)\}/);
 });
 test("package PDF keeps mixed adult and child prices in one row and warns on unassigned tent stays",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
