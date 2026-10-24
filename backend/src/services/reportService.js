@@ -85,6 +85,13 @@ const paymentDefaultField={general:"default_general",equipment:"default_equipmen
 const normalized=value=>String(value||"").trim().toLocaleLowerCase("th-TH");
 const paymentMeta=(name,methods=[])=>methods.find(method=>method.method_name===name)||null;
 const paymentKind=(name,methods=[])=>{const method=paymentMeta(name,methods),code=normalized(method?.method_id);if(code==="cash")return"cash";if(code.includes("bank_transfer"))return"transfer";if(method?.payment_type==="cash")return"cash";if(method?.payment_type==="transfer")return"transfer";return/cash|สด/i.test(String(name||""))?"cash":"transfer"};
+const bookingSavedPaymentMethod=(booking,kind)=>{
+  const field=kind==="deposit"?"depositPaymentMethod":"creditPaymentMethod",saved=String(booking?.[field]||"").trim();
+  if(saved)return saved;
+  const allocations=Object.entries(booking?.paymentBreakdown?.[kind]||{}).filter(([,amount])=>money(amount)>0);
+  if(allocations.length===1)return allocations[0][0];
+  return kind==="deposit"&&money(booking?.depositAmount)>0?(booking?.paymentMethod||""):"";
+};
 const defaultPayment=(methods,scope)=>{const active=methods.filter(method=>method.active_flag!==false);return active.find(method=>method[paymentDefaultField[scope]]===true)?.method_name||active.find(method=>String(method.method_name||"").trim()===paymentDefaultName[scope])?.method_name||""};
 const namedAccount=name=>namedPaymentAccounts.find(account=>String(name||"").includes(account))||"";
 const accountTransferTotal=(lines,account,methods)=>sumMoney(lines.filter(line=>namedAccount(line.paymentMethod)===account&&paymentKind(line.paymentMethod,methods)==="transfer"),line=>line.amount);
@@ -120,7 +127,7 @@ function splitProgramRevenueLines(booking,lines,{includeDeposit=false,includeCre
   const deposit=includeDeposit?Math.min(paymentCents(booking.depositAmount),gross):0;
   const credit=includeCredit?Math.min(paymentCents(booking.creditAmount),gross-deposit):0;
   const secondaryAmount=secondary?Math.min(paymentCents(breakdown.secondary?.amount),gross-deposit-credit):0;
-  const portions=[...(deposit?[{method:booking.depositPaymentMethod||primary,amount:deposit}]:[]),...(credit?[{method:booking.creditPaymentMethod||primary,amount:credit}]:[]),...(secondaryAmount?[{method:secondary,amount:secondaryAmount}]:[]),{method:primary,amount:gross-deposit-credit-secondaryAmount}];
+  const portions=[...(deposit?[{method:bookingSavedPaymentMethod(booking,"deposit")||primary,amount:deposit}]:[]),...(credit?[{method:bookingSavedPaymentMethod(booking,"credit")||primary,amount:credit}]:[]),...(secondaryAmount?[{method:secondary,amount:secondaryAmount}]:[]),{method:primary,amount:gross-deposit-credit-secondaryAmount}];
   const remaining=[...capacities],result=[];
   for(const portion of portions){const shares=proportionalPaymentShares(portion.amount,remaining);shares.forEach((share,index)=>{if(share)result.push({...lines[index],amount:share/100,paymentMethod:portion.method});remaining[index]-=share})}
   return result;
@@ -192,7 +199,7 @@ function tourExpenseReferenceReport(bookings,date,toDate,paymentMethods){
     const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===day),services=daily.flatMap(booking=>tourRevenueLines(booking,paymentMethods));
     const sum=(source,kind)=>sumMoney(services.filter(line=>(!source||line.source===source)&&(!kind||paymentKind(line.paymentMethod,paymentMethods)===kind)),line=>line.amount);
     const detailSum=(detail,kind)=>sumMoney(services.filter(line=>line.source==="package"&&line.packageDetail===detail&&paymentKind(line.paymentMethod,paymentMethods)===kind),line=>line.amount);
-    const deposits=daily.map(booking=>({amount:money(booking.depositAmount),method:booking.depositPaymentMethod||booking.paymentMethod||""}));
+    const deposits=daily.map(booking=>({amount:money(booking.depositAmount),method:bookingSavedPaymentMethod(booking,"deposit")||booking.paymentMethod||""}));
     const accountLines=[...services,...deposits.map(row=>({amount:row.amount,paymentMethod:row.method,source:"deposit"}))],accountTotals=Object.fromEntries(namedPaymentAccounts.map(account=>[account,sumMoney(accountLines.filter(line=>namedAccount(line.paymentMethod)===account),line=>line.amount)]));
     return{
       date:day,boatCash:sum("boat","cash"),boatTransfer:sum("boat","transfer"),packageCash:sum("package","cash"),packageTransfer:sum("package","transfer"),
@@ -339,7 +346,7 @@ function tourMonthlyReferenceReport(bookings,date,toDate,paymentMethods){
   const rows=reportMonths(date,toDate).map(month=>{
     const selected=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate>=date&&booking.travelDate<=toDate&&String(booking.travelDate).slice(0,7)===month);
     const services=selected.flatMap(booking=>tourRevenueLines(booking,paymentMethods));
-    const deposits=selected.map(booking=>({amount:money(booking.depositAmount),paymentMethod:booking.depositPaymentMethod||booking.paymentMethod||""}));
+    const deposits=selected.map(booking=>({amount:money(booking.depositAmount),paymentMethod:bookingSavedPaymentMethod(booking,"deposit")||booking.paymentMethod||""}));
     const cash=sumMoney(services.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="cash"),line=>line.amount);
     const transfer=sumMoney(services.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="transfer"),line=>line.amount);
     return{month,cash,transfer,deposit:sumMoney(deposits,line=>line.amount),credit:sumMoney(selected,booking=>booking.creditAmount),rungruedeeTransfer:accountTransferTotal([...services,...deposits],"รุ่งฤดี",paymentMethods)};
@@ -518,8 +525,8 @@ function dailyReceiptSummary(bookings,date,paymentMethods,masters){
   const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===date),totals={depositCash:0,depositTransfer:0,creditCash:0,creditTransfer:0,balanceCash:0,balanceTransfer:0,totalCash:0,totalTransfer:0,grandTotal:0};
   const rows=daily.map((booking,index)=>{
     const total=receiptDocumentTotal(booking,masters),deposit=Math.min(receiptCents(booking.depositAmount),total),credit=Math.min(receiptCents(booking.creditAmount),total-deposit),balance=total-deposit-credit,breakdown=booking.paymentBreakdown||{};
-    const depositSplit=receiptPaymentSplit(receiptAmount(deposit),breakdown.deposit,booking.depositPaymentMethod,paymentMethods);
-    const creditSplit=receiptPaymentSplit(receiptAmount(credit),breakdown.credit,booking.creditPaymentMethod,paymentMethods);
+    const depositSplit=receiptPaymentSplit(receiptAmount(deposit),breakdown.deposit,bookingSavedPaymentMethod(booking,"deposit"),paymentMethods);
+    const creditSplit=receiptPaymentSplit(receiptAmount(credit),breakdown.credit,bookingSavedPaymentMethod(booking,"credit"),paymentMethods);
     const balanceSplit=breakdown.version===2?receiptV2BalanceSplit(booking,masters,deposit,credit,paymentMethods):receiptPaymentSplit(receiptAmount(balance),breakdown.remaining,booking.paymentMethod,paymentMethods);
     const row={no:index+1,agent:booking.agentName||"",leader:leaderName(booking),program:uniqueValues(passengersOf(booking),p=>programShort(p.program?.name)),depositCash:receiptAmount(depositSplit.cash),depositTransfer:receiptAmount(depositSplit.transfer),creditCash:receiptAmount(creditSplit.cash),creditTransfer:receiptAmount(creditSplit.transfer),balanceCash:receiptAmount(balanceSplit.cash),balanceTransfer:receiptAmount(balanceSplit.transfer),totalCash:receiptAmount(depositSplit.cash+creditSplit.cash+balanceSplit.cash),totalTransfer:receiptAmount(depositSplit.transfer+creditSplit.transfer+balanceSplit.transfer),grandTotal:receiptAmount(total)};
     for(const key of Object.keys(totals))totals[key]+=row[key];
@@ -597,7 +604,7 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows
       pax:passengersOf(booking).length,status:booking.status,paymentMethod:bookingProgramPaymentLabel(booking),
       transportationMethod:booking.transportationMethod||"",
       totalAmount:money(booking.totalAmount),depositAmount:money(booking.depositAmount),
-      depositPaymentMethod:booking.depositPaymentMethod||booking.paymentMethod||"",creditAmount:money(booking.creditAmount),creditPaymentMethod:booking.creditPaymentMethod||"",
+      depositPaymentMethod:bookingSavedPaymentMethod(booking,"deposit")||booking.paymentMethod||"",creditAmount:money(booking.creditAmount),creditPaymentMethod:bookingSavedPaymentMethod(booking,"credit"),
       balanceAmount:Math.max(money(booking.totalAmount)-money(booking.depositAmount)-money(booking.creditAmount),0),
       agent:booking.agentName||booking.source||""
     }));

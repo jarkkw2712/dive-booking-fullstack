@@ -46,8 +46,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.24-07/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=asset==="css/style.css"?"20261024-04":asset==="js/app.js"?"20261024-04":asset==="js/islandAddonMaster.js"?"20261024-01":asset==="js/api.js"?"20261023-03":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":asset==="js/travelStops.js"?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.10\.24-08/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=asset==="css/style.css"?"20261024-04":asset==="js/app.js"?"20261024-05":asset==="js/islandAddonMaster.js"?"20261024-01":asset==="js/api.js"?"20261023-03":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":asset==="js/travelStops.js"?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
 });
 test("booking form uses the available desktop width without stretching other pages",()=>{
   const css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -506,22 +506,31 @@ test("booking summary stores primary and secondary notes without changing legacy
   assert.equal(context.result.paymentBreakdown.secondary.method,"เงินสด");
   assert.equal(context.result.paymentBreakdown.secondary.amount,2000);
   assert.equal("unpaid" in context.result.paymentBreakdown,false);
+  const withCredit={...context.booking,creditAmount:500,creditPaymentMethod:"เงินสด",paymentBreakdown:{deposit:{"โอนนฤมล":1000},credit:{"เงินสด":500},remaining:{"โอนนฤมล":3500}}};
+  const creditContext={val:id=>values[id]||"",structuredClone,booking:withCredit,result:null};
+  vm.runInNewContext(`let paymentBreakdown={};function buildBooking(){return booking};${helper}${wrapper};result=buildBooking()`,creditContext);
+  assert.equal(creditContext.result.depositPaymentMethod,"โอนนฤมล");assert.equal(creditContext.result.creditPaymentMethod,"เงินสด");
+  assert.equal(creditContext.result.paymentBreakdown.deposit["โอนนฤมล"],1000);assert.equal(creditContext.result.paymentBreakdown.credit["เงินสด"],500);
   const loader=app.slice(app.indexOf("const loadBookingToFormBeforePaymentSplit"),app.indexOf("const buildBookingBeforePaymentSplit"));
-  const fields=Object.fromEntries(["legacyPaymentNotice","primaryPaymentAmount","secondaryPaymentMethod","secondaryPaymentAmount","paymentMethod"].map(id=>[id,{value:"",classList:{toggle(){}}}]));
+  const fields=Object.fromEntries(["legacyPaymentNotice","primaryPaymentAmount","secondaryPaymentMethod","secondaryPaymentAmount","paymentMethod","depositPaymentMethod","creditPaymentMethod"].map(id=>[id,{value:"",classList:{toggle(){}}}]));
   const loadContext={structuredClone,document:{getElementById:id=>fields[id]},setSelectValueWithHistory:(id,value)=>{fields[id].value=value},refreshSummary(){},booking:context.result};
   vm.runInNewContext(`let paymentBreakdown={};${helper}function loadBookingToForm(){}${loader};loadBookingToForm(booking)`,loadContext);
   assert.equal(fields.primaryPaymentAmount.value,2000);
   assert.equal(fields.secondaryPaymentMethod.value,"เงินสด");
   assert.equal(fields.secondaryPaymentAmount.value,2000);
   const oldBooking={...context.booking,paymentMethod:"โอนนฤมล",paymentBreakdown:{deposit:{},credit:{},remaining:{"โอนรุ่งฤดี":4000}}};
-  const oldFields=Object.fromEntries(["legacyPaymentNotice","primaryPaymentAmount","secondaryPaymentMethod","secondaryPaymentAmount","paymentMethod"].map(id=>[id,{value:"",classList:{toggle(){}}}]));
+  const oldFields=Object.fromEntries(["legacyPaymentNotice","primaryPaymentAmount","secondaryPaymentMethod","secondaryPaymentAmount","paymentMethod","depositPaymentMethod","creditPaymentMethod"].map(id=>[id,{value:"",classList:{toggle(){}}}]));
   const oldLoadContext={structuredClone,document:{getElementById:id=>oldFields[id]},setSelectValueWithHistory:(id,value)=>{oldFields[id].value=value},refreshSummary(){},booking:oldBooking};
   vm.runInNewContext(`let paymentBreakdown={};${helper}function loadBookingToForm(){}${loader};loadBookingToForm(booking)`,oldLoadContext);
   assert.equal(oldFields.paymentMethod.value,"โอนนฤมล");
   assert.equal(oldFields.primaryPaymentAmount.value,0);
   assert.equal(oldFields.secondaryPaymentMethod.value,"");
+  const historic={...oldBooking,depositPaymentMethod:"",creditAmount:500,creditPaymentMethod:"",paymentBreakdown:{deposit:{"โอนนฤมล":1000},credit:{"โอนรุ่งฤดี":500},remaining:{"โอนนฤมล":3500}}};
+  const historicFields=Object.fromEntries(["legacyPaymentNotice","primaryPaymentAmount","secondaryPaymentMethod","secondaryPaymentAmount","paymentMethod","depositPaymentMethod","creditPaymentMethod"].map(id=>[id,{value:"",classList:{toggle(){}}}]));
+  vm.runInNewContext(`let paymentBreakdown={};${helper}function loadBookingToForm(){}${loader};loadBookingToForm(booking)`,{structuredClone,document:{getElementById:id=>historicFields[id]},setSelectValueWithHistory:(id,value)=>{historicFields[id].value=value},refreshSummary(){},booking:historic});
+  assert.equal(historicFields.depositPaymentMethod.value,"โอนนฤมล");assert.equal(historicFields.creditPaymentMethod.value,"โอนรุ่งฤดี");
   const paidBooking={...context.booking,depositAmount:0,depositPaymentMethod:"",totalAmount:3000,passengers:[{program:{qty:1,price:3000}}],paymentBreakdown:{deposit:{},credit:{},remaining:{"โอนนฤมล":3000}}};
-  const paidFields=Object.fromEntries(["legacyPaymentNotice","primaryPaymentAmount","secondaryPaymentMethod","secondaryPaymentAmount","paymentMethod"].map(id=>[id,{value:"",classList:{toggle(){}}}]));
+  const paidFields=Object.fromEntries(["legacyPaymentNotice","primaryPaymentAmount","secondaryPaymentMethod","secondaryPaymentAmount","paymentMethod","depositPaymentMethod","creditPaymentMethod"].map(id=>[id,{value:"",classList:{toggle(){}}}]));
   const paidLoadContext={structuredClone,document:{getElementById:id=>paidFields[id]},setSelectValueWithHistory:(id,value)=>{paidFields[id].value=value},refreshSummary(){},booking:paidBooking};
   vm.runInNewContext(`let paymentBreakdown={};${helper}function loadBookingToForm(){}${loader};loadBookingToForm(booking)`,paidLoadContext);
   assert.equal(paidFields.paymentMethod.value,"โอนนฤมล");
@@ -544,6 +553,31 @@ test("booking summary stores primary and secondary notes without changing legacy
   assert.equal(editedContext.result.paymentBreakdown.primary.amount,2500);
   assert.doesNotMatch(app,/bookingPaymentUnallocated|unallocatedRemaining|ยอดยังไม่รับจริง/);
 });
+test("payment summary keeps legacy deposit and credit rows with their channels",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),html=fs.readFileSync(path.join(root,"index.html"),"utf8"),wrapper=app.slice(app.indexOf("const refreshSummaryBeforePaymentSplit"),app.indexOf("const startNewBookingBeforePaymentSplit"));
+  assert.match(html,/id="depositPaymentMethod" onchange="refreshSummary\(\)"/);assert.match(html,/id="creditPaymentMethod" onchange="refreshSummary\(\)"/);
+  const lines=["มัดจำ","ขายเชื่อ","คงเหลือหลังมัดจำ/ขายเชื่อ"].map(label=>({span:{textContent:label},removed:false,querySelector(){return this.span},remove(){this.removed=true}}));
+  const context={refreshSummary(){},document:{getElementById:()=>({querySelectorAll:()=>lines})},val:id=>({depositPaymentMethod:"โอนนฤมล",creditPaymentMethod:"เงินสด"})[id]||""};
+  vm.runInNewContext(`${wrapper};refreshSummary()`,context);
+  assert.equal(lines[0].span.textContent,"มัดจำ (โอนนฤมล)");assert.equal(lines[1].span.textContent,"ขายเชื่อ (เงินสด)");
+  assert.equal(lines[0].removed,false);assert.equal(lines[1].removed,false);assert.equal(lines[2].removed,true);
+});
+test("refreshing Master Data does not erase an inactive historical payment selection",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),code=app.slice(app.indexOf("function fillMasterSelect"),app.indexOf("function populateBookingMasterSelects"));
+  const select={value:"Old Cash",options:[],add(option){this.options.push(option)}};
+  Object.defineProperty(select,"innerHTML",{set(value){this.options=[...value.matchAll(/<option value="([^"]*)"/g)].map(match=>({value:match[1]}));this.value=this.options[0]?.value||""}});
+  const context={document:{getElementById:()=>select},Option:function(label,value){return{label,value}},escapeHtml:value=>value};
+  vm.runInNewContext(`${code};fillMasterSelect("depositPaymentMethod",[{method_name:"Current"}],"method_id","method_name",{blank:true})`,context);
+  assert.equal(select.value,"Old Cash");assert.ok(select.options.some(option=>option.value==="Old Cash"));
+});
+test("Booking List detail shows saved deposit and credit channels only with money permission",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),wrapper=app.slice(app.indexOf("selectBooking=function(booking){selectBookingBase(booking)"),app.indexOf("function syncBookingMainToLeader")),booking={boatTicketBookNo:"",boatTicketNo:"",depositAmount:1000,creditAmount:500,depositPaymentMethod:"Naruemon",creditPaymentMethod:"Cash",paymentBreakdown:{version:2,secondary:{method:"Rungreudee",amount:200}}};
+  const html=[],context={selectBookingBase(){},document:{getElementById:()=>({insertAdjacentHTML(_place,text){html.push(text)}})},hasPermission:()=>true,money:value=>String(value),escapeHtml:value=>String(value),bookingSavedPaymentMethod:(row,kind)=>row[kind==="deposit"?"depositPaymentMethod":"creditPaymentMethod"]};
+  vm.runInNewContext(`${wrapper};selectBooking(booking)`,{...context,booking});
+  assert.match(html.join(""),/ช่องทางมัดจำ: Naruemon/);assert.match(html.join(""),/ช่องทางขายเชื่อ: Cash/);assert.match(html.join(""),/ช่องทางสำรอง: Rungreudee 200/);
+  html.length=0;vm.runInNewContext(`${wrapper};selectBooking(booking)`,{...context,booking,hasPermission:()=>false});
+  assert.doesNotMatch(html.join(""),/ช่องทางมัดจำ|ช่องทางขายเชื่อ|ช่องทางสำรอง/);
+});
 test("money receipt account table is capped to the items printed on that receipt",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),start=app.indexOf("function documentPaymentAmounts"),end=app.indexOf("function moneyReceiptAllocationTable"),context={result:null};
   vm.runInNewContext(`${app.slice(start,end)};result={amounts:documentPaymentAmounts({depositAmount:1000,creditAmount:0},5000),allocated:allocateReceiptRow([{method_name:"เงินสด"}],{"เงินสด":9500},4000,"เงินสด")}`,context);
@@ -557,7 +591,7 @@ test("money receipt uses primary, secondary and item accounts for new Bookings",
   context.booking=booking;vm.runInNewContext(`${app.slice(start,end)};result=receiptV2RemainingByMethod(booking,{deposit:1000,credit:0})`,context);
   assert.equal(context.result.Cash,1000);assert.equal(context.result.Naruemon,2000);assert.equal(context.result.Laddawan,200);
   assert.equal(Object.values(context.result).reduce((sum,value)=>sum+value,0),3200);
-  const view={...context,master:{paymentMethods:[{method_name:"Cash",payment_type:"cash"},{method_name:"Naruemon",payment_type:"transfer"},{method_name:"Laddawan",payment_type:"transfer"}]},bookingDefaultPaymentMethod:()=>"",bookingIsVanMethod:()=>false,money:value=>String(value),escapeHtml:value=>String(value)};
+  const view={...context,master:{paymentMethods:[{method_name:"Cash",payment_type:"cash"},{method_name:"Naruemon",payment_type:"transfer"},{method_name:"Laddawan",payment_type:"transfer"}]},bookingDefaultPaymentMethod:()=>"",bookingIsVanMethod:()=>false,bookingSavedPaymentMethod:(row,kind)=>row[kind==="deposit"?"depositPaymentMethod":"creditPaymentMethod"]||"",money:value=>String(value),escapeHtml:value=>String(value)};
   const from=app.indexOf("function paymentMethodMeta"),to=app.indexOf("function documentFinancialSummary");
   vm.runInNewContext(`${app.slice(from,to)};result=moneyReceiptAllocationTable(booking,4200)`,view);
   assert.match(view.result,/<tr><td>ยอดที่เหลือ<\/td><td class="num">1000<\/td><td class="num">2000<\/td><td class="num">200<\/td><\/tr>/);
@@ -573,9 +607,18 @@ test("island order prints each selected island account without borrowing the mai
 
 test("Register never prints a deposit larger than the items visible on that document",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),amounts=app.slice(app.indexOf("function documentPaymentAmounts"),app.indexOf("function allocateReceiptRow")),summary=app.slice(app.indexOf("function documentFinancialSummary"),app.indexOf("const renderReceiptWithFinancialSummary"));
-  const context={documentProfiles:{REGISTER:{}},documentGroupedItems:()=>[{total:100}],money:value=>String(value),paymentTypeLabel:()=>"โอนธนาคาร",escapeHtml:value=>String(value),booking:{depositAmount:500,creditAmount:0,depositPaymentMethod:"Bank"},result:null};
+  const context={documentProfiles:{REGISTER:{}},documentGroupedItems:()=>[{total:100}],money:value=>String(value),paymentTypeLabel:()=>"โอนธนาคาร",bookingSavedPaymentMethod:(row,kind)=>row[kind==="deposit"?"depositPaymentMethod":"creditPaymentMethod"]||"",escapeHtml:value=>String(value),booking:{depositAmount:500,creditAmount:0,depositPaymentMethod:"Bank"},result:null};
   vm.runInNewContext(`${amounts}${summary};result=documentFinancialSummary(booking,"REGISTER")`,context);
   assert.match(context.result,/ยอดรวม<\/span><b>100 บาท/);assert.match(context.result,/มัดจำ \(โอนธนาคาร\)<\/span><b>100 บาท/);assert.match(context.result,/ยอดสุทธิ<\/span><b>0 บาท/);
+});
+
+test("Register and money receipt replace the old total block instead of printing it twice",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),wrapper=app.slice(app.indexOf("const renderReceiptWithFinancialSummary"),app.indexOf("function renderIslandPurchaseOrder"));
+  const original='<div class="document-total"><div class="document-total-row">old total</div></div><div class="document-note">note</div>';
+  const context={renderReceipt:()=>original,documentFinancialSummary:()=>'<div class="document-total document-financial-summary">new total</div>'};
+  vm.runInNewContext(`${wrapper};result=[renderReceipt({},"REGISTER"),renderReceipt({},"MONEY_RECEIPT"),renderReceipt({},"EQUIPMENT_RECEIPT")]`,context);
+  for(const rendered of context.result.slice(0,2)){assert.doesNotMatch(rendered,/old total/);assert.equal((rendered.match(/new total/g)||[]).length,1);assert.match(rendered,/document-note/)}
+  assert.equal(context.result[2],original);
 });
 
 test("package, boat-tent, expense and island-boat workflows are wired end to end",()=>{

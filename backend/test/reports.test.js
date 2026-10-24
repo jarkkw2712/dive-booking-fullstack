@@ -233,6 +233,16 @@ test("inactive historical payment methods keep their original cash type in repor
   assert.equal(row.boatCash,500);assert.equal(row.boatTransfer,0);
 });
 
+test("legacy deposit and credit account names survive a new secondary payment split",()=>{
+  const booking={travelDate:"2026-10-24",status:"confirmed",paymentMethod:"Bank",depositAmount:1000,depositPaymentMethod:"",creditAmount:500,creditPaymentMethod:"",paymentBreakdown:{version:2,deposit:{"Legacy Cash":1000},credit:{Bank:500},primary:{method:"Bank",amount:2000},secondary:{method:"Legacy Cash",amount:1500}},passengers:[{program:{programId:"boat_ticket",qty:1,price:5000}}]};
+  const paymentMethods=[{method_name:"Legacy Cash",payment_type:"cash",active_flag:false},{method_name:"Bank",payment_type:"transfer",active_flag:true}];
+  const report=type=>buildPrintCenterReport({bookings:[booking],date:booking.travelDate,type,paymentMethods});
+  const tour=report("tour_expense_reference").rows[0],receipt=report("receipt_summary").rows[0],counter=report("counter").rows[0];
+  assert.deepEqual([tour.boatCash,tour.boatTransfer,tour.deposit,tour.credit],[1500,2500,1000,500]);
+  assert.deepEqual([receipt.depositCash,receipt.creditTransfer,receipt.balanceCash,receipt.balanceTransfer],[1000,500,1500,2000]);
+  assert.equal(counter.depositPaymentMethod,"Legacy Cash");assert.equal(counter.creditPaymentMethod,"Bank");
+});
+
 test("register summary supports an inclusive custom date range",()=>{
   const bookings=[
     {bookingCode:"R1",travelDate:"2026-07-23",returnDate:"2026-07-25",leaderFirstName:"A",status:"confirmed",passengers:[{passengerType:"adult",program:{name:"3 days 2 nights"}}]},
