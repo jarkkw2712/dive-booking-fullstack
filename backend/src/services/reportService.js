@@ -87,6 +87,7 @@ const paymentMeta=(name,methods=[])=>methods.find(method=>method.method_name===n
 const paymentKind=(name,methods=[])=>{const method=paymentMeta(name,methods),code=normalized(method?.method_id);if(code==="cash")return"cash";if(code.includes("bank_transfer"))return"transfer";if(method?.payment_type==="cash")return"cash";if(method?.payment_type==="transfer")return"transfer";return/สด/.test(String(name||""))?"cash":"transfer"};
 const defaultPayment=(methods,scope)=>methods.find(method=>method[paymentDefaultField[scope]]===true)?.method_name||methods.find(method=>String(method.method_name||"").trim()===paymentDefaultName[scope])?.method_name||"";
 const namedAccount=name=>namedPaymentAccounts.find(account=>String(name||"").includes(account))||"";
+const accountTransferTotal=(lines,account,methods)=>sumMoney(lines.filter(line=>namedAccount(line.paymentMethod)===account&&paymentKind(line.paymentMethod,methods)==="transfer"),line=>line.amount);
 const isBoatProgram=program=>normalized(program?.programId||program?.id)==="boat_ticket";
 const packageDetail=program=>{
   const id=normalized(program?.programId||program?.id);
@@ -164,7 +165,7 @@ function tourExpenseReferenceReport(bookings,date,toDate,paymentMethods){
       tentCash:sum("tent","cash"),tentTransfer:sum("tent","transfer"),accommodationCash:sum("accommodation","cash"),accommodationTransfer:sum("accommodation","transfer"),oneDayCash:detailSum("oneDay","cash"),oneDayTransfer:detailSum("oneDay","transfer"),dayTripOvernightCash:detailSum("dayTripOvernight","cash"),dayTripOvernightTransfer:detailSum("dayTripOvernight","transfer"),
       deposit:sumMoney(deposits,row=>row.amount),credit:sumMoney(daily,booking=>booking.creditAmount),
       naruemonTransfer:sumMoney(services.filter(line=>line.source==="boat"&&namedAccount(line.paymentMethod)==="นฤมล"&&paymentKind(line.paymentMethod,paymentMethods)==="transfer"),line=>line.amount),
-      rungruedeeTransfer:sumMoney(deposits.filter(row=>namedAccount(row.method)==="รุ่งฤดี"&&paymentKind(row.method,paymentMethods)==="transfer"),row=>row.amount),
+      rungruedeeTransfer:accountTransferTotal(accountLines,"รุ่งฤดี",paymentMethods),
       rujirojDepositCash:sumMoney(deposits.filter(row=>namedAccount(row.method)==="รุจิโรจน์"&&paymentKind(row.method,paymentMethods)==="cash"),row=>row.amount),
       rujirojDepositTransfer:sumMoney(deposits.filter(row=>namedAccount(row.method)==="รุจิโรจน์"&&paymentKind(row.method,paymentMethods)==="transfer"),row=>row.amount),
       totalRevenue:sumMoney(daily.flatMap(booking=>serviceRevenueLines(booking,paymentMethods)).filter(line=>line.source!=="transport"),line=>line.amount),accounts:accountTotals
@@ -172,7 +173,7 @@ function tourExpenseReferenceReport(bookings,date,toDate,paymentMethods){
   }),moneyFields=["boatCash","boatTransfer","packageCash","packageTransfer","tentCash","tentTransfer","accommodationCash","accommodationTransfer","oneDayCash","oneDayTransfer","dayTripOvernightCash","dayTripOvernightTransfer","deposit","credit","naruemonTransfer","rungruedeeTransfer","rujirojDepositCash","rujirojDepositTransfer","totalRevenue"],totals=Object.fromEntries(moneyFields.map(field=>[field,sumMoney(rows,row=>row[field])]));
   totals.accounts=Object.fromEntries(namedPaymentAccounts.map(account=>[account,sumMoney(rows,row=>row.accounts?.[account])]));
   const monthly=tourMonthlyReferenceReport(bookings,date,toDate,paymentMethods);
-  return{date,type:"tour_expense_reference",title:"รายงานทัวร์และค่าใช้จ่าย",purpose:"ยอดตามวันเดินทางไป หักมัดจำจากรายการขายและแสดงแยก ไม่รวมค่าเดินทาง",range:{from:date,to:toDate},rows,totals,monthlyRows:monthly.rows,monthlyTotals:monthly.totals,accountNames:namedPaymentAccounts,sourceNotes:["วันที่อ้างอิงวันเดินทางไปของ Booking","ตั๋วเรือใช้ Program code boat_ticket; Program อื่นเป็นแพ็คเกจ","One Day Trip ใช้ code one_day และ Day Trip Overnight ใช้ code DO; ทั้งคู่เป็นส่วนหนึ่งของยอดแพ็คเกจ ไม่บวกซ้ำในรวมรายได้","ยอดหมวดรายการขายหักมัดจำก่อน โดยตัดจาก Program ก่อน แล้วจึงตัดจากรายการอื่น","โอนนฤมลคือยอดตั๋วเรือโอนหลังหักมัดจำ; โอนรุ่งฤดีคือมัดจำที่โอนเข้ารุ่งฤดี","รวมรายได้รวมอุปกรณ์และ Island Add-on แต่ไม่รวมค่าเดินทาง","เต็นท์ใช้อุปกรณ์ code tent"]};
+  return{date,type:"tour_expense_reference",title:"รายงานทัวร์และค่าใช้จ่าย",purpose:"ยอดตามวันเดินทางไป หักมัดจำจากรายการขายและแสดงแยก ไม่รวมค่าเดินทาง",range:{from:date,to:toDate},rows,totals,monthlyRows:monthly.rows,monthlyTotals:monthly.totals,accountNames:namedPaymentAccounts,sourceNotes:["วันที่อ้างอิงวันเดินทางไปของ Booking","ตั๋วเรือใช้ Program code boat_ticket; Program อื่นเป็นแพ็คเกจ","One Day Trip ใช้ code one_day และ Day Trip Overnight ใช้ code DO; ทั้งคู่เป็นส่วนหนึ่งของยอดแพ็คเกจ ไม่บวกซ้ำในรวมรายได้","ยอดหมวดรายการขายหักมัดจำก่อน โดยตัดจาก Program ก่อน แล้วจึงตัดจากรายการอื่น","โอนนฤมลคือยอดตั๋วเรือโอนหลังหักมัดจำ; โอนรุ่งฤดีคือยอดขายสุทธิและมัดจำที่เข้าบัญชีรุ่งฤดี ไม่บวกซ้ำในรวมรายได้","รวมรายได้รวมอุปกรณ์และ Island Add-on แต่ไม่รวมค่าเดินทาง","เต็นท์ใช้อุปกรณ์ code tent"]};
 }
 
 function tentFeeReferenceReport(bookings,date,toDate){
@@ -305,10 +306,10 @@ function tourMonthlyReferenceReport(bookings,date,toDate,paymentMethods){
     const deposits=selected.map(booking=>({amount:money(booking.depositAmount),paymentMethod:booking.depositPaymentMethod||booking.paymentMethod||""}));
     const cash=sumMoney(services.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="cash"),line=>line.amount);
     const transfer=sumMoney(services.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="transfer"),line=>line.amount);
-    return{month,cash,transfer,deposit:sumMoney(deposits,line=>line.amount),credit:sumMoney(selected,booking=>booking.creditAmount),rungruedeeTransfer:sumMoney(deposits.filter(line=>namedAccount(line.paymentMethod)==="รุ่งฤดี"&&paymentKind(line.paymentMethod,paymentMethods)==="transfer"),line=>line.amount)};
+    return{month,cash,transfer,deposit:sumMoney(deposits,line=>line.amount),credit:sumMoney(selected,booking=>booking.creditAmount),rungruedeeTransfer:accountTransferTotal([...services,...deposits],"รุ่งฤดี",paymentMethods)};
   });
   const fields=["cash","transfer","deposit","credit","rungruedeeTransfer"],totals=Object.fromEntries(fields.map(field=>[field,sumMoney(rows,row=>row[field])]));
-  return{date,type:"tour_monthly_reference",title:"รายงานสรุปรายการทัวร์",purpose:"สรุปรายเดือนตามวันเดินทางไป",range:{from:date,to:toDate},rows,totals,sourceNotes:["มัดจำและขายเชื่อเป็นข้อมูลประกอบและไม่บวกซ้ำกับยอดสด/โอน","ตัดคอลัมน์เบิกทัวร์และคงเหลือตามข้อกำหนด"]};
+  return{date,type:"tour_monthly_reference",title:"รายงานสรุปรายการทัวร์",purpose:"สรุปรายเดือนตามวันเดินทางไป",range:{from:date,to:toDate},rows,totals,sourceNotes:["มัดจำและขายเชื่อเป็นข้อมูลประกอบและไม่บวกซ้ำกับยอดสด/โอน","โอนรุ่งฤดีรวมยอดขายสุทธิและมัดจำที่เข้าบัญชีรุ่งฤดี โดยไม่นับมัดจำซ้ำ","ตัดคอลัมน์เบิกทัวร์และคงเหลือตามข้อกำหนด"]};
 }
 function vanMonthlyReferenceReport(bookings,date,toDate,paymentMethods,transportationMethods=[]){
   const vanLines=vanRevenueLines(bookings,paymentMethods,transportationMethods).filter(line=>line.operationalDate>=date&&line.operationalDate<=toDate);

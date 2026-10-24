@@ -477,6 +477,30 @@ test("15 October tour report separates deposits, excludes travel and keeps equip
   assert.deepEqual(report.monthlyRows,[{month:"2026-10",cash:4100,transfer:34230,deposit:4700,credit:0,rungruedeeTransfer:700}]);
 });
 
+test("Rungruedee daily and monthly columns include net sales as well as deposits",()=>{
+  const paymentMethods=[
+    {method_id:"bank_transfer2",method_name:"รุ่งฤดี",payment_type:"transfer"},
+    {method_id:"bank_transfer4",method_name:"ลัดดาวรรณ์",payment_type:"transfer",default_equipment:true}
+  ];
+  const booking={bookingCode:"BK1791268528401",travelDate:"2026-10-15",status:"confirmed",paymentMethod:"รุ่งฤดี",depositAmount:0,depositPaymentMethod:"นฤมล",totalAmount:2630,passengers:[
+    {program:{programId:"boat_ticket",qty:1,price:1200},preAddOns:[{id:"life_jacket",qty:2,price:50,selected:true},{id:"Big mat",qty:1,price:30,selected:true},{id:"mask",qty:2,price:50,selected:true}]},
+    {program:{programId:"boat_ticket",qty:1,price:1200},preAddOns:[]}
+  ]};
+  const report=buildPrintCenterReport({bookings:[booking],paymentMethods,date:"2026-10-15",toDate:"2026-10-15",type:"tour_expense_reference"});
+  assert.equal(report.rows[0].deposit,0);
+  assert.equal(report.rows[0].rungruedeeTransfer,2400);
+  assert.equal(report.rows[0].accounts["รุ่งฤดี"],2400);
+  assert.equal(report.rows[0].accounts["ลัดดาวรรณ์"],230);
+  assert.equal(report.rows[0].totalRevenue,2630);
+  assert.equal(report.totals.rungruedeeTransfer,2400);
+  assert.equal(report.monthlyRows[0].rungruedeeTransfer,2400);
+  assert.equal(report.monthlyTotals.rungruedeeTransfer,2400);
+  const prepaid=buildPrintCenterReport({bookings:[{...booking,depositAmount:500,depositPaymentMethod:"รุ่งฤดี"}],paymentMethods,date:"2026-10-15",toDate:"2026-10-15",type:"tour_expense_reference"});
+  assert.equal(prepaid.rows[0].rungruedeeTransfer,2400);
+  assert.equal(prepaid.rows[0].accounts["รุ่งฤดี"],2400);
+  assert.equal(prepaid.monthlyRows[0].rungruedeeTransfer,2400);
+});
+
 test("van report uses each leg's service date and Master Data code even when the method name omits van",()=>{
   const paymentMethods=[{method_id:"cash",method_name:"Cash",payment_type:"cash"},{method_id:"bank_transfer_laddawan",method_name:"Bank",payment_type:"transfer",default_transport:true}];
   const transportationMethods=[{method_id:"van_bus_station",method_name:"รับบขส."},{method_id:"van_airport",method_name:"ส่งสนามบิน"},{method_id:"private_car",method_name:"รถส่วนตัว"}];
