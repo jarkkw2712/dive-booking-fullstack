@@ -22,7 +22,8 @@ textarea{min-height:80px}
 .primary{background:#2f7db6;color:white}.soft{background:#e8f1f6;color:#123}.full-btn{width:100%}
 .hidden{display:none!important}.muted{color:#6b7c86;font-size:13px}
 .booking-grid{display:grid;grid-template-columns:minmax(390px,1.15fr) minmax(550px,1.3fr);gap:18px;align-items:start}.booking-side-panels{display:grid;grid-template-columns:minmax(320px,1.2fr) minmax(220px,.8fr);gap:16px;align-items:start;min-width:0}.booking-side-panels .card{min-width:0}.booking-print-card h2{font-size:19px;line-height:1.3;margin:0 0 12px}.booking-print-card .btn{margin:4px 0;white-space:normal;line-height:1.35}.sticky{position:sticky;top:16px}
-@media(max-width:1280px){.booking-grid{grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr)}.booking-side-panels{grid-template-columns:1fr}}
+.booking-side-panels{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px)}.booking-side-panels .sticky{position:static}.booking-side-panels>.card{max-height:calc(100vh - 48px);overflow-y:auto}
+@media(max-width:1280px){.booking-grid{grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr)}.booking-side-panels{grid-template-columns:1fr;overflow-y:auto;overscroll-behavior:contain}.booking-side-panels>.card{max-height:none;overflow:visible}}
 .passenger-card,.booking-item{border:1px solid #dbe8ee;border-radius:16px;padding:14px;margin:10px 0;background:#fbfdff}
 .service{border:1px solid #e0ebf0;border-radius:14px;padding:12px;margin-top:10px;background:#fff}
 .line{display:flex;justify-content:space-between;border-bottom:1px dashed #dbe8ee;padding:8px 0;gap:8px}
@@ -38,6 +39,7 @@ textarea{min-height:80px}
 .receipt-paper{background:white;color:#111;width:210mm;max-width:100%;min-height:297mm;margin:auto;padding:18mm;border:1px solid #e5e7eb}.receipt-header{display:flex;justify-content:space-between;border-bottom:3px solid #173f52;padding-bottom:14px}.receipt-logo{width:72px;height:72px;object-fit:contain}.receipt-table{width:100%;border-collapse:collapse}.receipt-table th,.receipt-table td{border-bottom:1px solid #e5e7eb;padding:9px}.paid-stamp{display:inline-block;border:3px solid #b42318;color:#b42318;padding:8px 18px;font-size:24px;font-weight:900;transform:rotate(-8deg)}
 .login-screen{position:fixed;inset:0;background:#173f52;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}.login-card{background:white;border-radius:20px;padding:24px;width:420px;max-width:100%}.error{color:#b42318;margin-top:8px}
 @media(max-width:850px){.app-shell{grid-template-columns:1fr}.sidebar{height:auto;max-height:62px;overflow:hidden;z-index:999;border-radius:0 0 18px 18px}.sidebar.mobile-open{max-height:80vh;overflow:auto}.mobile-menu-toggle{display:inline-block!important;width:auto!important}.sidebar:not(.mobile-open) .user-box,.sidebar:not(.mobile-open) button:not(.mobile-menu-toggle){display:none!important}.content{padding:12px}.form-grid,.booking-grid,.workspace,.kpi-grid,.dashboard-month-summary{grid-template-columns:1fr}.dashboard-chart-header{display:block}.dashboard-month-control{width:100%;margin-top:12px}.sticky{position:static}.receipt-paper{width:100%;min-height:auto;padding:14px}}
+@media(max-width:850px){.booking-side-panels{position:static;max-height:none;overflow:visible}.booking-side-panels>.card{max-height:none;overflow:visible}}
 @media print{.sidebar,.mobile-menu-toggle,.login-screen,.doc-toolbar,.btn{display:none!important}.content{padding:0}.card{box-shadow:none}}
 
 
