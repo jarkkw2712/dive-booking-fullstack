@@ -28,3 +28,24 @@ test("the park fee insert button upserts exactly two rows and updates them after
   vm.runInNewContext(`${source}\ndailyExpenseRows=normalizeSavedExpenses([],date);insertParkFeeRows(false);insertParkFeeRows(false);parkFeeRows.find(row=>row.code==="thai_adult_fee").qty=2;insertParkFeeRows(false);result=dailyExpenseRows.map(row=>({code:row.code,amount:expenseTotal(row)}));`,context);
   assert.deepEqual(JSON.parse(JSON.stringify(context.result)),[{code:"park_boat_total",amount:100},{code:"park_people_total",amount:200}]);
 });
+
+test("park people fees exclude boat-ticket passengers but keep other programs and boat fee separate",()=>{
+  const bookings=[
+    {travelDate:date,status:"confirmed",passengers:[
+      {passengerType:"adult",nationalityType:"thai",program:{programId:"boat_ticket"}},
+      {passengerType:"child",nationalityType:"foreign",program:{programId:"boat_ticket"}},
+      {passengerType:"adult",nationalityType:"thai",program:{programId:"one_day"}},
+      {passengerType:"child",nationalityType:"foreign",program:{programId:"DO"}},
+      {passengerType:"foc",nationalityType:"thai",program:{programId:"one_day"}}
+    ]},
+    {travelDate:date,status:"cancelled",passengers:[{passengerType:"adult",nationalityType:"thai",program:{programId:"one_day"}}]}
+  ];
+  const context={bookings,date};
+  vm.runInNewContext(`${source}\nresult=defaultDailyExpenses(date).map(row=>({code:row.code,qty:row.qty,amount:expenseTotal(row)}));`,context);
+  const rows=JSON.parse(JSON.stringify(context.result));
+  assert.equal(rows.find(row=>row.code==="boat_fee").qty,1);
+  assert.equal(rows.find(row=>row.code==="thai_adult_fee").qty,1);
+  assert.equal(rows.find(row=>row.code==="foreign_child_fee").qty,1);
+  assert.equal(rows.find(row=>row.code==="foc_fee").qty,1);
+  assert.equal(rows.filter(row=>row.code!=="boat_fee").reduce((sum,row)=>sum+row.amount,0),350);
+});
