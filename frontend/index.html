@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sabina Tour Booking</title>
-  <link rel="stylesheet" href="css/style.css?v=20261024-01">
+  <link rel="stylesheet" href="css/style.css?v=20261024-02">
 </head>
 <body>
 <div id="globalSavingIndicator" class="saving-indicator hidden" role="status" aria-live="polite">
@@ -44,7 +44,7 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
-    <div id="appVersion" class="app-version">Version 2026.10.24-01</div>
+    <div id="appVersion" class="app-version">Version 2026.10.24-02</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
@@ -157,7 +157,8 @@
           </div>
         </div>
 
-        <div class="card sticky">
+        <div class="booking-side-panels">
+        <div class="card sticky booking-summary-card">
           <h2>สรุป Booking</h2>
           <div id="summary"></div>
           <h2>รวม <span id="grandTotal">0</span> บาท</h2>
@@ -186,9 +187,12 @@
           <button id="saveNewBtn" class="btn primary full-btn" onclick="saveBooking()">บันทึก Booking ใหม่</button>
           <button id="saveEditBtn" class="btn primary full-btn hidden" data-permission="editBooking" onclick="updateBooking()">บันทึกการแก้ไข</button>
           <button class="btn soft full-btn" onclick="startNewBooking()">+ เริ่ม Booking ใหม่</button>
+          <button class="btn danger full-btn" onclick="cancelBooking()">ยกเลิก Booking</button>
+        </div>
+        <div class="card sticky booking-print-card">
+          <h2>พิมพ์เอกสาร Booking นี้</h2>
           <button id="newBookingPrintButton" class="btn soft full-btn" data-permission="printReceipt" onclick="printCurrentReceipt()">พิมพ์ใบยืนยันการจอง</button>
           <div id="editBookingPrintActions" class="hidden edit-booking-print-actions">
-            <h3>พิมพ์เอกสาร Booking นี้</h3>
             <button class="btn soft full-btn" data-permission="printReceipt" onclick="printCurrentDocument('REGISTER')">ใบยืนยันการจอง</button>
             <button class="btn soft full-btn" data-permission="printReceipt" onclick="printCurrentDocument('MONEY_RECEIPT')">ใบสำคัญรับเงิน</button>
             <button class="btn soft full-btn" data-permission="printReceipt" onclick="printCurrentDocument('EQUIPMENT_SLIP')">ใบเสร็จอุปกรณ์</button>
@@ -197,7 +201,7 @@
             <button class="btn soft full-btn" data-permission="printBoatReport" onclick="printCurrentDocument('BOAT_TICKET')">ตั๋วเรือ</button>
             <button class="btn soft full-btn" data-permission="printIslandPurchaseOrder" onclick="printCurrentDocument('ISLAND_PURCHASE_ORDER')">ใบสั่งซื้อจากเกาะ</button>
           </div>
-          <button class="btn danger full-btn" onclick="cancelBooking()">ยกเลิก Booking</button>
+        </div>
         </div>
       </div>
     </section>

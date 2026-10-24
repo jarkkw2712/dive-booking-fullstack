@@ -20,7 +20,8 @@ textarea{min-height:80px}
 .btn{border:0;border-radius:12px;padding:11px 14px;font-weight:900;cursor:pointer;margin:6px 4px 6px 0}
 .primary{background:#2f7db6;color:white}.soft{background:#e8f1f6;color:#123}.full-btn{width:100%}
 .hidden{display:none!important}.muted{color:#6b7c86;font-size:13px}
-.booking-grid{display:grid;grid-template-columns:1.35fr .75fr;gap:18px}.sticky{position:sticky;top:16px}
+.booking-grid{display:grid;grid-template-columns:minmax(390px,.95fr) minmax(550px,1.3fr);gap:18px;align-items:start}.booking-side-panels{display:grid;grid-template-columns:minmax(320px,1.2fr) minmax(220px,.8fr);gap:16px;align-items:start;min-width:0}.booking-side-panels .card{min-width:0}.booking-print-card h2{font-size:19px;line-height:1.3;margin:0 0 12px}.booking-print-card .btn{margin:4px 0;white-space:normal;line-height:1.35}.sticky{position:sticky;top:16px}
+@media(max-width:1280px){.booking-grid{grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr)}.booking-side-panels{grid-template-columns:1fr}}
 .passenger-card,.booking-item{border:1px solid #dbe8ee;border-radius:16px;padding:14px;margin:10px 0;background:#fbfdff}
 .service{border:1px solid #e0ebf0;border-radius:14px;padding:12px;margin-top:10px;background:#fff}
 .line{display:flex;justify-content:space-between;border-bottom:1px dashed #dbe8ee;padding:8px 0;gap:8px}
@@ -357,7 +358,7 @@ textarea{min-height:80px}
 .document-pax-matrix th,.document-pax-matrix td{text-align:center!important}.document-pax-matrix th{white-space:normal}.document-pax-matrix td{font-weight:800}
 .report-insurance .report-operations{display:none}
 .report-insurance .report-kpis{grid-template-columns:repeat(3,1fr)}
-.edit-booking-print-actions{border-top:1px solid #dbe2ea;margin-top:12px;padding-top:8px}.edit-booking-print-actions h3{margin:0 0 8px}.edit-booking-print-actions .btn{margin-top:6px}
+.edit-booking-print-actions{margin-top:0}.edit-booking-print-actions .btn{margin-top:6px}
 .passenger-travel-actions{margin-top:8px}.island-addon-row{border:1px solid #dbe2ea;border-radius:8px;padding:10px;margin:8px 0;background:#f8fafc}.island-addon-row .document-visibility-options{margin:8px 0}.island-addon-row .btn.danger{padding:6px 10px}
 .daily-manual-totals{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin:8px 0}.daily-manual-totals>div{border:1px solid #333;min-height:44px;text-align:center;display:flex;flex-direction:column}.daily-manual-totals span{font-size:11px;padding:3px;border-bottom:1px solid #aaa}.daily-manual-totals b{min-height:20px;padding:3px}.compact-report-table{font-size:9px;width:100%;table-layout:auto}.compact-report-table th,.compact-report-table td{padding:3px;vertical-align:top}.compact-report-table .num,.receipt-summary-table .num{text-align:right;white-space:nowrap}.report-total-row{background:#eef2f6}.report-daily-landscape{page:report}
 .front-charge-report{background:#fff;color:#111}
