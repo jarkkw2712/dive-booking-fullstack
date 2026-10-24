@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sabina Tour Booking</title>
-  <link rel="stylesheet" href="css/style.css?v=20261023-05">
+  <link rel="stylesheet" href="css/style.css?v=20261024-01">
 </head>
 <body>
 <div id="globalSavingIndicator" class="saving-indicator hidden" role="status" aria-live="polite">
@@ -44,7 +44,7 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
-    <div id="appVersion" class="app-version">Version 2026.10.23-05</div>
+    <div id="appVersion" class="app-version">Version 2026.10.24-01</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
@@ -132,17 +132,6 @@
               </div>
             </div>
             <div class="booking-form-section">
-              <h3>การชำระเงิน</h3>
-              <div class="form-grid">
-                <div><label>ชำระเงิน</label><select id="paymentMethod"></select></div>
-                <div><label>มัดจำ</label><input id="depositAmount" type="number" min="0" step="0.01" value="0" oninput="ensurePaymentMethod('depositPaymentMethod');refreshSummary()"></div>
-                <div><label>ช่องทางมัดจำ</label><select id="depositPaymentMethod"></select></div>
-                <div><label>ขายเชื่อ</label><input id="creditAmount" type="number" min="0" step="0.01" value="0" oninput="ensurePaymentMethod('creditPaymentMethod');refreshSummary()"></div>
-                <div><label>ช่องทางรับชำระยอดเชื่อ</label><select id="creditPaymentMethod"></select></div>
-                <div id="paymentBreakdownEditor" class="full hidden" aria-hidden="true"></div>
-              </div>
-            </div>
-            <div class="booking-form-section">
               <h3>เลขอ้างอิงเอกสาร</h3>
               <div class="form-grid">
                 <div><label>เล่มที่</label><input id="receiptBookNo"></div>
@@ -172,6 +161,28 @@
           <h2>สรุป Booking</h2>
           <div id="summary"></div>
           <h2>รวม <span id="grandTotal">0</span> บาท</h2>
+          <div class="booking-payment-panel">
+            <h3>การชำระเงิน</h3>
+            <p class="muted">ช่องทางหลักและสำรองใช้บันทึกข้อมูลการชำระค่าโปรแกรม ไม่ใช่การยืนยันรับเงินจริง</p>
+            <p id="legacyPaymentNotice" class="booking-payment-legacy hidden">Booking เดิมยังไม่มีข้อมูลช่องทางสำรอง หากไม่ได้กรอกใหม่ ระบบจะคงข้อมูลเดิมไว้</p>
+            <div class="booking-payment-row">
+              <div><label for="paymentMethod">ช่องทางชำระเงินหลัก</label><select id="paymentMethod" onchange="refreshSummary()"></select></div>
+              <div><label for="primaryPaymentAmount">จำนวนเงิน</label><input id="primaryPaymentAmount" type="number" min="0" step="0.01" value="0" oninput="refreshSummary()"></div>
+            </div>
+            <div class="booking-payment-row">
+              <div><label for="secondaryPaymentMethod">ช่องทางชำระเงินสำรอง</label><select id="secondaryPaymentMethod" onchange="refreshSummary()"></select></div>
+              <div><label for="secondaryPaymentAmount">จำนวนเงิน</label><input id="secondaryPaymentAmount" type="number" min="0" step="0.01" value="0" oninput="refreshSummary()"></div>
+            </div>
+            <div class="booking-payment-row">
+              <div><label for="depositPaymentMethod">ช่องทางมัดจำ</label><select id="depositPaymentMethod"></select></div>
+              <div><label for="depositAmount">มัดจำ</label><input id="depositAmount" type="number" min="0" step="0.01" value="0" oninput="ensurePaymentMethod('depositPaymentMethod');refreshSummary()"></div>
+            </div>
+            <div class="booking-payment-row">
+              <div><label for="creditPaymentMethod">ช่องทางรับชำระยอดเชื่อ</label><select id="creditPaymentMethod"></select></div>
+              <div><label for="creditAmount">ขายเชื่อ</label><input id="creditAmount" type="number" min="0" step="0.01" value="0" oninput="ensurePaymentMethod('creditPaymentMethod');refreshSummary()"></div>
+            </div>
+            <div id="paymentBreakdownEditor" class="hidden" aria-hidden="true"></div>
+          </div>
           <button id="saveNewBtn" class="btn primary full-btn" onclick="saveBooking()">บันทึก Booking ใหม่</button>
           <button id="saveEditBtn" class="btn primary full-btn hidden" data-permission="editBooking" onclick="updateBooking()">บันทึกการแก้ไข</button>
           <button class="btn soft full-btn" onclick="startNewBooking()">+ เริ่ม Booking ใหม่</button>
@@ -450,7 +461,7 @@
 <script src="js/smartPaste.js?v=20261019-01"></script>
 <script src="js/csvImport.js?v=20261019-01"></script>
 <script src="js/bookingListFilters.js?v=20261019-01"></script>
-<script src="js/app.js?v=20261023-05"></script>
+<script src="js/app.js?v=20261024-01"></script>
 <script src="js/bookingOriginal.js?v=20261021-03"></script>
 <script src="js/islandAddonMaster.js?v=20261019-01"></script>
 <script src="js/financial.js?v=20261021-03"></script>

@@ -46,8 +46,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.23-05/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=["css/style.css","js/app.js"].includes(asset)?"20261023-05":asset==="js/api.js"?"20261023-03":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":asset==="js/travelStops.js"?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.10\.24-01/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=["css/style.css","js/app.js"].includes(asset)?"20261024-01":asset==="js/api.js"?"20261023-03":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":asset==="js/travelStops.js"?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
 });
 test("package PDF keeps mixed adult and child prices in one row and warns on unassigned tent stays",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
@@ -471,6 +471,36 @@ test("payment masters drive receipt accounts and booking totals use one source",
   for(const id of ["mdpPaymentSettings","mdpPaymentType","mdpShowOnMoneyReceipt"])assert.match(html,new RegExp(`id=["']${id}["']`));assert.match(route,/payload\.payment_type/);assert.match(route,/payload\.show_on_money_receipt/);assert.match(sql,/payment_type text not null default 'transfer'/);assert.match(sql,/show_on_money_receipt boolean not null default true/);
   assert.match(app,/function documentFinancialSummary/);assert.match(app,/<span>ยอดรวม<\/span>/);assert.doesNotMatch(app,/รายการในเอกสาร/);assert.match(app,/ยอดสุทธิ/);assert.match(app,/documentGroupedItems\(booking,profile\)\.reduce/);assert.match(app,/function moneyReceiptAllocationTable\(booking,documentTotal\)/);assert.match(app,/paymentTypeLabel/);assert.match(app,/documentGroupedItemsWithoutTentRefund/);
   assert.match(html,/id="paymentBreakdownEditor"/);assert.match(app,/paymentBreakdown=structuredClone/);assert.match(app,/paymentBreakdownSum/);assert.match(app,/ยอดแบ่งบัญชีแถว/);
+});
+test("booking summary stores primary and secondary notes without changing legacy accounting",()=>{
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+  const summary=html.indexOf('id="summary"'),payment=html.indexOf('class="booking-payment-panel"'),save=html.indexOf('id="saveNewBtn"');
+  assert.ok(summary<payment&&payment<save);
+  for(const id of ["paymentMethod","primaryPaymentAmount","secondaryPaymentMethod","secondaryPaymentAmount","depositAmount","depositPaymentMethod","creditAmount","creditPaymentMethod"])assert.match(html,new RegExp(`id="${id}"`));
+  assert.doesNotMatch(html,/id="paymentOutstandingAmount"/);
+  const helper=app.slice(app.indexOf("function bookingPaymentAmount"),app.indexOf("const refreshSummaryBeforePaymentSplit"));
+  const wrapper=app.slice(app.indexOf("const buildBookingBeforePaymentSplit"),app.indexOf("const validateBookingBeforePaymentSplit"));
+  const values={paymentMethod:"โอนนฤมล",primaryPaymentAmount:"2000",secondaryPaymentMethod:"เงินสด",secondaryPaymentAmount:"2000"},original={deposit:{"โอนนฤมล":1000},credit:{},remaining:{"โอนนฤมล":4000}},context={val:id=>values[id]||"",structuredClone,booking:{paymentMethod:values.paymentMethod,depositAmount:1000,depositPaymentMethod:"โอนนฤมล",creditAmount:0,creditPaymentMethod:"",totalAmount:5000,paymentBreakdown:original},result:null};
+  vm.runInNewContext(`let paymentBreakdown={};function buildBooking(){return booking};${helper}${wrapper};result=buildBooking()`,context);
+  assert.equal(context.result.paymentBreakdown.version,2);
+  assert.equal(context.result.paymentBreakdown.deposit["โอนนฤมล"],1000);
+  assert.equal(context.result.paymentBreakdown.remaining["โอนนฤมล"],4000);
+  assert.equal(context.result.paymentBreakdown.primary.amount,2000);
+  assert.equal(context.result.paymentBreakdown.secondary.method,"เงินสด");
+  assert.equal(context.result.paymentBreakdown.secondary.amount,2000);
+  assert.equal("unpaid" in context.result.paymentBreakdown,false);
+  const loader=app.slice(app.indexOf("const loadBookingToFormBeforePaymentSplit"),app.indexOf("const buildBookingBeforePaymentSplit"));
+  const fields=Object.fromEntries(["legacyPaymentNotice","primaryPaymentAmount","secondaryPaymentMethod","secondaryPaymentAmount","paymentMethod"].map(id=>[id,{value:"",classList:{toggle(){}}}]));
+  const loadContext={structuredClone,document:{getElementById:id=>fields[id]},setSelectValueWithHistory:(id,value)=>{fields[id].value=value},refreshSummary(){},booking:context.result};
+  vm.runInNewContext(`let paymentBreakdown={};let bookingPaymentLegacyMode=false,bookingPaymentPreservedLegacy=false,bookingPaymentLegacySnapshot=null,bookingPaymentUnsupportedSplit=false;function bookingPaymentMoney(value){return Math.round(Number(value||0)*100)/100}function loadBookingToForm(){}${loader};loadBookingToForm(booking)`,loadContext);
+  assert.equal(fields.primaryPaymentAmount.value,2000);
+  assert.equal(fields.secondaryPaymentMethod.value,"เงินสด");
+  assert.equal(fields.secondaryPaymentAmount.value,2000);
+  const legacyValues={...values,primaryPaymentAmount:"0",secondaryPaymentAmount:"0",secondaryPaymentMethod:""},legacyBooking={...context.booking,paymentBreakdown:structuredClone(original)},legacyContext={val:id=>legacyValues[id]||"",structuredClone,booking:legacyBooking,result:null};
+  vm.runInNewContext(`let paymentBreakdown={};function buildBooking(){return booking};${helper}${wrapper};bookingPaymentLegacyMode=true;bookingPaymentLegacySnapshot={paymentMethod:booking.paymentMethod,depositAmount:1000,depositPaymentMethod:booking.depositPaymentMethod,creditAmount:0,creditPaymentMethod:"",totalAmount:5000,paymentBreakdown:structuredClone(booking.paymentBreakdown)};result=buildBooking()`,legacyContext);
+  assert.equal(legacyContext.result.paymentBreakdown.version,undefined);
+  assert.equal(legacyContext.result.paymentBreakdown.remaining["โอนนฤมล"],4000);
+  assert.doesNotMatch(app,/bookingPaymentUnallocated|unallocatedRemaining|ยอดยังไม่รับจริง/);
 });
 test("money receipt account table is capped to the items printed on that receipt",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),start=app.indexOf("function documentPaymentAmounts"),end=app.indexOf("function moneyReceiptAllocationTable"),context={result:null};

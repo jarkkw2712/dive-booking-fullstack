@@ -21,7 +21,7 @@ function applyAuth(){currentUser=JSON.parse(localStorage.getItem("user")||"null"
 async function initData(){await Promise.all([loadMaster(),refreshCompanySettings()]);startNewBooking();loadDashboard();}
 async function loadMaster(){master=await API.master();populateBookingMasterSelects()}
 function fillMasterSelect(id,rows,idField,nameField,{blank=false}={}){const select=document.getElementById(id),current=select?.value;if(!select)return;select.innerHTML=(blank?'<option value="">ไม่ระบุ</option>':"")+(rows||[]).map(row=>`<option value="${escapeHtml(row[nameField])}">${escapeHtml(row[nameField])}</option>`).join("");if(current&&[...select.options].some(option=>option.value===current))select.value=current}
-function populateBookingMasterSelects(){fillMasterSelect("bookingOriginal",master.bookingOriginals,"original_id","original_name",{blank:true});fillMasterSelect("source",master.customerSources,"source_id","source_name");for(const id of ["paymentMethod","depositPaymentMethod","creditPaymentMethod"])fillMasterSelect(id,master.paymentMethods,"method_id","method_name",{blank:id!=="paymentMethod"});renderPaymentBreakdownEditor()}
+function populateBookingMasterSelects(){fillMasterSelect("bookingOriginal",master.bookingOriginals,"original_id","original_name",{blank:true});fillMasterSelect("source",master.customerSources,"source_id","source_name");for(const id of ["paymentMethod","secondaryPaymentMethod","depositPaymentMethod","creditPaymentMethod"])fillMasterSelect(id,master.paymentMethods,"method_id","method_name",{blank:id!=="paymentMethod"});renderPaymentBreakdownEditor()}
 const bookingPaymentDefaultNames={general:"นฤมล",equipment:"ลัดดาวรรณ์",island:"เรืองโรจน์",transport:"ลัดดาวรรณ์"};
 const bookingPaymentDefaultFields={general:"default_general",equipment:"default_equipment",island:"default_island",transport:"default_transport"};
 function bookingDefaultPaymentMethod(scope="general"){const methods=master.paymentMethods||[],field=bookingPaymentDefaultFields[scope];return methods.find(method=>method[field]===true)?.method_name||methods.find(method=>String(method.method_name||"").trim()===bookingPaymentDefaultNames[scope])?.method_name||methods[0]?.method_name||""}
@@ -313,7 +313,15 @@ function dailySummaryReportHtml(report){
   const actions='<div class="document-actions"><button class="btn primary" onclick="window.print()">Print / Save PDF</button></div>',header=`<div class="report-header"><div><h1>${escapeHtml(report.title)}</h1><div>วันที่ ${escapeHtml(report.date)}</div></div><div>${escapeHtml(getCompanySettings().company_name||"Sabina Tour Booking")}</div></div>`;
   if(report.type==="equipment_summary")return equipmentReportHtml(report);
   if(report.type==="register_summary"){const t=report.registerTotals||{},m=report.manualTotals||{};return`${actions}<div class="report-paper report-daily-landscape">${header}<div class="daily-manual-totals">${[["ผู้ใหญ่",t.adult],["เด็ก",t.child],["ทารก",t.infant],["FOC",t.foc],["Guide",m.guide],["Mogan",m.mogan],["เจ้าหน้าที่อุทยาน",m.parkOfficer],["รวมจำนวนคน",m.grandTotal]].map(([label,value])=>`<div><span>${label}</span><b>${value??""}</b></div>`).join("")}</div><table class="data-table compact-report-table"><thead><tr><th>ลำดับ</th><th>ชื่อสกุลหัวหน้าทริป</th><th>วันกลับ</th><th>ผู้ใหญ่</th><th>เด็ก</th><th>ทารก</th><th>FOC</th><th>Program</th><th>เกาะ</th><th>ที่พัก</th><th>การเดินทาง</th><th>Agent</th><th>หมายเหตุ</th></tr></thead><tbody>${(report.rows||[]).map(row=>`<tr>${[row.no,row.leader,row.returnDate,row.adult,row.child,row.infant,row.foc,row.program,row.island,row.accommodation,row.transportation,row.agent,row.note].map(reportValue).map(value=>`<td>${value}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`}
-  if(report.type==="receipt_summary"){const keys=["depositCash","depositTransfer","creditCash","creditTransfer","balanceCash","balanceTransfer","totalCash","totalTransfer","grandTotal"],t=report.receiptTotals||{},moneyCells=row=>keys.map(key=>`<td class="num">${Number(row[key]||0)?money(row[key]):""}</td>`).join("");return`${actions}<div class="report-paper report-daily-landscape">${header}<table class="data-table compact-report-table receipt-summary-table"><thead><tr><th rowspan="2">ลำดับ</th><th rowspan="2">Agent</th><th rowspan="2">ชื่อสกุลหัวหน้าทริป</th><th rowspan="2">โปรแกรม</th><th colspan="2">มัดจำ</th><th colspan="2">ยอดเชื่อ</th><th colspan="2">ยอดคงเหลือ</th><th colspan="2">รวม</th><th rowspan="2">รวมยอด</th></tr><tr>${["เงินสด","โอน","เงินสด","โอน","เงินสด","โอน","เงินสด","โอน"].map(label=>`<th>${label}</th>`).join("")}</tr></thead><tbody>${(report.rows||[]).map(row=>`<tr><td>${row.no}</td><td>${escapeHtml(row.agent)}</td><td>${escapeHtml(row.leader)}</td><td>${escapeHtml(row.program)}</td>${moneyCells(row)}</tr>`).join("")}<tr class="report-total-row"><th colspan="4">รวม</th>${moneyCells(t)}</tr><tr class="report-total-row"><th colspan="4">รวมเงินสด + โอน</th><td colspan="2">${money(Number(t.depositCash||0)+Number(t.depositTransfer||0))}</td><td colspan="2">${money(Number(t.creditCash||0)+Number(t.creditTransfer||0))}</td><td colspan="2">${money(Number(t.balanceCash||0)+Number(t.balanceTransfer||0))}</td><td colspan="2">${money(Number(t.totalCash||0)+Number(t.totalTransfer||0))}</td><td>${money(t.grandTotal)}</td></tr></tbody></table></div>`}
+  if(report.type==="receipt_summary"){
+    const keys=["depositCash","depositTransfer","creditCash","creditTransfer","balanceCash","balanceTransfer","totalCash","totalTransfer","grandTotal"];
+    const t=report.receiptTotals||{},moneyCells=row=>keys.map(key=>`<td class="num">${Number(row[key]||0)?money(row[key]):""}</td>`).join("");
+    const headings=["เงินสด","โอน","เงินสด","โอน","เงินสด","โอน","เงินสด","โอน"].map(label=>`<th>${label}</th>`).join("");
+    const bookingRows=(report.rows||[]).map(row=>`<tr><td>${row.no}</td><td>${escapeHtml(row.agent)}</td><td>${escapeHtml(row.leader)}</td><td>${escapeHtml(row.program)}</td>${moneyCells(row)}</tr>`).join("");
+    const totalsRow=`<tr class="report-total-row"><th colspan="4">รวม</th>${moneyCells(t)}</tr>`;
+    const subtotalsRow=`<tr class="report-total-row"><th colspan="4">รวมเงินสด + โอน</th><td colspan="2">${money(Number(t.depositCash||0)+Number(t.depositTransfer||0))}</td><td colspan="2">${money(Number(t.creditCash||0)+Number(t.creditTransfer||0))}</td><td colspan="2">${money(Number(t.balanceCash||0)+Number(t.balanceTransfer||0))}</td><td colspan="2">${money(Number(t.totalCash||0)+Number(t.totalTransfer||0))}</td><td>${money(t.grandTotal)}</td></tr>`;
+    return`${actions}<div class="report-paper report-daily-landscape">${header}<table class="data-table compact-report-table receipt-summary-table"><thead><tr><th rowspan="2">ลำดับ</th><th rowspan="2">Agent</th><th rowspan="2">ชื่อสกุลหัวหน้าทริป</th><th rowspan="2">โปรแกรม</th><th colspan="2">มัดจำ</th><th colspan="2">ยอดเชื่อ</th><th colspan="2">ยอดคงเหลือ</th><th colspan="2">รวม</th><th rowspan="2">รวมยอด</th></tr><tr>${headings}</tr></thead><tbody>${bookingRows}${totalsRow}${subtotalsRow}</tbody></table></div>`;
+  }
   return"";
 }
 function frontChargeReportHtml(report){
@@ -715,7 +723,7 @@ function confirmPassengerCsvImport(){
 }
 function downloadPassengerCsvTemplate(){const header="คำนำหน้า,ชื่อ,นามสกุล,อายุ,เบอร์โทร,ประเภทผู้โดยสาร,สัญชาติ,โปรแกรม,จุดรับ,วิธีเดินทาง,ค่าเดินทาง,ที่พัก,ผู้จองที่พัก,จำนวนที่พัก,ราคาที่พัก,เครดิตค่าเต็นท์,แพ้อาหาร,ข้อมูลสุขภาพ",sample="นาย,สมชาย,ใจดี,35,0812345678,ผู้ใหญ่,ไทย,ตั๋วเรือ,บขส.,รถตู้,400,บ้านพักอุทยาน,เราจองให้,1,1500,0,,";const blob=new Blob(["\uFEFF"+header+"\r\n"+sample],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download="passenger-import-template.csv";link.click();URL.revokeObjectURL(url)}
 const buildBookingWithoutTentRefund=buildBooking;buildBooking=function(){const booking=buildBookingWithoutTentRefund();booking.programRevenue=(booking.passengers||[]).reduce((sum,person)=>sum+Math.max(Number(person.program?.qty||1)*Number(person.program?.price||0),0),0);const remaining=Math.max(Number(booking.totalAmount||0)-Number(booking.depositAmount||0)-Number(booking.creditAmount||0),0);booking.paymentBreakdown={deposit:booking.depositPaymentMethod?{[booking.depositPaymentMethod]:Number(booking.depositAmount||0)}:{},credit:booking.creditPaymentMethod?{[booking.creditPaymentMethod]:Number(booking.creditAmount||0)}:{},remaining:booking.paymentMethod?{[booking.paymentMethod]:remaining}:{}};paymentBreakdown=structuredClone(booking.paymentBreakdown);return booking};
-const validateBookingBeforeBreakdown=validateBooking;validateBooking=function(booking){const base=validateBookingBeforeBreakdown(booking);if(base)return base;if((booking.passengers?.[0]?.islandAddOns||[]).some(item=>!String(item.name||"").trim()))return"กรุณากรอกชื่อรายการ Island Add-on ให้ครบ หรือลบแถวที่ไม่ใช้";const expected={deposit:Number(booking.depositAmount||0),credit:Number(booking.creditAmount||0),remaining:Math.max(Number(booking.totalAmount||0)-Number(booking.depositAmount||0)-Number(booking.creditAmount||0),0)};for(const row of ["deposit","credit","remaining"]){const actual=Object.values(booking.paymentBreakdown?.[row]||{}).reduce((sum,value)=>sum+Number(value||0),0);if(actual&&Math.abs(actual-expected[row])>.009)return`ยอดแบ่งบัญชีแถว ${row} ต้องรวมเท่ากับ ${money(expected[row])} บาท`;}return""};
+const validateBookingBeforeBreakdown=validateBooking;validateBooking=function(booking){const base=validateBookingBeforeBreakdown(booking);if(base)return base;if((booking.passengers?.[0]?.islandAddOns||[]).some(item=>!String(item.name||"").trim()))return"กรุณากรอกชื่อรายการ Island Add-on ให้ครบ หรือลบแถวที่ไม่ใช้";const expected={deposit:Number(booking.depositAmount||0),credit:Number(booking.creditAmount||0),remaining:Math.max(Number(booking.totalAmount||0)-Number(booking.depositAmount||0)-Number(booking.creditAmount||0),0)};for(const row of ["deposit","credit","remaining"]){const actual=Object.values(booking.paymentBreakdown?.[row]||{}).reduce((sum,value)=>sum+Number(value||0),0);if(booking.paymentBreakdown?.version!==2&&!bookingPaymentPreservedLegacy&&actual&&Math.abs(actual-expected[row])>.009)return`ยอดแบ่งบัญชีแถว ${row} ต้องรวมเท่ากับ ${money(expected[row])} บาท`;}return""};
 const documentGroupedItemsWithoutTentRefund=documentGroupedItems;documentGroupedItems=function(booking,profile){return documentGroupedItemsWithoutTentRefund(booking,profile).filter(item=>!/เครดิต.*เต็นท์|คืนค่าเต็นท์/.test(item.name||""))};
 const documentGroupedItemsWithReturnTravel=documentGroupedItems;documentGroupedItems=function(booking,profile){const rows=documentGroupedItemsWithReturnTravel(booking,profile),groups=new Map();for(const person of booking.passengers||[]){const unit=Number(person.returnTransportationAmount||0),method=person.returnTransportationMethod||"";if((!method&&!unit))continue;const returnPerson={...person,transportationMethod:method,transportationAmount:unit};if(!transportationVisibleOnDocument(returnPerson,booking,profile))continue;const type=passengerTypeLabels[person.passengerType||"adult"]||"ผู้ใหญ่",nationality=person.nationalityType==="foreign"?"ต่างชาติ":"ไทย",name=profile.title==="ใบเสร็จรถตู้"?`รถตู้ขากลับ - ${type} (${nationality}) - ${method||"ไม่ระบุ"}`:`ค่าเดินทางกลับ - ${method||"ไม่ระบุ"}`,key=`${name}:${unit}`,row=groups.get(key)||{name,qty:0,unit,total:0};row.qty+=Number(person.returnTransportationQuantity??1);row.total+=unit*Number(person.returnTransportationQuantity??1);groups.set(key,row)}rows.push(...groups.values());return rows};
 function paymentMethodMeta(name){return(master.paymentMethods||[]).find(method=>method.method_name===name)||{method_name:name||"ไม่ระบุ",payment_type:/สด/.test(name||"")?"cash":"transfer",show_on_money_receipt:true}}
@@ -849,6 +857,83 @@ refreshSummary=function(){
       select.value=value;
     }
   });
+};
+function bookingPaymentAmount(id){return Number(val(id)||0)}
+function bookingPaymentMoney(value){return Math.round(Number(value||0)*100)/100}
+function bookingProgramTotal(booking){return bookingPaymentMoney((booking.passengers||[]).reduce((sum,person)=>sum+Math.max(Number(person.program?.qty||1)*Number(person.program?.price||0),0),0))}
+let bookingPaymentLegacyMode=false,bookingPaymentLegacySnapshot=null,bookingPaymentUnsupportedSplit=false,bookingPaymentPreservedLegacy=false;
+const refreshSummaryBeforePaymentSplit=refreshSummary;
+refreshSummary=function(){
+  refreshSummaryBeforePaymentSplit();
+  const summary=document.getElementById("summary");
+  summary?.querySelectorAll(":scope > .line").forEach(line=>{
+    const label=line.querySelector(":scope > span")?.textContent?.trim();
+    if(["มัดจำ","ขายเชื่อ","คงเหลือหลังมัดจำ/ขายเชื่อ"].includes(label))line.remove();
+  });
+};
+const startNewBookingBeforePaymentSplit=startNewBooking;
+startNewBooking=function(){
+  startNewBookingBeforePaymentSplit();
+  bookingPaymentLegacyMode=false;bookingPaymentLegacySnapshot=null;bookingPaymentUnsupportedSplit=false;bookingPaymentPreservedLegacy=false;
+  document.getElementById("primaryPaymentAmount").value="0";
+  document.getElementById("secondaryPaymentAmount").value="0";
+  document.getElementById("secondaryPaymentMethod").value="";
+  document.getElementById("legacyPaymentNotice")?.classList.add("hidden");
+  refreshSummary();
+};
+const loadBookingToFormBeforePaymentSplit=loadBookingToForm;
+loadBookingToForm=function(booking){
+  loadBookingToFormBeforePaymentSplit(booking);
+  const breakdown=booking.paymentBreakdown||{},saved=Object.entries(breakdown.remaining||{}).filter(([,amount])=>Number(amount)>0),isSplit=breakdown.version===2;
+  bookingPaymentLegacyMode=!isSplit;
+  bookingPaymentPreservedLegacy=false;
+  bookingPaymentLegacySnapshot=bookingPaymentLegacyMode?{paymentMethod:booking.paymentMethod,depositAmount:Number(booking.depositAmount||0),depositPaymentMethod:booking.depositPaymentMethod,creditAmount:Number(booking.creditAmount||0),creditPaymentMethod:booking.creditPaymentMethod,totalAmount:Number(booking.totalAmount||0),paymentBreakdown:structuredClone(breakdown)}:null;
+  bookingPaymentUnsupportedSplit=isSplit&&saved.length>2;
+  const legacyNotice=document.getElementById("legacyPaymentNotice");
+  if(legacyNotice){legacyNotice.textContent=bookingPaymentUnsupportedSplit?"Booking นี้มีข้อมูลหลายช่องทาง กรุณาติดต่อผู้ดูแลก่อนแก้ไข เพื่อไม่ให้ข้อมูลเดิมสูญหาย":"Booking เดิมยังไม่มีข้อมูลช่องทางสำรอง หากไม่ได้กรอกใหม่ ระบบจะคงข้อมูลเดิมไว้";legacyNotice.classList.toggle("hidden",!bookingPaymentLegacyMode&&!bookingPaymentUnsupportedSplit)}
+  const primaryMethod=isSplit?(breakdown.primary?.method||booking.paymentMethod||saved[0]?.[0]||""):(saved.length&&!saved.some(([method])=>method===booking.paymentMethod)?saved[0][0]:booking.paymentMethod||saved[0]?.[0]||"");
+  const primaryAmount=isSplit?Number(breakdown.primary?.amount??breakdown.remaining?.[primaryMethod]??0):0;
+  const secondaryEntry=saved.find(([method])=>method!==primaryMethod);
+  const secondaryMethod=isSplit?(breakdown.secondary?.method||secondaryEntry?.[0]||""):"";
+  const secondaryAmount=isSplit?Number(breakdown.secondary?.amount??breakdown.remaining?.[secondaryMethod]??0):0;
+  if(primaryMethod)setSelectValueWithHistory("paymentMethod",primaryMethod);
+  if(secondaryMethod)setSelectValueWithHistory("secondaryPaymentMethod",secondaryMethod);
+  else document.getElementById("secondaryPaymentMethod").value="";
+  document.getElementById("primaryPaymentAmount").value=bookingPaymentMoney(primaryAmount);
+  document.getElementById("secondaryPaymentAmount").value=bookingPaymentMoney(secondaryAmount);
+  refreshSummary();
+};
+const buildBookingBeforePaymentSplit=buildBooking;
+buildBooking=function(){
+  const booking=buildBookingBeforePaymentSplit();
+  bookingPaymentPreservedLegacy=false;
+  const primary={method:booking.paymentMethod||"",amount:bookingPaymentMoney(bookingPaymentAmount("primaryPaymentAmount"))};
+  const secondary={method:val("secondaryPaymentMethod"),amount:bookingPaymentMoney(bookingPaymentAmount("secondaryPaymentAmount"))};
+  if(bookingPaymentLegacyMode&&!primary.amount&&!secondary.amount){
+    const old=bookingPaymentLegacySnapshot;
+    if(old&&Number(booking.totalAmount||0)===old.totalAmount&&Number(booking.depositAmount||0)===old.depositAmount&&Number(booking.creditAmount||0)===old.creditAmount&&booking.paymentMethod===old.paymentMethod&&booking.depositPaymentMethod===old.depositPaymentMethod&&booking.creditPaymentMethod===old.creditPaymentMethod){booking.paymentBreakdown=structuredClone(old.paymentBreakdown);bookingPaymentPreservedLegacy=true}
+    paymentBreakdown=structuredClone(booking.paymentBreakdown);
+    return booking;
+  }
+  booking.paymentBreakdown={...booking.paymentBreakdown,version:2,primary,secondary};
+  paymentBreakdown=structuredClone(booking.paymentBreakdown);
+  return booking;
+};
+const validateBookingBeforePaymentSplit=validateBooking;
+validateBooking=function(booking){
+  const base=validateBookingBeforePaymentSplit(booking);if(base)return base;
+  if(bookingPaymentUnsupportedSplit)return"Booking นี้แบ่งยอดมากกว่า 2 ช่องทาง กรุณาติดต่อผู้ดูแลก่อนแก้ไข";
+  for(const [id,label] of [["primaryPaymentAmount","ชำระเงินหลัก"],["secondaryPaymentAmount","ชำระเงินสำรอง"],["depositAmount","มัดจำ"],["creditAmount","ขายเชื่อ"]]){
+    const input=document.getElementById(id),amount=Number(input?.value||0);
+    if(input?.validity?.badInput||!Number.isFinite(amount)||amount<0||Math.abs(amount*100-Math.round(amount*100))>0.000001)return`ยอด${label}ต้องไม่ติดลบและมีทศนิยมไม่เกิน 2 ตำแหน่ง`;
+  }
+  if(booking.paymentBreakdown.version!==2)return"";
+  const primary=booking.paymentBreakdown.primary,secondary=booking.paymentBreakdown.secondary;
+  if(primary.amount&&!primary.method)return"กรุณาเลือกช่องทางชำระเงินหลัก";
+  if(secondary.amount&&!secondary.method)return"กรุณาเลือกช่องทางชำระเงินสำรอง";
+  if(primary.amount&&secondary.amount&&primary.method===secondary.method)return"ช่องทางหลักและสำรองซ้ำกัน กรุณารวมยอดไว้ในช่องทางหลัก";
+  if(bookingPaymentMoney(primary.amount+secondary.amount)>bookingProgramTotal(booking)+.009)return"ยอดช่องทางหลักและสำรองรวมกันเกินยอดโปรแกรม";
+  return"";
 };
 const expenseRowsRoot=document.getElementById("ceoExpenseRows");
 if(expenseRowsRoot)new MutationObserver(()=>{if(!hasPermission("editOperatingExpenses"))expenseRowsRoot.querySelectorAll("input,select,button").forEach(control=>control.disabled=true)}).observe(expenseRowsRoot,{childList:true,subtree:true});
