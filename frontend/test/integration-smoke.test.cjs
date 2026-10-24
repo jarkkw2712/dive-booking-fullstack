@@ -46,8 +46,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.24-05/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=asset==="css/style.css"?"20261024-04":asset==="js/app.js"?"20261024-02":asset==="js/api.js"?"20261023-03":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":asset==="js/travelStops.js"?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.10\.24-06/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=asset==="css/style.css"?"20261024-04":asset==="js/app.js"?"20261024-03":asset==="js/api.js"?"20261023-03":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":asset==="js/travelStops.js"?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
 });
 test("booking form uses the available desktop width without stretching other pages",()=>{
   const css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -497,7 +497,7 @@ test("booking summary stores primary and secondary notes without changing legacy
   assert.doesNotMatch(html,/id="paymentOutstandingAmount"/);
   const helper=app.slice(app.indexOf("function bookingPaymentAmount"),app.indexOf("const refreshSummaryBeforePaymentSplit"));
   const wrapper=app.slice(app.indexOf("const buildBookingBeforePaymentSplit"),app.indexOf("const validateBookingBeforePaymentSplit"));
-  const values={paymentMethod:"โอนนฤมล",primaryPaymentAmount:"2000",secondaryPaymentMethod:"เงินสด",secondaryPaymentAmount:"2000"},original={deposit:{"โอนนฤมล":1000},credit:{},remaining:{"โอนนฤมล":4000}},context={val:id=>values[id]||"",structuredClone,booking:{paymentMethod:values.paymentMethod,depositAmount:1000,depositPaymentMethod:"โอนนฤมล",creditAmount:0,creditPaymentMethod:"",totalAmount:5000,paymentBreakdown:original},result:null};
+  const values={paymentMethod:"โอนนฤมล",primaryPaymentAmount:"2000",secondaryPaymentMethod:"เงินสด",secondaryPaymentAmount:"2000"},original={deposit:{"โอนนฤมล":1000},credit:{},remaining:{"โอนนฤมล":4000}},context={val:id=>values[id]||"",structuredClone,booking:{paymentMethod:values.paymentMethod,depositAmount:1000,depositPaymentMethod:"โอนนฤมล",creditAmount:0,creditPaymentMethod:"",totalAmount:5000,passengers:[{program:{qty:1,price:5000}}],paymentBreakdown:original},result:null};
   vm.runInNewContext(`let paymentBreakdown={};function buildBooking(){return booking};${helper}${wrapper};result=buildBooking()`,context);
   assert.equal(context.result.paymentBreakdown.version,2);
   assert.equal(context.result.paymentBreakdown.deposit["โอนนฤมล"],1000);
@@ -509,21 +509,39 @@ test("booking summary stores primary and secondary notes without changing legacy
   const loader=app.slice(app.indexOf("const loadBookingToFormBeforePaymentSplit"),app.indexOf("const buildBookingBeforePaymentSplit"));
   const fields=Object.fromEntries(["legacyPaymentNotice","primaryPaymentAmount","secondaryPaymentMethod","secondaryPaymentAmount","paymentMethod"].map(id=>[id,{value:"",classList:{toggle(){}}}]));
   const loadContext={structuredClone,document:{getElementById:id=>fields[id]},setSelectValueWithHistory:(id,value)=>{fields[id].value=value},refreshSummary(){},booking:context.result};
-  vm.runInNewContext(`let paymentBreakdown={};let bookingPaymentLegacyMode=false,bookingPaymentPreservedLegacy=false,bookingPaymentLegacySnapshot=null,bookingPaymentUnsupportedSplit=false;function bookingPaymentMoney(value){return Math.round(Number(value||0)*100)/100}function loadBookingToForm(){}${loader};loadBookingToForm(booking)`,loadContext);
+  vm.runInNewContext(`let paymentBreakdown={};${helper}function loadBookingToForm(){}${loader};loadBookingToForm(booking)`,loadContext);
   assert.equal(fields.primaryPaymentAmount.value,2000);
   assert.equal(fields.secondaryPaymentMethod.value,"เงินสด");
   assert.equal(fields.secondaryPaymentAmount.value,2000);
   const oldBooking={...context.booking,paymentMethod:"โอนนฤมล",paymentBreakdown:{deposit:{},credit:{},remaining:{"โอนรุ่งฤดี":4000}}};
   const oldFields=Object.fromEntries(["legacyPaymentNotice","primaryPaymentAmount","secondaryPaymentMethod","secondaryPaymentAmount","paymentMethod"].map(id=>[id,{value:"",classList:{toggle(){}}}]));
   const oldLoadContext={structuredClone,document:{getElementById:id=>oldFields[id]},setSelectValueWithHistory:(id,value)=>{oldFields[id].value=value},refreshSummary(){},booking:oldBooking};
-  vm.runInNewContext(`let paymentBreakdown={};let bookingPaymentLegacyMode=false,bookingPaymentPreservedLegacy=false,bookingPaymentLegacySnapshot=null,bookingPaymentUnsupportedSplit=false;function bookingPaymentMoney(value){return Math.round(Number(value||0)*100)/100}function loadBookingToForm(){}${loader};loadBookingToForm(booking)`,oldLoadContext);
+  vm.runInNewContext(`let paymentBreakdown={};${helper}function loadBookingToForm(){}${loader};loadBookingToForm(booking)`,oldLoadContext);
   assert.equal(oldFields.paymentMethod.value,"โอนนฤมล");
   assert.equal(oldFields.primaryPaymentAmount.value,0);
   assert.equal(oldFields.secondaryPaymentMethod.value,"");
-  const legacyValues={...values,primaryPaymentAmount:"0",secondaryPaymentAmount:"0",secondaryPaymentMethod:""},legacyBooking={...context.booking,paymentBreakdown:structuredClone(original)},legacyContext={val:id=>legacyValues[id]||"",structuredClone,booking:legacyBooking,result:null};
-  vm.runInNewContext(`let paymentBreakdown={};function buildBooking(){return booking};${helper}${wrapper};bookingPaymentLegacyMode=true;bookingPaymentLegacySnapshot={paymentMethod:booking.paymentMethod,depositAmount:1000,depositPaymentMethod:booking.depositPaymentMethod,creditAmount:0,creditPaymentMethod:"",totalAmount:5000,paymentBreakdown:structuredClone(booking.paymentBreakdown)};result=buildBooking()`,legacyContext);
+  const paidBooking={...context.booking,depositAmount:0,depositPaymentMethod:"",totalAmount:3000,passengers:[{program:{qty:1,price:3000}}],paymentBreakdown:{deposit:{},credit:{},remaining:{"โอนนฤมล":3000}}};
+  const paidFields=Object.fromEntries(["legacyPaymentNotice","primaryPaymentAmount","secondaryPaymentMethod","secondaryPaymentAmount","paymentMethod"].map(id=>[id,{value:"",classList:{toggle(){}}}]));
+  const paidLoadContext={structuredClone,document:{getElementById:id=>paidFields[id]},setSelectValueWithHistory:(id,value)=>{paidFields[id].value=value},refreshSummary(){},booking:paidBooking};
+  vm.runInNewContext(`let paymentBreakdown={};${helper}function loadBookingToForm(){}${loader};loadBookingToForm(booking)`,paidLoadContext);
+  assert.equal(paidFields.paymentMethod.value,"โอนนฤมล");
+  assert.equal(paidFields.primaryPaymentAmount.value,3000);
+  const mixedBooking={...paidBooking,totalAmount:6000,depositAmount:1000,passengers:[{program:{qty:1,price:4000}}],paymentBreakdown:{remaining:{"โอนนฤมล":5000}}};
+  const mixedContext={booking:mixedBooking,result:null};
+  vm.runInNewContext(`${helper};result=bookingLegacyPrimaryAmount(booking,"โอนนฤมล")`,mixedContext);
+  assert.equal(mixedContext.result,3000);
+  const noBreakdownContext={booking:{...paidBooking,paymentBreakdown:{}},result:null};
+  vm.runInNewContext(`${helper};result=bookingLegacyPrimaryAmount(booking,"โอนนฤมล")`,noBreakdownContext);
+  assert.equal(noBreakdownContext.result,3000);
+  const legacyValues={...values,primaryPaymentAmount:"4000",secondaryPaymentAmount:"0",secondaryPaymentMethod:""},legacyBooking={...context.booking,paymentBreakdown:structuredClone(original)},legacyContext={val:id=>legacyValues[id]||"",structuredClone,booking:legacyBooking,result:null};
+  vm.runInNewContext(`let paymentBreakdown={};function buildBooking(){return booking};${helper}${wrapper};bookingPaymentLegacyMode=true;bookingPaymentLegacySnapshot={paymentMethod:booking.paymentMethod,depositAmount:1000,depositPaymentMethod:booking.depositPaymentMethod,creditAmount:0,creditPaymentMethod:"",totalAmount:5000,programTotal:5000,primaryAmount:4000,paymentBreakdown:structuredClone(booking.paymentBreakdown)};result=buildBooking()`,legacyContext);
   assert.equal(legacyContext.result.paymentBreakdown.version,undefined);
   assert.equal(legacyContext.result.paymentBreakdown.remaining["โอนนฤมล"],4000);
+  legacyValues.primaryPaymentAmount="2500";
+  const editedContext={...legacyContext,result:null};
+  vm.runInNewContext(`let paymentBreakdown={};function buildBooking(){return booking};${helper}${wrapper};bookingPaymentLegacyMode=true;bookingPaymentLegacySnapshot={paymentMethod:booking.paymentMethod,depositAmount:1000,depositPaymentMethod:booking.depositPaymentMethod,creditAmount:0,creditPaymentMethod:"",totalAmount:5000,programTotal:5000,primaryAmount:4000,paymentBreakdown:structuredClone(booking.paymentBreakdown)};result=buildBooking()`,editedContext);
+  assert.equal(editedContext.result.paymentBreakdown.version,2);
+  assert.equal(editedContext.result.paymentBreakdown.primary.amount,2500);
   assert.doesNotMatch(app,/bookingPaymentUnallocated|unallocatedRemaining|ยอดยังไม่รับจริง/);
 });
 test("money receipt account table is capped to the items printed on that receipt",()=>{

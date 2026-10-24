@@ -861,6 +861,7 @@ refreshSummary=function(){
 function bookingPaymentAmount(id){return Number(val(id)||0)}
 function bookingPaymentMoney(value){return Math.round(Number(value||0)*100)/100}
 function bookingProgramTotal(booking){return bookingPaymentMoney((booking.passengers||[]).reduce((sum,person)=>sum+Math.max(Number(person.program?.qty||1)*Number(person.program?.price||0),0),0))}
+function bookingLegacyPrimaryAmount(booking,method){const due=bookingPaymentMoney(Math.max(bookingProgramTotal(booking)-Number(booking.depositAmount||0)-Number(booking.creditAmount||0),0)),remaining=booking.paymentBreakdown?.remaining||{},hasAllocation=Object.values(remaining).some(amount=>Number(amount)>0);return bookingPaymentMoney(Math.min(due,hasAllocation?Math.max(Number(remaining[method]||0),0):due))}
 let bookingPaymentLegacyMode=false,bookingPaymentLegacySnapshot=null,bookingPaymentUnsupportedSplit=false,bookingPaymentPreservedLegacy=false;
 const refreshSummaryBeforePaymentSplit=refreshSummary;
 refreshSummary=function(){
@@ -887,12 +888,13 @@ loadBookingToForm=function(booking){
   const breakdown=booking.paymentBreakdown||{},saved=Object.entries(breakdown.remaining||{}).filter(([,amount])=>Number(amount)>0),isSplit=breakdown.version===2;
   bookingPaymentLegacyMode=!isSplit;
   bookingPaymentPreservedLegacy=false;
-  bookingPaymentLegacySnapshot=bookingPaymentLegacyMode?{paymentMethod:booking.paymentMethod,depositAmount:Number(booking.depositAmount||0),depositPaymentMethod:booking.depositPaymentMethod,creditAmount:Number(booking.creditAmount||0),creditPaymentMethod:booking.creditPaymentMethod,totalAmount:Number(booking.totalAmount||0),paymentBreakdown:structuredClone(breakdown)}:null;
+  bookingPaymentLegacySnapshot=bookingPaymentLegacyMode?{paymentMethod:booking.paymentMethod,depositAmount:Number(booking.depositAmount||0),depositPaymentMethod:booking.depositPaymentMethod,creditAmount:Number(booking.creditAmount||0),creditPaymentMethod:booking.creditPaymentMethod,totalAmount:Number(booking.totalAmount||0),programTotal:bookingProgramTotal(booking),paymentBreakdown:structuredClone(breakdown)}:null;
   bookingPaymentUnsupportedSplit=isSplit&&saved.length>2;
   const legacyNotice=document.getElementById("legacyPaymentNotice");
   if(legacyNotice){legacyNotice.textContent=bookingPaymentUnsupportedSplit?"Booking นี้มีข้อมูลหลายช่องทาง กรุณาติดต่อผู้ดูแลก่อนแก้ไข เพื่อไม่ให้ข้อมูลเดิมสูญหาย":"Booking เดิมยังไม่มีข้อมูลช่องทางสำรอง หากไม่ได้กรอกใหม่ ระบบจะคงข้อมูลเดิมไว้";legacyNotice.classList.toggle("hidden",!bookingPaymentLegacyMode&&!bookingPaymentUnsupportedSplit)}
   const primaryMethod=isSplit?(breakdown.primary?.method||booking.paymentMethod||saved[0]?.[0]||""):(booking.paymentMethod||saved[0]?.[0]||"");
-  const primaryAmount=isSplit?Number(breakdown.primary?.amount??breakdown.remaining?.[primaryMethod]??0):0;
+  const primaryAmount=isSplit?Number(breakdown.primary?.amount??breakdown.remaining?.[primaryMethod]??0):bookingLegacyPrimaryAmount(booking,primaryMethod);
+  if(bookingPaymentLegacySnapshot)bookingPaymentLegacySnapshot.primaryAmount=bookingPaymentMoney(primaryAmount);
   const secondaryEntry=saved.find(([method])=>method!==primaryMethod);
   const secondaryMethod=isSplit?(breakdown.secondary?.method||secondaryEntry?.[0]||""):"";
   const secondaryAmount=isSplit?Number(breakdown.secondary?.amount??breakdown.remaining?.[secondaryMethod]??0):0;
@@ -909,11 +911,9 @@ buildBooking=function(){
   bookingPaymentPreservedLegacy=false;
   const primary={method:booking.paymentMethod||"",amount:bookingPaymentMoney(bookingPaymentAmount("primaryPaymentAmount"))};
   const secondary={method:val("secondaryPaymentMethod"),amount:bookingPaymentMoney(bookingPaymentAmount("secondaryPaymentAmount"))};
-  if(bookingPaymentLegacyMode&&!primary.amount&&!secondary.amount){
+  if(bookingPaymentLegacyMode&&!secondary.amount){
     const old=bookingPaymentLegacySnapshot;
-    if(old&&Number(booking.totalAmount||0)===old.totalAmount&&Number(booking.depositAmount||0)===old.depositAmount&&Number(booking.creditAmount||0)===old.creditAmount&&booking.paymentMethod===old.paymentMethod&&booking.depositPaymentMethod===old.depositPaymentMethod&&booking.creditPaymentMethod===old.creditPaymentMethod){booking.paymentBreakdown=structuredClone(old.paymentBreakdown);bookingPaymentPreservedLegacy=true}
-    paymentBreakdown=structuredClone(booking.paymentBreakdown);
-    return booking;
+    if(old&&primary.amount===old.primaryAmount&&Number(booking.totalAmount||0)===old.totalAmount&&bookingProgramTotal(booking)===old.programTotal&&Number(booking.depositAmount||0)===old.depositAmount&&Number(booking.creditAmount||0)===old.creditAmount&&booking.paymentMethod===old.paymentMethod&&booking.depositPaymentMethod===old.depositPaymentMethod&&booking.creditPaymentMethod===old.creditPaymentMethod){booking.paymentBreakdown=structuredClone(old.paymentBreakdown);bookingPaymentPreservedLegacy=true;paymentBreakdown=structuredClone(booking.paymentBreakdown);return booking}
   }
   booking.paymentBreakdown={...booking.paymentBreakdown,version:2,primary,secondary};
   paymentBreakdown=structuredClone(booking.paymentBreakdown);
