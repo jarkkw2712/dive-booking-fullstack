@@ -197,6 +197,42 @@ test("receipt summary totals only items enabled for money receipts in current ma
   assert.equal(capped.rows[0].balanceTransfer,0);
 });
 
+test("new Booking payment split reaches daily, monthly, boat and receipt reports without moving equipment money",()=>{
+  const booking={bookingCode:"SPLIT-1",travelDate:"2026-10-24",status:"confirmed",paymentMethod:"Naruemon",depositPaymentMethod:"Naruemon",depositAmount:1000,creditAmount:0,paymentBreakdown:{version:2,primary:{method:"Naruemon",amount:2000},secondary:{method:"Cash",amount:1000},remaining:{Naruemon:3000}},passengers:[{program:{programId:"boat_ticket",name:"ตั๋วเรือ",qty:1,price:4000},preAddOns:[{id:"fin",selected:true,qty:1,nights:1,price:200,paymentMethod:"Laddawan"}]}]};
+  const masters={paymentMethods:[{method_name:"Cash",method_code:"cash",payment_type:"cash"},{method_name:"Naruemon",method_code:"bank_transfer_naruemon",payment_type:"transfer"},{method_name:"Laddawan",method_code:"bank_transfer_laddawan",payment_type:"transfer"}],masterAddOns:[{addon_id:"fin",show_money_receipt:true}],masterIslandAddOns:[],masterAccommodations:[],transportationMethods:[],masterPrograms:[{program_id:"boat_ticket",default_price:1700}]};
+  const report=type=>buildPrintCenterReport({bookings:[booking],date:booking.travelDate,toDate:booking.travelDate,type,...masters});
+  const daily=report("tour_expense_reference").rows[0],monthly=report("tour_monthly_reference").rows[0],boat=report("boat_tent_reference").rows[0],receipt=report("receipt_summary").rows[0],counter=report("counter").rows[0];
+  assert.deepEqual([daily.boatCash,daily.boatTransfer,daily.deposit,daily.totalRevenue],[1000,2000,1000,4200]);
+  assert.deepEqual([monthly.cash,monthly.transfer,monthly.deposit],[1000,2200,1000]);
+  assert.deepEqual([boat.boatCash,boat.boatTransfer,boat.balance],[1000,3000,4000]);
+  assert.deepEqual([receipt.depositTransfer,receipt.balanceCash,receipt.balanceTransfer,receipt.grandTotal],[1000,1000,2200,4200]);
+  assert.equal(receipt.totalCash+receipt.totalTransfer,receipt.grandTotal);
+  assert.match(counter.paymentMethod,/หลัก Naruemon 2000 บาท \/ สำรอง Cash 1000 บาท/);
+  const partial={...booking,paymentBreakdown:{...booking.paymentBreakdown,primary:{method:"Naruemon",amount:100},secondary:{method:"Cash",amount:1000}}};
+  assert.equal(buildPrintCenterReport({bookings:[partial],date:booking.travelDate,type:"tour_expense_reference",...masters}).rows[0].boatTransfer,2000);
+  const legacy={...booking,paymentBreakdown:{remaining:{Naruemon:3000}}};
+  assert.equal(buildPrintCenterReport({bookings:[legacy],date:booking.travelDate,type:"tour_expense_reference",...masters}).rows[0].boatCash,0);
+});
+
+test("mixed boat and package rows share deposits and secondary payment without double counting",()=>{
+  const booking={travelDate:"2026-10-24",status:"confirmed",paymentMethod:"Bank",depositPaymentMethod:"Bank",depositAmount:1200,paymentBreakdown:{version:2,primary:{method:"Bank",amount:3600},secondary:{method:"Cash",amount:1200}},passengers:[{program:{programId:"boat_ticket",name:"ตั๋วเรือ",qty:1,price:4000}},{program:{programId:"one_day",name:"One Day Trip",qty:1,price:2000}}]};
+  const paymentMethods=[{method_name:"Bank",payment_type:"transfer"},{method_name:"Cash",payment_type:"cash"}];
+  const report=buildPrintCenterReport({bookings:[booking],date:booking.travelDate,type:"tour_expense_reference",paymentMethods}).rows[0];
+  assert.deepEqual([report.boatCash,report.boatTransfer,report.packageCash,report.packageTransfer,report.deposit,report.totalRevenue],[800,2400,400,1200,1200,6000]);
+  assert.equal(report.boatCash+report.boatTransfer+report.packageCash+report.packageTransfer+report.deposit,report.totalRevenue);
+  const boat=buildPrintCenterReport({bookings:[booking],date:booking.travelDate,type:"boat_tent_reference",paymentMethods}).rows[0];
+  assert.deepEqual([boat.boatCash,boat.boatTransfer],[800,3200]);
+});
+
+test("inactive historical payment methods keep their original cash type in reports",()=>{
+  const route=fs.readFileSync(path.resolve(testDir,"../src/routes/reports.js"),"utf8");
+  assert.match(route,/master_payment_methods"\)\.select\("method_id,method_name,payment_type,default_general,default_equipment,default_island,default_transport,active_flag,sort_order"\)\.order/);
+  const booking={travelDate:"2026-10-24",status:"confirmed",paymentMethod:"Counter Desk",passengers:[{program:{programId:"boat_ticket",qty:1,price:500}}]};
+  const paymentMethods=[{method_id:"cash_archive",method_name:"Counter Desk",payment_type:"cash",active_flag:false}];
+  const row=buildPrintCenterReport({bookings:[booking],date:booking.travelDate,type:"tour_expense_reference",paymentMethods}).rows[0];
+  assert.equal(row.boatCash,500);assert.equal(row.boatTransfer,0);
+});
+
 test("register summary supports an inclusive custom date range",()=>{
   const bookings=[
     {bookingCode:"R1",travelDate:"2026-07-23",returnDate:"2026-07-25",leaderFirstName:"A",status:"confirmed",passengers:[{passengerType:"adult",program:{name:"3 days 2 nights"}}]},

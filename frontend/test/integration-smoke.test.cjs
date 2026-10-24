@@ -46,8 +46,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.24-06/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=asset==="css/style.css"?"20261024-04":asset==="js/app.js"?"20261024-03":asset==="js/api.js"?"20261023-03":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":asset==="js/travelStops.js"?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.10\.24-07/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=asset==="css/style.css"?"20261024-04":asset==="js/app.js"?"20261024-04":asset==="js/islandAddonMaster.js"?"20261024-01":asset==="js/api.js"?"20261023-03":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":asset==="js/travelStops.js"?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
 });
 test("booking form uses the available desktop width without stretching other pages",()=>{
   const css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -549,6 +549,33 @@ test("money receipt account table is capped to the items printed on that receipt
   vm.runInNewContext(`${app.slice(start,end)};result={amounts:documentPaymentAmounts({depositAmount:1000,creditAmount:0},5000),allocated:allocateReceiptRow([{method_name:"เงินสด"}],{"เงินสด":9500},4000,"เงินสด")}`,context);
   assert.equal(context.result.amounts.deposit,1000);assert.equal(context.result.amounts.remaining,4000);assert.equal(context.result.allocated["เงินสด"],4000);
   const table=app.slice(end,app.indexOf("function documentFinancialSummary"));assert.match(table,/amounts=documentPaymentAmounts\(booking,documentTotal\)/);assert.match(table,/allocateReceiptRow\(methods,breakdown\[key\]\|\|\{\},amount,selected\)/);assert.doesNotMatch(table,/Number\(breakdown\[key\]/);
+});
+
+test("money receipt uses primary, secondary and item accounts for new Bookings",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),start=app.indexOf("function receiptV2RemainingByMethod"),end=app.indexOf("function moneyReceiptAllocationTable"),context={result:null,documentProfiles:{MONEY_RECEIPT:{}},normalizeBookingAccommodations:()=>[],transportationVisibleOnDocument:()=>false,addonVisibleOnDocument:()=>true,equipmentBillableQty:item=>Number(item.qty||1)*Number(item.nights||1)};
+  const booking={paymentMethod:"Naruemon",depositPaymentMethod:"Naruemon",depositAmount:1000,creditAmount:0,paymentBreakdown:{version:2,primary:{method:"Naruemon",amount:100},secondary:{method:"Cash",amount:1000}},passengers:[{program:{qty:1,price:4000},preAddOns:[{selected:true,qty:1,nights:1,price:200,paymentMethod:"Laddawan"}]}]};
+  context.booking=booking;vm.runInNewContext(`${app.slice(start,end)};result=receiptV2RemainingByMethod(booking,{deposit:1000,credit:0})`,context);
+  assert.equal(context.result.Cash,1000);assert.equal(context.result.Naruemon,2000);assert.equal(context.result.Laddawan,200);
+  assert.equal(Object.values(context.result).reduce((sum,value)=>sum+value,0),3200);
+  const view={...context,master:{paymentMethods:[{method_name:"Cash",payment_type:"cash"},{method_name:"Naruemon",payment_type:"transfer"},{method_name:"Laddawan",payment_type:"transfer"}]},bookingDefaultPaymentMethod:()=>"",bookingIsVanMethod:()=>false,money:value=>String(value),escapeHtml:value=>String(value)};
+  const from=app.indexOf("function paymentMethodMeta"),to=app.indexOf("function documentFinancialSummary");
+  vm.runInNewContext(`${app.slice(from,to)};result=moneyReceiptAllocationTable(booking,4200)`,view);
+  assert.match(view.result,/<tr><td>ยอดที่เหลือ<\/td><td class="num">1000<\/td><td class="num">2000<\/td><td class="num">200<\/td><\/tr>/);
+  assert.match(view.result,/<tr><td>มัดจำ<\/td><td class="num"><\/td><td class="num">1000<\/td>/);
+});
+
+test("island order prints each selected island account without borrowing the main Booking account",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),from=app.indexOf("const renderIslandPurchaseOrderBeforeAccountFix"),to=app.indexOf("const renderReceiptBeforeIslandPurchaseOrder"),context={renderIslandPurchaseOrder:()=>'<table><tbody>old</tbody></table><span>รวมยอดสั่งซื้อ</span><b>old</b>',documentProfiles:{ISLAND_PURCHASE_ORDER:{}},addonVisibleOnDocument:item=>item.source==="island"&&item.name!=="hidden",bookingDefaultPaymentMethod:()=>"Island Default",escapeHtml:value=>String(value),money:value=>String(value),result:null};
+  const booking={paymentMethod:"Main",passengers:[{islandAddOns:[{name:"Dive",qty:1,price:100,paymentMethod:"Island A"},{name:"Dive",qty:2,price:100,paymentMethod:"Island B"},{name:"hidden",qty:1,price:500,paymentMethod:"Island C"}]}]};
+  context.booking=booking;vm.runInNewContext(`${app.slice(from,to)};result=renderIslandPurchaseOrder(booking)`,context);
+  assert.match(context.result,/Island A/);assert.match(context.result,/Island B/);assert.doesNotMatch(context.result,/Island C|Main|hidden/);assert.match(context.result,/รวมยอดสั่งซื้อ<\/span><b>300 บาท/);
+});
+
+test("Register never prints a deposit larger than the items visible on that document",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),amounts=app.slice(app.indexOf("function documentPaymentAmounts"),app.indexOf("function allocateReceiptRow")),summary=app.slice(app.indexOf("function documentFinancialSummary"),app.indexOf("const renderReceiptWithFinancialSummary"));
+  const context={documentProfiles:{REGISTER:{}},documentGroupedItems:()=>[{total:100}],money:value=>String(value),paymentTypeLabel:()=>"โอนธนาคาร",escapeHtml:value=>String(value),booking:{depositAmount:500,creditAmount:0,depositPaymentMethod:"Bank"},result:null};
+  vm.runInNewContext(`${amounts}${summary};result=documentFinancialSummary(booking,"REGISTER")`,context);
+  assert.match(context.result,/ยอดรวม<\/span><b>100 บาท/);assert.match(context.result,/มัดจำ \(โอนธนาคาร\)<\/span><b>100 บาท/);assert.match(context.result,/ยอดสุทธิ<\/span><b>0 บาท/);
 });
 
 test("package, boat-tent, expense and island-boat workflows are wired end to end",()=>{

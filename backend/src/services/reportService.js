@@ -84,8 +84,8 @@ const paymentDefaultName={general:"นฤมล",equipment:"ลัดดาว�
 const paymentDefaultField={general:"default_general",equipment:"default_equipment",island:"default_island",transport:"default_transport"};
 const normalized=value=>String(value||"").trim().toLocaleLowerCase("th-TH");
 const paymentMeta=(name,methods=[])=>methods.find(method=>method.method_name===name)||null;
-const paymentKind=(name,methods=[])=>{const method=paymentMeta(name,methods),code=normalized(method?.method_id);if(code==="cash")return"cash";if(code.includes("bank_transfer"))return"transfer";if(method?.payment_type==="cash")return"cash";if(method?.payment_type==="transfer")return"transfer";return/สด/.test(String(name||""))?"cash":"transfer"};
-const defaultPayment=(methods,scope)=>methods.find(method=>method[paymentDefaultField[scope]]===true)?.method_name||methods.find(method=>String(method.method_name||"").trim()===paymentDefaultName[scope])?.method_name||"";
+const paymentKind=(name,methods=[])=>{const method=paymentMeta(name,methods),code=normalized(method?.method_id);if(code==="cash")return"cash";if(code.includes("bank_transfer"))return"transfer";if(method?.payment_type==="cash")return"cash";if(method?.payment_type==="transfer")return"transfer";return/cash|สด/i.test(String(name||""))?"cash":"transfer"};
+const defaultPayment=(methods,scope)=>{const active=methods.filter(method=>method.active_flag!==false);return active.find(method=>method[paymentDefaultField[scope]]===true)?.method_name||active.find(method=>String(method.method_name||"").trim()===paymentDefaultName[scope])?.method_name||""};
 const namedAccount=name=>namedPaymentAccounts.find(account=>String(name||"").includes(account))||"";
 const accountTransferTotal=(lines,account,methods)=>sumMoney(lines.filter(line=>namedAccount(line.paymentMethod)===account&&paymentKind(line.paymentMethod,methods)==="transfer"),line=>line.amount);
 const isBoatProgram=program=>normalized(program?.programId||program?.id)==="boat_ticket";
@@ -101,6 +101,39 @@ const isVanMethod=(name,methods=[])=>{
   return code.includes("van")||code.includes("pv")||/รถตู้|\bvan\b/i.test(String(name||""));
 };
 const lineAmount=(qty,price)=>money(qty||1)*money(price);
+const paymentCents=value=>Math.max(0,Math.round(money(value)*100));
+function proportionalPaymentShares(amount,capacities){
+  const total=capacities.reduce((sum,value)=>sum+value,0);
+  if(!amount||!total)return capacities.map(()=>0);
+  const shares=capacities.map(value=>Math.floor(amount*value/total));
+  let remainder=amount-shares.reduce((sum,value)=>sum+value,0);
+  const order=capacities.map((value,index)=>({index,fraction:amount*value/total-shares[index]})).sort((a,b)=>b.fraction-a.fraction||a.index-b.index);
+  for(const {index} of order){if(!remainder)break;if(shares[index]<capacities[index]){shares[index]++;remainder--}}
+  return shares;
+}
+function splitProgramRevenueLines(booking,lines,{includeDeposit=false,includeCredit=true}={}){
+  const breakdown=booking.paymentBreakdown||{};
+  if(breakdown.version!==2)return lines;
+  const capacities=lines.map(line=>paymentCents(line.amount)),gross=capacities.reduce((sum,value)=>sum+value,0);
+  if(!gross)return lines;
+  const primary=breakdown.primary?.method||booking.paymentMethod||"",secondary=breakdown.secondary?.method||"";
+  const deposit=includeDeposit?Math.min(paymentCents(booking.depositAmount),gross):0;
+  const credit=includeCredit?Math.min(paymentCents(booking.creditAmount),gross-deposit):0;
+  const secondaryAmount=secondary?Math.min(paymentCents(breakdown.secondary?.amount),gross-deposit-credit):0;
+  const portions=[...(deposit?[{method:booking.depositPaymentMethod||primary,amount:deposit}]:[]),...(credit?[{method:booking.creditPaymentMethod||primary,amount:credit}]:[]),...(secondaryAmount?[{method:secondary,amount:secondaryAmount}]:[]),{method:primary,amount:gross-deposit-credit-secondaryAmount}];
+  const remaining=[...capacities],result=[];
+  for(const portion of portions){const shares=proportionalPaymentShares(portion.amount,remaining);shares.forEach((share,index)=>{if(share)result.push({...lines[index],amount:share/100,paymentMethod:portion.method});remaining[index]-=share})}
+  return result;
+}
+function bookingProgramPaymentLabel(booking){
+  const breakdown=booking.paymentBreakdown||{};
+  if(breakdown.version!==2)return booking.paymentMethod||"";
+  const gross=sumMoney(passengersOf(booking).filter(person=>person.program),person=>lineAmount(person.program.qty,person.program.price));
+  const due=Math.max(paymentCents(gross)-paymentCents(booking.depositAmount)-paymentCents(booking.creditAmount),0);
+  const secondary=breakdown.secondary?.method?Math.min(paymentCents(breakdown.secondary.amount),due):0;
+  const primary=`หลัก ${breakdown.primary?.method||booking.paymentMethod||"ไม่ระบุ"} ${(due-secondary)/100} บาท`;
+  return secondary?`${primary} / สำรอง ${breakdown.secondary.method} ${secondary/100} บาท`:primary;
+}
 const transportQuantity=value=>{const quantity=Number(value??1);return Number.isInteger(quantity)&&quantity>0?quantity:1};
 const transportAmount=(price,quantity)=>money(price)*transportQuantity(quantity);
 const equipmentBillableUnits=addon=>money(addon.qty||1)*money(addon.nights??1);
@@ -150,7 +183,8 @@ function tourRevenueLines(booking,paymentMethods){
     group.forEach((line,index)=>{line.amount=(Math.round(line.amount*100)-deductions[index])/100});
     remaining-=deduction;
   }
-  return lines;
+  const programs=lines.filter(line=>line.source==="boat"||line.source==="package");
+  return[...splitProgramRevenueLines(booking,programs),...lines.filter(line=>line.source!=="boat"&&line.source!=="package")];
 }
 
 function tourExpenseReferenceReport(bookings,date,toDate,paymentMethods){
@@ -224,10 +258,12 @@ function boatTentReport(bookings,date,paymentMethods=[],masterPrograms=[]){
   const boatMaster=masterPrograms.find(program=>normalized(program.program_id)==="boat_ticket");
   for(const booking of bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===date)){
     const people=passengersOf(booking),boatPeople=people.filter(person=>person.program&&isBoatProgram(person.program));if(!boatPeople.length)continue;
-    const qty=boatPeople.reduce((sum,person)=>sum+Math.max(money(person.program?.qty||1),0),0),amount=sumMoney(boatPeople,person=>lineAmount(person.program?.qty,person.program?.price)),price=money(boatMaster?.default_price??boatPeople[0].program?.defaultPrice??boatPeople[0].program?.price),defaultAmount=qty*price,kind=paymentKind(booking.paymentMethod,paymentMethods);
+    const qty=boatPeople.reduce((sum,person)=>sum+Math.max(money(person.program?.qty||1),0),0),amount=sumMoney(boatPeople,person=>lineAmount(person.program?.qty,person.program?.price)),price=money(boatMaster?.default_price??boatPeople[0].program?.defaultPrice??boatPeople[0].program?.price),defaultAmount=qty*price;
     let smallTentQty=0,largeTentQty=0,tentAmount=0;
     for(const person of accommodationsOf(booking)){if(!person.accommodationId||person.accommodationBookedBy!=="company")continue;const size=tentSize(person);if(!size)continue;const accommodationQty=accommodationQuantity(person);if(size==="large")largeTentQty+=accommodationQty;else smallTentQty+=accommodationQty;tentAmount+=accommodationRevenue(person)}
-    const tentKind=paymentKind(booking.paymentMethod,paymentMethods),boatCash=kind==="cash"?amount:0,boatTransfer=kind==="transfer"?amount:0,tentCash=tentKind==="cash"?tentAmount:0,tentTransfer=tentKind==="transfer"?tentAmount:0;
+    const programLines=splitProgramRevenueLines(booking,people.filter(person=>person.program).map(person=>({source:isBoatProgram(person.program)?"boat":"package",amount:lineAmount(person.program.qty,person.program.price),paymentMethod:booking.paymentMethod})),{includeDeposit:true}).filter(line=>line.source==="boat");
+    const boatCash=sumMoney(programLines.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="cash"),line=>line.amount),boatTransfer=sumMoney(programLines.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="transfer"),line=>line.amount);
+    const tentKind=paymentKind(booking.paymentMethod,paymentMethods),tentCash=tentKind==="cash"?tentAmount:0,tentTransfer=tentKind==="transfer"?tentAmount:0;
     rows.push({returnDate:booking.returnDate||"",leader:leaderName(booking),qty,price,boatCash,boatTransfer,discount:Math.max(defaultAmount-amount,0),balance:amount,smallTentQty,largeTentQty,tentCash,tentTransfer,totalCash:boatCash+tentCash,totalTransfer:boatTransfer+tentTransfer,customerSource:booking.source||booking.contactEmail||"",bookingCode:booking.bookingCode||""});
   }
   const fields=["qty","boatCash","boatTransfer","discount","balance","smallTentQty","largeTentQty","tentCash","tentTransfer","totalCash","totalTransfer"],totals=Object.fromEntries(fields.map(field=>[field,rows.reduce((sum,row)=>sum+money(row[field]),0)]));
@@ -424,33 +460,47 @@ function frontChargeReport(bookings,date){
 }
 const receiptCents=value=>Math.round(Math.max(money(value),0)*100);
 const receiptAmount=cents=>cents/100;
-function receiptDocumentTotal(booking,{masterAddOns,masterIslandAddOns,masterAccommodations,transportationMethods}){
+function receiptDocumentLines(booking,{masterAddOns,masterIslandAddOns,masterAccommodations,transportationMethods,paymentMethods=[]}){
   const addons=new Map(masterAddOns.map(row=>[row.addon_id,row]));
   const islandAddons=new Map(masterIslandAddOns.map(row=>[row.island_addon_id,row]));
   const accommodations=new Map(masterAccommodations.map(row=>[row.accommodation_id,row]));
   const transport=new Map(transportationMethods.map(row=>[row.method_name,row]));
-  let cents=0;
+  const lines=[];
+  const add=(source,amount,paymentMethod)=>{const cents=receiptCents(amount);if(cents)lines.push({source,amount:receiptAmount(cents),paymentMethod})};
   for(const person of passengersOf(booking)){
-    if(person.program)cents+=receiptCents(lineAmount(person.program.qty,person.program.price));
+    if(person.program)add("program",lineAmount(person.program.qty,person.program.price),booking.paymentMethod);
     const outbound=person.transportationMethod||booking.transportationMethod||"";
-    if(transport.get(outbound)?.show_money_receipt===true)cents+=receiptCents(transportAmount(person.transportationAmount,person.transportationQuantity));
-    if(transport.get(person.returnTransportationMethod||"")?.show_money_receipt===true)cents+=receiptCents(transportAmount(person.returnTransportationAmount,person.returnTransportationQuantity));
-    for(const stop of person.extraTransportStops||[])if(transport.get(stop.method||"")?.show_money_receipt===true)cents+=receiptCents(transportAmount(stop.amount,stop.quantity));
+    if(transport.get(outbound)?.show_money_receipt===true)add("transport",transportAmount(person.transportationAmount,person.transportationQuantity),person.transportationPaymentMethod||defaultPayment(paymentMethods,isVanMethod(outbound,transportationMethods)?"transport":"general")||booking.paymentMethod);
+    if(transport.get(person.returnTransportationMethod||"")?.show_money_receipt===true)add("transport",transportAmount(person.returnTransportationAmount,person.returnTransportationQuantity),person.returnTransportationPaymentMethod||defaultPayment(paymentMethods,isVanMethod(person.returnTransportationMethod,transportationMethods)?"transport":"general")||booking.paymentMethod);
+    for(const stop of person.extraTransportStops||[])if(transport.get(stop.method||"")?.show_money_receipt===true)add("transport",transportAmount(stop.amount,stop.quantity),stop.paymentMethod||defaultPayment(paymentMethods,isVanMethod(stop.method,transportationMethods)?"transport":"general")||booking.paymentMethod);
     for(const addon of person.preAddOns||[]){
       if(!addon.selected)continue;
       const visibility=addons.get(addon.id)?.show_money_receipt??addon.documentVisibility?.show_money_receipt??true;
-      if(visibility===true)cents+=receiptCents(lineAmount(equipmentBillableUnits(addon),addon.price));
+      if(visibility===true)add("equipment",lineAmount(equipmentBillableUnits(addon),addon.price),addon.paymentMethod||defaultPayment(paymentMethods,"equipment")||booking.paymentMethod);
     }
     for(const addon of person.islandAddOns||[]){
       const visibility=islandAddons.get(addon.id)?.show_money_receipt??addon.documentVisibility?.show_money_receipt??true;
-      if(visibility!==false)cents+=receiptCents(lineAmount(addon.qty,addon.price));
+      if(visibility!==false)add("island",lineAmount(addon.qty,addon.price),addon.paymentMethod||defaultPayment(paymentMethods,"island")||booking.paymentMethod);
     }
   }
   for(const accommodation of accommodationsOf(booking)){
     if(!accommodation.accommodationId)continue;
-    if(accommodations.get(accommodation.accommodationId)?.show_money_receipt??true)cents+=receiptCents(accommodationRevenue(accommodation));
+    if(accommodations.get(accommodation.accommodationId)?.show_money_receipt??true)add("accommodation",accommodationRevenue(accommodation),booking.paymentMethod);
   }
-  return cents;
+  return lines;
+}
+const receiptDocumentTotal=(booking,masters)=>receiptDocumentLines(booking,masters).reduce((sum,line)=>sum+receiptCents(line.amount),0);
+function receiptV2BalanceSplit(booking,masters,deposit,credit,paymentMethods){
+  const lines=receiptDocumentLines(booking,{...masters,paymentMethods}).map(line=>({...line}));
+  let deduction=deposit+credit;
+  for(const group of [lines.filter(line=>line.source==="program"),lines.filter(line=>line.source!=="program")]){
+    const capacities=group.map(line=>receiptCents(line.amount)),shares=proportionalPaymentShares(Math.min(deduction,capacities.reduce((sum,value)=>sum+value,0)),capacities);
+    group.forEach((line,index)=>{line.amount=receiptAmount(capacities[index]-shares[index])});
+    deduction-=shares.reduce((sum,value)=>sum+value,0);
+  }
+  const program=splitProgramRevenueLines(booking,lines.filter(line=>line.source==="program"),{includeCredit:false});
+  const remaining=[...program,...lines.filter(line=>line.source!=="program")];
+  return remaining.reduce((result,line)=>{result[paymentKind(line.paymentMethod,paymentMethods)==="cash"?"cash":"transfer"]+=receiptCents(line.amount);return result},{cash:0,transfer:0});
 }
 function receiptPaymentSplit(amount,source,selected,paymentMethods){
   const cents=receiptCents(amount),parts=Object.entries(source||{}).filter(([,value])=>receiptCents(value)>0);
@@ -470,7 +520,7 @@ function dailyReceiptSummary(bookings,date,paymentMethods,masters){
     const total=receiptDocumentTotal(booking,masters),deposit=Math.min(receiptCents(booking.depositAmount),total),credit=Math.min(receiptCents(booking.creditAmount),total-deposit),balance=total-deposit-credit,breakdown=booking.paymentBreakdown||{};
     const depositSplit=receiptPaymentSplit(receiptAmount(deposit),breakdown.deposit,booking.depositPaymentMethod,paymentMethods);
     const creditSplit=receiptPaymentSplit(receiptAmount(credit),breakdown.credit,booking.creditPaymentMethod,paymentMethods);
-    const balanceSplit=receiptPaymentSplit(receiptAmount(balance),breakdown.remaining,booking.paymentMethod,paymentMethods);
+    const balanceSplit=breakdown.version===2?receiptV2BalanceSplit(booking,masters,deposit,credit,paymentMethods):receiptPaymentSplit(receiptAmount(balance),breakdown.remaining,booking.paymentMethod,paymentMethods);
     const row={no:index+1,agent:booking.agentName||"",leader:leaderName(booking),program:uniqueValues(passengersOf(booking),p=>programShort(p.program?.name)),depositCash:receiptAmount(depositSplit.cash),depositTransfer:receiptAmount(depositSplit.transfer),creditCash:receiptAmount(creditSplit.cash),creditTransfer:receiptAmount(creditSplit.transfer),balanceCash:receiptAmount(balanceSplit.cash),balanceTransfer:receiptAmount(balanceSplit.transfer),totalCash:receiptAmount(depositSplit.cash+creditSplit.cash+balanceSplit.cash),totalTransfer:receiptAmount(depositSplit.transfer+creditSplit.transfer+balanceSplit.transfer),grandTotal:receiptAmount(total)};
     for(const key of Object.keys(totals))totals[key]+=row[key];
     return row;
@@ -544,7 +594,7 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows
     rows=active.filter(booking=>booking.travelDate>=date&&booking.travelDate<=toDate).map(booking=>({
       date:booking.travelDate,
       bookingCode:booking.bookingCode,leader:leaderName(booking),phone:booking.phone||"",email:booking.contactEmail||"",
-      pax:passengersOf(booking).length,status:booking.status,paymentMethod:booking.paymentMethod||"",
+      pax:passengersOf(booking).length,status:booking.status,paymentMethod:bookingProgramPaymentLabel(booking),
       transportationMethod:booking.transportationMethod||"",
       totalAmount:money(booking.totalAmount),depositAmount:money(booking.depositAmount),
       depositPaymentMethod:booking.depositPaymentMethod||booking.paymentMethod||"",creditAmount:money(booking.creditAmount),creditPaymentMethod:booking.creditPaymentMethod||"",
