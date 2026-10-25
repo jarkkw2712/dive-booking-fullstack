@@ -46,8 +46,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.24-08/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=asset==="css/style.css"?"20261024-04":asset==="js/app.js"?"20261024-05":asset==="js/islandAddonMaster.js"?"20261024-01":asset==="js/api.js"?"20261023-03":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":asset==="js/travelStops.js"?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.10\.25-01/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=["css/style.css","js/app.js"].includes(asset)?"20261025-01":asset==="js/islandAddonMaster.js"?"20261024-01":asset==="js/api.js"?"20261023-03":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":asset==="js/travelStops.js"?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
 });
 test("booking form uses the available desktop width without stretching other pages",()=>{
   const css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -425,14 +425,17 @@ test("reference reports and category payment defaults are wired end to end",()=>
   assert.match(bookingRoute,/upsert_booking_v23/);assert.match(bookingRoute,/list_bookings_json_v23/);assert.match(sql,/numeric|payment_method/);assert.doesNotMatch(sql,/delete from|truncate/i);
 });
 
-test("van work order prints each route with method, price, and one total on A4",()=>{
-  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
+test("van work order prints a large-font A4 landscape driver slip without vehicle or cost columns",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
   const source=app.slice(app.indexOf("function vanWorkOrderReferenceHtml"),app.indexOf("const referencePrintReportHtmlBeforeTemplateReports"));
   const context={referenceReportHeader:()=>"<header>Sabina</header>",referenceReportNotes:()=>"",referenceReportDate:value=>value,escapeHtml:value=>String(value),money:value=>Number(value||0).toFixed(2)};
-  require("node:vm").runInNewContext(`${source}\nhtml=vanWorkOrderReferenceHtml({type:'van_work_order_reference',rows:[{no:1,date:'2026-10-20',direction:'จุดแวะ 1',leader:'มาลี',phone:'081',pax:2,method:'รถตู้',from:'สนามบิน',to:'ซาบีน่า',amount:850}],summary:{jobs:1,pax:2,amount:850}});`,context);
-  assert.match(context.html,/reference-report-landscape reference-van-work-report/);
+  require("node:vm").runInNewContext(`${source}\nhtml=vanWorkOrderReferenceHtml({type:'van_work_order_reference',date:'2026-10-20',rows:[{no:1,date:'2026-10-20',direction:'จุดแวะ 1',leader:'มาลี',phone:'081',pax:2,method:'รถตู้',from:'สนามบิน',to:'ซาบีน่า',amount:850}],summary:{jobs:1,pax:2,amount:850}});`,context);
+  assert.match(context.html,/reference-report-landscape reference-van-work-report reference-van-driver-slip/);
   assert.match(context.html,/สนามบิน<\/span> <b aria-hidden="true">→<\/b> <span>ซาบีน่า/);
-  assert.match(context.html,/รถตู้/);assert.match(context.html,/850\.00/);
+  for(const label of ["วันที่","คันที่","รอบที่","ประเภทรถ","ทะเบียนรถ","ผู้โดยสาร","จาก → ไป"])assert.ok(context.html.includes(label));
+  assert.doesNotMatch(context.html,/จำนวนรถ|ค่ารถรวม|850\.00/);
+  assert.match(css,/\.reference-van-driver-slip \.reference-report-header\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,100mm\)/);
+  assert.match(css,/\.reference-van-driver-slip \.reference-van-work-table\{font-size:13pt\}/);
   assert.equal((context.html.match(/class="reference-total-row"/g)||[]).length,1);
 });
 test("songthaew report prints BKS and Lignite routes separately on landscape A4",()=>{
