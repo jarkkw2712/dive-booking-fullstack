@@ -147,6 +147,34 @@ test("equipment reports keep physical count separate from billable nights",()=>{
   assert.equal(report.equipmentTotals.total,600);
 });
 
+test("equipment sheet uses saved equipment payment, not the Booking program payment",()=>{
+  const booking={bookingCode:"CASH-ADDON",travelDate:"2026-10-26",status:"confirmed",paymentMethod:"รุ่งฤดี",passengers:[{preAddOns:[{id:"mask",name:"หน้ากาก",selected:true,qty:3,nights:2,price:30,paymentMethod:"เงินสด"}]}]};
+  const paymentMethods=[{method_id:"cash",method_name:"เงินสด",payment_type:"cash",active_flag:true},{method_id:"bank_transfer_rungruedee",method_name:"รุ่งฤดี",payment_type:"transfer",active_flag:true},{method_id:"bank_transfer_laddawan",method_name:"ลัดดาวรรณ์",payment_type:"transfer",default_equipment:true,active_flag:true}];
+  const report=buildPrintCenterReport({bookings:[booking],date:"2026-10-26",type:"equipment_summary",paymentMethods,masterAddOns:[{addon_id:"mask",addon_name:"หน้ากาก"}]});
+  assert.equal(report.rows[0].cash,180);
+  assert.equal(report.rows[0].transfer,0);
+  assert.equal(report.equipmentTotals.cash,180);
+});
+
+test("equipment sheet leaves unaudited historical payments unclassified instead of guessing transfer",()=>{
+  const booking={bookingCode:"UNKNOWN-ADDON",travelDate:"2026-06-27",status:"confirmed",paymentMethod:"ลัดดาวรรณ์",passengers:[{preAddOns:[{id:"fin",name:"Fin",selected:true,qty:1,nights:1,price:150,paymentMethod:""}]}]};
+  const report=buildPrintCenterReport({bookings:[booking],date:"2026-06-27",type:"equipment_summary",paymentMethods:[{method_id:"bank_transfer_laddawan",method_name:"ลัดดาวรรณ์",payment_type:"transfer",default_equipment:true,active_flag:true}]});
+  assert.equal(report.equipmentTotals.cash,0);
+  assert.equal(report.equipmentTotals.transfer,0);
+  assert.equal(report.equipmentTotals.unknown,150);
+  assert.equal(report.equipmentTotals.total,150);
+});
+
+test("equipment payment migration preserves submitted methods and restores only audited exact matches",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20261026141505_persist_equipment_payment_method.sql"),"utf8");
+  const route=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8");
+  for(const fragment of ["upsert_booking_v29","upsert_booking_v26(p_booking)","upsert_booking_v27(p_booking)","upsert_booking_v28(p_booking)","payment_method = btrim(v_add->>'paymentMethod')","action = 'UPSERT_BOOKING'","s.matches = 1","EQUIPMENT_PAYMENT_METHOD_RESTORED"] )assert.ok(sql.includes(fragment));
+  assert.match(sql,/revoke all on function public\.upsert_booking_v29\(jsonb\) from public, anon, authenticated/);
+  assert.match(route,/supabaseAdmin\.rpc\("upsert_booking_v29"/);
+  assert.match(route,/if\(hasSelectedEquipment\(booking\)\)return\{error:/);
+  assert.doesNotMatch(sql,/\bdelete\s+from\b|\btruncate\b/i);
+});
+
 test("daily equipment sheet has a column for every master item and combines all cash or transfer accounts",()=>{
   const date="2026-10-17",booking=(code,leader,people)=>({bookingCode:code,travelDate:date,status:"confirmed",leaderFirstName:leader,passengers:people});
   const bookings=[
@@ -161,9 +189,9 @@ test("daily equipment sheet has a column for every master item and combines all 
   assert.equal(report.rows.length,2);assert.equal(report.rows[0].leader,"สมชาย");assert.equal(report.rows[0].pax,2);assert.equal(report.rows[0].program,"3D2N");
   assert.equal(report.rows[0].equipment.fin,2);assert.equal(report.rows[0].equipment.mask,1);assert.equal(report.rows[0].equipment.unused,0);
   assert.equal(report.rows[0].cash,600);assert.equal(report.rows[0].transfer,50);assert.equal(report.rows[0].total,650);
-  assert.equal(report.rows[1].program,"ตั๋วเรือ");assert.equal(report.rows[1].cash,30);assert.equal(report.rows[1].transfer,275);
+  assert.equal(report.rows[1].program,"ตั๋วเรือ");assert.equal(report.rows[1].cash,30);assert.equal(report.rows[1].transfer,75);assert.equal(report.rows[1].unknown,200);
   assert.equal(report.equipmentTotals.equipment.fin,3);assert.equal(report.equipmentTotals.pax,3);
-  assert.equal(report.equipmentTotals.cash,630);assert.equal(report.equipmentTotals.transfer,325);assert.equal(report.equipmentTotals.total,955);
+  assert.equal(report.equipmentTotals.cash,630);assert.equal(report.equipmentTotals.transfer,125);assert.equal(report.equipmentTotals.unknown,200);assert.equal(report.equipmentTotals.total,955);
 });
 
 test("equipment nights migration is idempotent and the API prevents silent multi-night loss",()=>{

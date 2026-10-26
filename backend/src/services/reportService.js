@@ -548,24 +548,25 @@ function dailyEquipmentSummary(bookings,date,masterAddOns=[],paymentMethods=[]){
     if(!seen.has(code))historical.set(code,{code,name:addon.name||code});
   }
   equipmentColumns.push(...[...historical.values()].sort((a,b)=>a.name.localeCompare(b.name,"th")));
-  const activeMethods=paymentMethods.filter(method=>method.active_flag!==false),equipmentDefault=defaultPayment(activeMethods,"equipment");
   const rows=daily.map((booking,index)=>{
     const people=passengersOf(booking),equipment=Object.fromEntries(equipmentColumns.map(item=>[item.code,0]));
-    let cashCents=0,transferCents=0;
+    let cashCents=0,transferCents=0,unknownCents=0;
     for(const person of people)for(const addon of person.preAddOns||[]){
       if(addon.selected===false)continue;
       const code=addon.id||addon.name||"other";
       equipment[code]=(equipment[code]||0)+money(addon.qty||1);
       const cents=Math.round(equipmentBillableUnits(addon)*money(addon.price)*100);
-      const method=addon.paymentMethod||equipmentDefault||booking.paymentMethod||"";
-      if(paymentKind(method,paymentMethods)==="cash")cashCents+=cents;else transferCents+=cents;
+      const method=String(addon.paymentMethod||"").trim();
+      if(!method)unknownCents+=cents;
+      else if(paymentKind(method,paymentMethods)==="cash")cashCents+=cents;
+      else transferCents+=cents;
     }
     return{no:index+1,bookingCode:booking.bookingCode||"",leader:leaderName(booking),pax:people.length,
       program:uniqueValues(people,person=>programShort(person.program?.name)),equipment,
-      cash:cashCents/100,transfer:transferCents/100,total:(cashCents+transferCents)/100};
+      cash:cashCents/100,transfer:transferCents/100,unknown:unknownCents/100,total:(cashCents+transferCents+unknownCents)/100};
   });
   const equipmentTotals={equipment:Object.fromEntries(equipmentColumns.map(item=>[item.code,rows.reduce((sum,row)=>sum+money(row.equipment[item.code]),0)])),
-    cash:sumMoney(rows,row=>row.cash),transfer:sumMoney(rows,row=>row.transfer),total:sumMoney(rows,row=>row.total),
+    cash:sumMoney(rows,row=>row.cash),transfer:sumMoney(rows,row=>row.transfer),unknown:sumMoney(rows,row=>row.unknown),total:sumMoney(rows,row=>row.total),
     pax:rows.reduce((sum,row)=>sum+row.pax,0)};
   return{date,type:"equipment_summary",title:"ใบรายงานอุปกรณ์",purpose:"จำนวนอุปกรณ์ที่เบิกและรายได้อุปกรณ์ตามวันเดินทางไป",
     equipmentColumns,rows,equipmentTotals,summary:{bookings:rows.length,pax:equipmentTotals.pax}};

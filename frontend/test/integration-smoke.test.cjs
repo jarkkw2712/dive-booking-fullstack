@@ -46,8 +46,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.25-02/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=["css/style.css","js/app.js"].includes(asset)?"20261025-02":asset==="js/islandAddonMaster.js"?"20261024-01":asset==="js/api.js"?"20261023-03":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":asset==="js/travelStops.js"?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.10\.26-01/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=["css/style.css","js/app.js"].includes(asset)?"20261026-01":asset==="js/islandAddonMaster.js"?"20261024-01":asset==="js/api.js"?"20261023-03":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":asset==="js/travelStops.js"?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
 });
 test("booking form uses the available desktop width without stretching other pages",()=>{
   const css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -212,9 +212,9 @@ test("equipment sheet prints booking rows and one column per master item on A4",
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/reports.js"),"utf8");
   assert.match(html,/value="equipment_summary"[^>]*>ใบรายงานอุปกรณ์ \(รายวัน\)/);
   assert.match(app,/function equipmentReportHtml\(report\)/);
-  for(const text of ["ชื่อลูกค้า (หัวหน้าทริป)","จำนวนคน","เงินสด","เงินโอน","รวมเงิน"])assert.match(app,new RegExp(text.replace(/[()]/g,"\\$&")));
+  for(const text of ["ชื่อลูกค้า (หัวหน้าทริป)","จำนวนคน","เงินสด","เงินโอน","ยังไม่ระบุ","รวมเงิน"])assert.match(app,new RegExp(text.replace(/[()]/g,"\\$&")));
   assert.match(app,/equipment\.map\(item=>`<th>\$\{escapeHtml\(item\.name\)\}/);
-  assert.match(app,/index\+=8/);
+  assert.match(app,/index\+=7/);
   assert.match(css,/\.equipment-report-page\{page:report/);
   assert.match(css,/\.equipment-report-table thead\{display:table-header-group/);
   assert.match(route,/"equipment_summary"\]\.includes\(type\)\?await supabaseAdmin\.from\("master_addons"\)/);
@@ -432,8 +432,10 @@ test("van work order prints a large-font A4 landscape driver slip without vehicl
   require("node:vm").runInNewContext(`${source}\nhtml=vanWorkOrderReferenceHtml({type:'van_work_order_reference',date:'2026-10-20',rows:[{no:1,date:'2026-10-20',direction:'จุดแวะ 1',leader:'มาลี',phone:'081',pax:2,method:'รถตู้',from:'สนามบิน',to:'ซาบีน่า',amount:850}],summary:{jobs:1,pax:2,amount:850}});`,context);
   assert.match(context.html,/reference-report-landscape reference-van-work-report reference-van-driver-slip/);
   assert.match(context.html,/สนามบิน<\/span> <b aria-hidden="true">→<\/b> <span>ซาบีน่า/);
-  for(const label of ["วันที่","คันที่","รอบที่","ประเภทรถ","ทะเบียนรถ","ผู้โดยสาร","จาก → ไป"])assert.ok(context.html.includes(label));
-  assert.doesNotMatch(context.html,/จำนวนรถ|ค่ารถรวม|850\.00/);
+  for(const label of ["วันที่","ชื่อคนขับ","คันที่","รอบที่","ประเภทรถ","ทะเบียนรถ","ผู้โดยสาร","จาก → ไป"])assert.ok(context.html.includes(label));
+  assert.doesNotMatch(context.html,/จำนวนรถ|ค่ารถรวม|วิธีเดินทาง|850\.00/);
+  assert.match(context.html,/ชื่อคนขับ<\/b><span class="reference-van-handwrite-dots">\.{10,}/);
+  assert.equal((context.html.match(/<thead><tr>(.*?)<\/tr><\/thead>/)||[])[1]?.match(/<th>/g)?.length,8);
   assert.match(css,/\.reference-van-driver-slip \.reference-report-header\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,100mm\)/);
   assert.match(css,/\.reference-van-driver-slip \.reference-van-work-table\{font-size:13pt\}/);
   assert.equal((context.html.match(/class="reference-total-row"/g)||[]).length,1);
