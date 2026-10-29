@@ -30,13 +30,13 @@ function removePassengerTravelStop(index,stopIndex){const stops=passengers[index
 
 function copyLeaderTravelValues(person,leader){
   for(const field of travelDetailFields)person[field]=leader[field]??(field==="passengerTravelDate"?val("travelDate"):field==="passengerReturnDate"?val("returnDate"):"");
-  person.transportationAmount=bookingIsVanMethod(leader.transportationMethod)?0:Number(leader.transportationAmount||0);
-  person.transportationQuantity=bookingIsVanMethod(leader.transportationMethod)?1:travelLegQuantity(leader.transportationQuantity);
-  person.returnTransportationAmount=bookingIsVanMethod(leader.returnTransportationMethod)?0:Number(leader.returnTransportationAmount||0);
-  person.returnTransportationQuantity=bookingIsVanMethod(leader.returnTransportationMethod)?1:travelLegQuantity(leader.returnTransportationQuantity);
+  person.transportationAmount=Number(leader.transportationAmount||0);
+  person.transportationQuantity=travelLegQuantity(leader.transportationQuantity);
+  person.returnTransportationAmount=Number(leader.returnTransportationAmount||0);
+  person.returnTransportationQuantity=travelLegQuantity(leader.returnTransportationQuantity);
   person.outboundTo=leader.outboundTo||"";
   person.returnTo=leader.returnTo||"";
-  person.extraTransportStops=(leader.extraTransportStops||[]).map(stop=>({...stop,amount:bookingIsVanMethod(stop.method)?0:Number(stop.amount||0),quantity:bookingIsVanMethod(stop.method)?1:travelLegQuantity(stop.quantity)}));
+  person.extraTransportStops=(leader.extraTransportStops||[]).map(stop=>({...stop,amount:Number(stop.amount||0),quantity:travelLegQuantity(stop.quantity)}));
 }
 
 if(typeof window!=="undefined"){
@@ -54,7 +54,7 @@ if(typeof window!=="undefined"){
   };
 
   copyLeaderTravelDetails=function(index){const leader=passengers[0],person=passengers[index];if(!leader||!person||index===0)return;copyLeaderTravelValues(person,leader);renderPassengers();refreshSummary()};
-  applyLeaderTravelDetailsToAll=function(){const leader=passengers[0];if(!leader||passengers.length<2)return alert("ยังไม่มีลูกทัวร์ให้คัดลอก");for(let index=1;index<passengers.length;index++)copyLeaderTravelValues(passengers[index],leader);renderPassengers();refreshSummary();alert(`คัดลอกรายละเอียดการเดินทางให้ลูกทัวร์ ${passengers.length-1} คนแล้ว (ค่ารถตู้คิดที่หัวหน้าทริปครั้งเดียว)`)};
+  applyLeaderTravelDetailsToAll=function(){const leader=passengers[0];if(!leader||passengers.length<2)return alert("ยังไม่มีลูกทัวร์ให้คัดลอก");for(let index=1;index<passengers.length;index++)copyLeaderTravelValues(passengers[index],leader);renderPassengers();refreshSummary();alert(`คัดลอกรายละเอียดการเดินทางและราคาให้ลูกทัวร์ ${passengers.length-1} คนแล้ว หากไม่คิดเงินคนใดให้แก้ราคาของคนนั้นเป็น 0`)};
 
   const personTotalBeforeTravelStops=personTotal;
   personTotal=function(person){return personTotalBeforeTravelStops(person)+travelStopTotal(person)};

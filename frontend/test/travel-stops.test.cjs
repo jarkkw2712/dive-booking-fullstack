@@ -86,14 +86,14 @@ test("each route leg displays quantity times unit price while historical legs re
   assert.equal(run("travelLegTotal(400,2)"),800);
 });
 
-test("apply travel to guests copies van routes without charging the same vehicles per passenger",()=>{
+test("apply travel to guests copies every entered van price and vehicle count",()=>{
   const context={travelDetailFields:["transportationMethod","transportationAmount","transportationQuantity","returnTransportationMethod","returnTransportationAmount","returnTransportationQuantity"],val:()=>"",bookingIsVanMethod:value=>value==="รถตู้"};
   vm.runInNewContext(source,context);
   const leader={transportationMethod:"รถตู้",transportationAmount:400,transportationQuantity:2,returnTransportationMethod:"รถตู้",returnTransportationAmount:500,returnTransportationQuantity:2,outboundTo:"ซาบีน่า",extraTransportStops:[{method:"รถตู้",amount:250,quantity:2,from:"ท่าเรือ",to:"โรงแรม"}]};
   const guest={};context.copyLeaderTravelValues(guest,leader);
   assert.equal(guest.transportationMethod,"รถตู้");assert.equal(guest.outboundTo,"ซาบีน่า");
-  assert.equal(guest.transportationAmount,0);assert.equal(guest.transportationQuantity,1);
-  assert.equal(guest.returnTransportationAmount,0);assert.equal(guest.extraTransportStops[0].amount,0);
+  assert.equal(guest.transportationAmount,400);assert.equal(guest.transportationQuantity,2);
+  assert.equal(guest.returnTransportationAmount,500);assert.equal(guest.returnTransportationQuantity,2);assert.equal(guest.extraTransportStops[0].amount,250);assert.equal(guest.extraTransportStops[0].quantity,2);
   assert.equal(leader.transportationAmount,400);assert.equal(leader.extraTransportStops[0].amount,250);
 });
 

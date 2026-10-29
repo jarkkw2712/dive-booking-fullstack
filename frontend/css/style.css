@@ -492,3 +492,5 @@ textarea{min-height:80px}
 .equipment-col-no{width:4%}.equipment-col-leader{width:20%}.equipment-col-pax{width:6%}.equipment-col-program{width:11%}.equipment-col-money{width:8%}
 @media(max-width:1000px){.equipment-report-page{width:100%;overflow-x:auto}.equipment-report-table{min-width:950px}}
 @media print{.equipment-report-page{width:auto;padding:0;overflow:visible;break-after:page;page-break-after:always}.equipment-report-page:last-child{break-after:auto;page-break-after:auto}.equipment-report-table{min-width:0;font-size:9px}.equipment-report-table thead{display:table-header-group}.equipment-report-table tr{break-inside:avoid;page-break-inside:avoid}.equipment-report-note{font-size:9px}}
+.deployment-notice{position:fixed;z-index:10000;top:18px;left:50%;transform:translateX(-50%);width:min(680px,calc(100vw - 32px));padding:16px 20px;border:2px solid #155e75;border-radius:12px;background:#e8f8fc;color:#103d4e;box-shadow:0 10px 30px rgba(0,0,0,.2);font-size:16px;font-weight:700;line-height:1.5;text-align:center}
+.deployment-notice.hidden{display:none}
