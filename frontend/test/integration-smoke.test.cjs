@@ -26,7 +26,19 @@ test("large groups support apply-all and CSV preview import",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
   for(const id of ["csvImportModal","csvPassengerFile","csvImportSummary","csvImportPreview","csvImportMode","confirmCsvImportBtn"])assert.match(html,new RegExp(`id=["']${id}["']`));
   for(const name of ["copyLeaderPackageToAll","previewPassengerCsv","confirmPassengerCsvImport","downloadPassengerCsvTemplate"])assert.match(app,new RegExp(`function ${name}`));
-  assert.match(app,/function applyLeaderPackageToPassenger/);assert.match(app,/person\.program\.price=Number\(leader\.program\?\.price/);assert.doesNotMatch(app,/person\.preAddOns=structuredClone\(leader\.preAddOns/);assert.match(app,/Apply Program\/ราคาให้ผู้โดยสารทุกคน/);assert.match(app,/แทนที่รายชื่อเดิม|csvImportMode/);
+  assert.match(app,/function applyLeaderPackageToPassenger/);assert.match(app,/person\.program\.price=Number\(leader\.program\?\.price/);assert.doesNotMatch(app,/person\.preAddOns=structuredClone\(leader\.preAddOns/);assert.match(app,/Apply Program\/ราคา\/การเดินทางให้ผู้โดยสารทุกคน/);assert.match(app,/แทนที่รายชื่อเดิม|csvImportMode/);
+});
+test("Program copy and Apply all also copy leader travel without duplicating van charges",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),travel=fs.readFileSync(path.join(root,"js","travelStops.js"),"utf8");
+  const programCode=app.slice(app.indexOf("function applyLeaderPackageToPassenger"),app.indexOf("function addLeaderApplyAllButton"));
+  const travelCode=travel.slice(travel.indexOf("function copyLeaderTravelValues"),travel.indexOf("if(typeof window"));
+  const leader={firstName:"หัวหน้า",program:{programId:"tour",price:1500,qty:1},transportationMethod:"รถตู้",transportationAmount:800,transportationQuantity:2,passengerTravelDate:"2026-11-03",outboundDestination:"สนามบิน",outboundTo:"ซาบีน่า",returnTransportationMethod:"รถตู้",returnTransportationAmount:900,returnTransportationQuantity:2,passengerReturnDate:"2026-11-05",returnDestination:"ซาบีน่า",returnTo:"สนามบิน",extraTransportStops:[{date:"2026-11-04",from:"ซาบีน่า",to:"ท่าเรือ",method:"รถตู้",amount:300,quantity:1}]};
+  const guests=[{firstName:"แขกหนึ่ง",program:{programId:"old",price:1700,qty:1},preAddOns:[{id:"fin"}]},{firstName:"แขกสอง",program:{programId:"old",price:1700,qty:1},preAddOns:[]}];
+  const context={passengers:[leader,...guests],travelDetailFields:["transportationMethod","transportationAmount","transportationQuantity","passengerTravelDate","outboundDestination","returnTransportationMethod","returnTransportationAmount","returnTransportationQuantity","passengerReturnDate","returnDestination"],bookingIsVanMethod:value=>value==="รถตู้",travelLegQuantity:value=>Number(value||1),val:()=>"",structuredClone,renderPassengers:()=>{},refreshSummary:()=>{},confirm:()=>true,alert:()=>{}};
+  vm.runInNewContext(`${travelCode}\n${programCode}\ncopyLeaderPackageToAll()`,context);
+  for(const guest of guests){assert.equal(guest.program.price,1500);assert.equal(guest.passengerReturnDate,"2026-11-05");assert.equal(guest.outboundDestination,"สนามบิน");assert.equal(guest.returnTo,"สนามบิน");assert.equal(guest.transportationAmount,0);assert.equal(guest.returnTransportationAmount,0);assert.equal(guest.extraTransportStops[0].amount,0);assert.equal(guest.firstName.startsWith("แขก"),true)}
+  assert.deepEqual(guests[0].preAddOns,[{id:"fin"}]);
+  guests[0].passengerReturnDate="2026-12-01";vm.runInNewContext("copyLeaderPackage(1)",context);assert.equal(guests[0].passengerReturnDate,"2026-11-05");
 });
 test("Excel export uses immutable creator User and a separate Agent column",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
@@ -46,8 +58,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.26-01/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=["css/style.css","js/app.js"].includes(asset)?"20261026-01":asset==="js/islandAddonMaster.js"?"20261024-01":asset==="js/api.js"?"20261023-03":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":asset==="js/travelStops.js"?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.10\.29-01/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js"]){const version=asset==="js/app.js"?"20261029-01":asset==="css/style.css"?"20261026-01":asset==="js/islandAddonMaster.js"?"20261024-01":asset==="js/api.js"?"20261023-03":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":asset==="js/travelStops.js"?"20261020-01":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
 });
 test("booking form uses the available desktop width without stretching other pages",()=>{
   const css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
