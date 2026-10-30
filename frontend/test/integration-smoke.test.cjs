@@ -58,8 +58,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.29-02/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js","js/deploymentGuard.js"]){const version=["css/style.css","js/app.js","js/travelStops.js","js/deploymentGuard.js"].includes(asset)?"20261029-02":asset==="js/islandAddonMaster.js"?"20261024-01":asset==="js/api.js"?"20261023-03":["js/bookingOriginal.js","js/financial.js"].includes(asset)?"20261021-03":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.10\.30-02/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js","js/deploymentGuard.js"]){const version=["css/style.css","js/app.js","js/islandAddonMaster.js","js/financial.js"].includes(asset)?"20261030-02":["js/travelStops.js","js/deploymentGuard.js"].includes(asset)?"20261029-02":asset==="js/api.js"?"20261023-03":asset==="js/bookingOriginal.js"?"20261021-03":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
 });
 test("booking form uses the available desktop width without stretching other pages",()=>{
   const css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
@@ -318,7 +318,7 @@ test("Island Add-on uses dedicated master data and prints an isolated dive recei
   assert.match(feature,/master\.islandAddOns/);assert.match(feature,/DIVE_RECEIPT/);assert.match(feature,/diveOnly/);assert.match(feature,/show_dive_receipt/);assert.match(feature,/รายการจาก Master Data/);assert.match(feature,/\?islandDocumentVisibility\(item\):addonConfigurationBeforeIslandMaster\(item\)/);
   assert.match(feature,/function islandAddonRowsForEditor/);assert.match(feature,/function toggleIslandAddonSelection/);assert.match(feature,/ติ๊กรายการที่ลูกค้าซื้อ/);assert.doesNotMatch(feature,/>\+ เพิ่ม Island Add-on จาก Master Data/);
   const bookingEditor=feature.slice(feature.indexOf("islandAddonEditor=function"),feature.indexOf("const groupedItemsBeforeDiveReceipt"));assert.doesNotMatch(bookingEditor,/document-visibility-options/);assert.match(bookingEditor,/type="checkbox"/);
-  assert.match(app,/islandAddOns\|\|\[\]\)rows\.push\(\{name:item\.name\|\|"Island Add-on"[^}]*documents:visibilityLabels/);
+  assert.match(app,/islandAddOns\|\|\[\]\)rows\.push\(\{name:`\$\{item\.name\|\|"Island Add-on"\}/);
   assert.match(app,/\(p\.islandAddOns\|\|\[\]\)\.reduce/);assert.match(financial,/sourceType:"island_addon"/);assert.match(reportService,/p\.islandAddOns\|\|\[\]/);
   assert.match(masterRoute,/master_island_addons/);assert.match(sql,/create table if not exists master_island_addons/);assert.match(sql,/printDiveReceipt/);assert.match(sql,/upsert_booking_v19/);assert.match(sql,/list_bookings_json_v19/);assert.match(bookingRoute,/upsert_booking_v23/);
   assert.match(sql,/numeric\(14,2\)/);assert.match(sql,/update booking_addons set show_dive_receipt=true where addon_source='island'/);assert.doesNotMatch(sql,/delete from/i);
@@ -639,10 +639,10 @@ test("money receipt uses primary, secondary and item accounts for new Bookings",
 });
 
 test("island order prints each selected island account without borrowing the main Booking account",()=>{
-  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),from=app.indexOf("const renderIslandPurchaseOrderBeforeAccountFix"),to=app.indexOf("const renderReceiptBeforeIslandPurchaseOrder"),context={renderIslandPurchaseOrder:()=>'<table><tbody>old</tbody></table><span>รวมยอดสั่งซื้อ</span><b>old</b>',documentProfiles:{ISLAND_PURCHASE_ORDER:{}},addonVisibleOnDocument:item=>item.source==="island"&&item.name!=="hidden",bookingDefaultPaymentMethod:()=>"Island Default",escapeHtml:value=>String(value),money:value=>String(value),result:null};
-  const booking={paymentMethod:"Main",passengers:[{islandAddOns:[{name:"Dive",qty:1,price:100,paymentMethod:"Island A"},{name:"Dive",qty:2,price:100,paymentMethod:"Island B"},{name:"hidden",qty:1,price:500,paymentMethod:"Island C"}]}]};
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),from=app.indexOf("const renderIslandPurchaseOrderBeforeAccountFix"),to=app.indexOf("const renderReceiptBeforeIslandPurchaseOrder"),context={renderIslandPurchaseOrder:()=>'<table><tbody>old</tbody></table><span>รวมยอดสั่งซื้อ</span><b>old</b>',documentProfiles:{ISLAND_PURCHASE_ORDER:{}},addonVisibleOnDocument:item=>item.source==="island"&&item.name!=="hidden",bookingDefaultPaymentMethod:()=>"Island Default",escapeHtml:value=>String(value),money:value=>String(value),islandAddonDays:item=>Number(item.days??1),islandAddonBillableQty:item=>Number(item.days??1)*Number(item.qty??1),result:null};
+  const booking={paymentMethod:"Main",passengers:[{islandAddOns:[{name:"Dive",days:3,qty:1,price:100,paymentMethod:"Island A"},{name:"Dive",qty:2,price:100,paymentMethod:"Island B"},{name:"hidden",qty:1,price:500,paymentMethod:"Island C"}]}]};
   context.booking=booking;vm.runInNewContext(`${app.slice(from,to)};result=renderIslandPurchaseOrder(booking)`,context);
-  assert.match(context.result,/Island A/);assert.match(context.result,/Island B/);assert.doesNotMatch(context.result,/Island C|Main|hidden/);assert.match(context.result,/รวมยอดสั่งซื้อ<\/span><b>300 บาท/);
+  assert.match(context.result,/Island A/);assert.match(context.result,/Island B/);assert.doesNotMatch(context.result,/Island C|Main|hidden/);assert.match(context.result,/รวมยอดสั่งซื้อ<\/span><b>500 บาท/);
 });
 
 test("Register never prints a deposit larger than the items visible on that document",()=>{

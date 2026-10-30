@@ -10,10 +10,12 @@ const normalizePhone = value => String(value || "").replace(/\D/g, "").replace(/
 const missingBookingRpc=error=>["PGRST202","42883"].includes(error?.code);
 async function bookingRpc(names,args){let result;for(const name of names){result=await supabaseAdmin.rpc(name,args);if(!missingBookingRpc(result.error))return result}return result}
 const hasMultiNightEquipment=booking=>(booking.passengers||[]).some(person=>(person.preAddOns||[]).some(item=>item.selected!==false&&Number(item.nights??1)!==1));
+const hasMultiDayIslandAddon=booking=>(booking.passengers||[]).some(person=>(person.islandAddOns||[]).some(item=>Number(item.days??1)!==1));
 const hasSelectedEquipment=booking=>(booking.passengers||[]).some(person=>(person.preAddOns||[]).some(item=>item.selected===true));
 const hasNewTravelDetails=booking=>(booking.passengers||[]).some(person=>String(person.outboundTo||"").trim()||String(person.returnTo||"").trim()||(person.extraTransportStops||[]).length);
 const hasMultipleTransportVehicles=booking=>(booking.passengers||[]).some(person=>Number(person.transportationQuantity??1)!==1||Number(person.returnTransportationQuantity??1)!==1||(person.extraTransportStops||[]).some(stop=>Number(stop.quantity??1)!==1));
 function equipmentInputError(booking){for(const person of booking.passengers||[]){const signatures=new Map();for(const item of person.preAddOns||[]){if(item.selected===false)continue;const nights=Number(item.nights??1),qty=Number(item.qty??1);if(!Number.isInteger(nights)||nights<1||nights>365)return"Equipment nights must be an integer from 1 to 365";if(!Number.isInteger(qty)||qty<1)return"Equipment quantity must be a positive integer";const key=[item.id,qty,Number(item.price||0)].join("|");if(signatures.has(key)&&signatures.get(key)!==nights)return"อุปกรณ์รายการเดียวกันที่จำนวนและราคาเท่ากัน แต่จำนวนคืนต่างกัน ไม่สามารถบันทึกแยกแถวได้";signatures.set(key,nights)}}return""}
+function islandAddonInputError(booking){for(const person of booking.passengers||[])for(const item of person.islandAddOns||[]){const days=Number(item.days??1),qty=Number(item.qty??1),price=Number(item.price??0);if(!Number.isInteger(days)||days<1||days>365)return"จำนวนวัน Island Add-on ต้องเป็นจำนวนเต็ม 1–365 วัน";if(!Number.isInteger(qty)||qty<1)return"จำนวน Island Add-on ต้องเป็นจำนวนเต็มมากกว่า 0";if(!Number.isFinite(price)||price<0||price>100000000||Math.abs(price*100-Math.round(price*100))>0.000001)return"ราคา Island Add-on ต้องไม่ติดลบและมีทศนิยมไม่เกิน 2 ตำแหน่ง"}return""}
 function accommodationInputError(booking){
   if(booking.accommodations===undefined)return"";
   if(!Array.isArray(booking.accommodations))return"รายการที่พักต้องเป็นรายการแบบ Array";
@@ -31,6 +33,9 @@ function accommodationInputError(booking){
 }
 function travelStopInputError(booking){const validQuantity=value=>Number.isInteger(Number(value??1))&&Number(value??1)>=1&&Number(value??1)<=30;for(const person of booking.passengers||[]){if(!validQuantity(person.transportationQuantity)||!validQuantity(person.returnTransportationQuantity))return"จำนวนรถต้องเป็นจำนวนเต็ม 1–30 คัน";const stops=person.extraTransportStops??[];if(!Array.isArray(stops)||stops.length>30)return"จุดรับส่งเพิ่มเติมต้องเป็นรายการไม่เกิน 30 จุดต่อคน";for(const stop of stops){if(!stop||typeof stop!=="object"||Array.isArray(stop))return"รูปแบบจุดรับส่งเพิ่มเติมไม่ถูกต้อง";if(!validQuantity(stop.quantity))return"จำนวนรถของจุดแวะต้องเป็นจำนวนเต็ม 1–30 คัน";const amount=Number(stop.amount??0);if(!Number.isFinite(amount)||amount<0||amount>100000000||Math.abs(amount*100-Math.round(amount*100))>0.000001)return"ราคาจุดรับส่งเพิ่มเติมต้องเป็นตัวเลขไม่ติดลบและมีทศนิยมไม่เกิน 2 ตำแหน่ง";if(stop.date&&!/^\d{4}-\d{2}-\d{2}$/.test(String(stop.date)))return"วันที่จุดรับส่งเพิ่มเติมไม่ถูกต้อง";if((stop.method||amount)&&!stop.date)return"กรุณาระบุวันที่ของจุดรับส่งเพิ่มเติม";if(amount&&!stop.method)return"กรุณาเลือกวิธีการเดินทางของจุดรับส่งที่มีราคา";for(const field of ["from","to","method","paymentMethod"])if(String(stop[field]??"").length>250)return"รายละเอียดจุดรับส่งเพิ่มเติมยาวเกินไป"}}return""}
 async function saveBookingRpc(booking){
+  const withIslandDays=await supabaseAdmin.rpc("upsert_booking_v30",{p_booking:booking});
+  if(!missingBookingRpc(withIslandDays.error))return withIslandDays;
+  if(hasMultiDayIslandAddon(booking))return{error:{message:"กรุณารัน migration 20261030_050_island_addon_days.sql ก่อนบันทึก Island Add-on หลายวัน"},migrationRequired:true};
   const persisted=await supabaseAdmin.rpc("upsert_booking_v29",{p_booking:booking});
   if(!missingBookingRpc(persisted.error))return persisted;
   if(hasSelectedEquipment(booking))return{error:{message:"กรุณารัน migration 20261026141505_persist_equipment_payment_method.sql ก่อนบันทึก Booking ที่มีอุปกรณ์ เพื่อไม่ให้ช่องทางชำระเงินสูญหาย"},migrationRequired:true};
@@ -57,7 +62,7 @@ async function listBookingsCached(){
   if(bookingCache.data&&Date.now()<bookingCache.expiresAt)return bookingCache.data;
   if(bookingCache.promise)return bookingCache.promise;
   const version=bookingCache.version;
-  const request=(async()=>{const {data,error}=await bookingRpc(["list_bookings_json_v26","list_bookings_json_v25","list_bookings_json_v24","list_bookings_json_v23","list_bookings_json_v22"]);if(error)throw error;const rows=data||[];if(version===bookingCache.version){bookingCache.data=rows;bookingCache.expiresAt=Date.now()+30_000}return rows})();
+  const request=(async()=>{const {data,error}=await bookingRpc(["list_bookings_json_v27","list_bookings_json_v26","list_bookings_json_v25","list_bookings_json_v24","list_bookings_json_v23","list_bookings_json_v22"]);if(error)throw error;const rows=data||[];if(version===bookingCache.version){bookingCache.data=rows;bookingCache.expiresAt=Date.now()+30_000}return rows})();
   bookingCache.promise=request;
   try{return await request}finally{if(bookingCache.promise===request)bookingCache.promise=null}
 }
@@ -65,7 +70,7 @@ async function listBookingsCached(){
 router.get("/",async(req,res)=>{try{res.json(bankReferencesForUser(bookingForUser(await listBookingsCached(),req.user),req.user))}catch(error){res.status(500).json({error:error.message})}});
 router.post("/check-duplicate",async(req,res)=>{
   const booking=req.body||{};
-  const {data,error}=await bookingRpc(["list_bookings_json_v26","list_bookings_json_v25","list_bookings_json_v24","list_bookings_json_v23","list_bookings_json_v22"]);
+  const {data,error}=await bookingRpc(["list_bookings_json_v27","list_bookings_json_v26","list_bookings_json_v25","list_bookings_json_v24","list_bookings_json_v23","list_bookings_json_v22"]);
   if(error)return res.status(500).json({error:error.message});
   const candidates=(data||[]).filter(row=>(!booking.travelDate||row.travelDate===booking.travelDate)&&row.bookingCode!==booking.bookingCode&&row.status!=="cancelled");
   const names=new Set((booking.passengers||[]).map(person=>normalizeName(`${person.title||""}${person.firstName||""}${person.lastName||""}`)).filter(Boolean));
@@ -78,8 +83,8 @@ router.post("/check-duplicate",async(req,res)=>{
   }
   res.json({duplicates:[...found.values()]});
 });
-router.post("/",requirePermission("createBooking"),async(req,res)=>{const inputError=equipmentInputError(req.body||{})||accommodationInputError(req.body||{})||travelStopInputError(req.body||{});if(inputError)return res.status(400).json({error:inputError});const {data,error,migrationRequired}=await saveBookingRpc({...req.body,createdBy:req.user.username});if(error)return res.status(migrationRequired?503:500).json({error:error.message});invalidateBookingCache();res.json(data)});
-router.put("/:code",requirePermission("editBooking"),async(req,res)=>{const inputError=equipmentInputError(req.body||{})||accommodationInputError(req.body||{})||travelStopInputError(req.body||{});if(inputError)return res.status(400).json({error:inputError});const {data,error,migrationRequired}=await saveBookingRpc({...req.body,bookingCode:req.params.code,createdBy:req.user.username});if(error)return res.status(migrationRequired?503:500).json({error:error.message});invalidateBookingCache();res.json(data)});
+router.post("/",requirePermission("createBooking"),async(req,res)=>{const inputError=equipmentInputError(req.body||{})||islandAddonInputError(req.body||{})||accommodationInputError(req.body||{})||travelStopInputError(req.body||{});if(inputError)return res.status(400).json({error:inputError});const {data,error,migrationRequired}=await saveBookingRpc({...req.body,createdBy:req.user.username});if(error)return res.status(migrationRequired?503:500).json({error:error.message});invalidateBookingCache();res.json(data)});
+router.put("/:code",requirePermission("editBooking"),async(req,res)=>{const inputError=equipmentInputError(req.body||{})||islandAddonInputError(req.body||{})||accommodationInputError(req.body||{})||travelStopInputError(req.body||{});if(inputError)return res.status(400).json({error:inputError});const {data,error,migrationRequired}=await saveBookingRpc({...req.body,bookingCode:req.params.code,createdBy:req.user.username});if(error)return res.status(migrationRequired?503:500).json({error:error.message});invalidateBookingCache();res.json(data)});
 router.post("/:code/cancel",requirePermission("cancelBooking"),async(req,res)=>{if(!String(req.body.reason||"").trim())return res.status(400).json({error:"Cancellation reason is required"});const {data,error}=await supabaseAdmin.rpc("cancel_booking_by_code",{p_booking_code:req.params.code,p_reason:req.body.reason});if(error)return res.status(500).json({error:error.message});invalidateBookingCache();res.json(data)});
 router.get("/:code/timeline",requirePermission("viewAudit"),async(req,res)=>{const {data,error}=await supabaseAdmin.from("audit_logs").select("*").eq("booking_code",req.params.code).order("changed_at",{ascending:true});if(error)return res.status(500).json({error:error.message});res.json(data||[])});
 export default router;

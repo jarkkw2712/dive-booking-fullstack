@@ -225,6 +225,15 @@ test("receipt summary totals only items enabled for money receipts in current ma
   assert.equal(capped.rows[0].balanceTransfer,0);
 });
 
+test("Island Add-on days multiply quantity and price in receipt and tour reports",()=>{
+  const booking={bookingCode:"ISLAND-DAYS",travelDate:"2026-10-30",status:"confirmed",paymentMethod:"Bank",depositAmount:0,creditAmount:0,totalAmount:600,passengers:[{islandAddOns:[{id:"dive",name:"ดำน้ำ",days:3,qty:2,price:100,paymentMethod:"Bank"}]}]};
+  const paymentMethods=[{method_name:"Bank",method_code:"bank_transfer_test",payment_type:"transfer"}];
+  const receipt=buildPrintCenterReport({bookings:[booking],date:booking.travelDate,type:"receipt_summary",paymentMethods,masterIslandAddOns:[{island_addon_id:"dive",show_money_receipt:true}]});
+  assert.equal(receipt.rows[0].grandTotal,600);
+  const sql=fs.readFileSync(path.resolve(testDir,"../../database/migrations/20261030_050_island_addon_days.sql"),"utf8");
+  assert.match(sql,/upsert_booking_v30/);assert.match(sql,/list_bookings_json_v27/);assert.match(sql,/addon_source='island'/);assert.match(sql,/jsonb_build_object\('days',coalesce\(d\.nights,1\)\)/);
+});
+
 test("new Booking payment split reaches daily, monthly, boat and receipt reports without moving equipment money",()=>{
   const booking={bookingCode:"SPLIT-1",travelDate:"2026-10-24",status:"confirmed",paymentMethod:"Naruemon",depositPaymentMethod:"Naruemon",depositAmount:1000,creditAmount:0,paymentBreakdown:{version:2,primary:{method:"Naruemon",amount:2000},secondary:{method:"Cash",amount:1000},remaining:{Naruemon:3000}},passengers:[{program:{programId:"boat_ticket",name:"ตั๋วเรือ",qty:1,price:4000},preAddOns:[{id:"fin",selected:true,qty:1,nights:1,price:200,paymentMethod:"Laddawan"}]}]};
   const masters={paymentMethods:[{method_name:"Cash",method_code:"cash",payment_type:"cash"},{method_name:"Naruemon",method_code:"bank_transfer_naruemon",payment_type:"transfer"},{method_name:"Laddawan",method_code:"bank_transfer_laddawan",payment_type:"transfer"}],masterAddOns:[{addon_id:"fin",show_money_receipt:true}],masterIslandAddOns:[],masterAccommodations:[],transportationMethods:[],masterPrograms:[{program_id:"boat_ticket",default_price:1700}]};
@@ -832,7 +841,7 @@ test("booking API rejects invalid staff-entered tent nights before saving",()=>{
   assert.match(context.check({accommodations:[{...row,accommodationNights:0}]}),/จำนวนคืน/);
   assert.match(context.check({accommodations:[{...row,accommodationNights:1.5}]}),/จำนวนคืน/);
   assert.match(context.check({accommodations:[{...row,accommodationPrice:-1}]}),/ราคา/);
-  assert.match(route,/equipmentInputError\(req\.body\|\|\{\}\)\|\|accommodationInputError\(req\.body\|\|\{\}\)/);
+  assert.match(route,/equipmentInputError\(req\.body\|\|\{\}\)\|\|islandAddonInputError\(req\.body\|\|\{\}\)\|\|accommodationInputError\(req\.body\|\|\{\}\)/);
 });
 
 test("package and island boat migration is revisioned, numeric and non-destructive",()=>{

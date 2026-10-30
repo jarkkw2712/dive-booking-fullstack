@@ -144,6 +144,7 @@ function bookingProgramPaymentLabel(booking){
 const transportQuantity=value=>{const quantity=Number(value??1);return Number.isInteger(quantity)&&quantity>0?quantity:1};
 const transportAmount=(price,quantity)=>money(price)*transportQuantity(quantity);
 const equipmentBillableUnits=addon=>money(addon.qty||1)*money(addon.nights??1);
+const islandBillableUnits=addon=>money(addon.qty||1)*money(addon.days??1);
 
 function transportationRevenueLines(booking,paymentMethods,transportationMethods=[]){
   const rows=[];
@@ -167,7 +168,7 @@ function serviceRevenueLines(booking,paymentMethods){
   for(const person of passengersOf(booking)){
     if(person.program)rows.push({source:isBoatProgram(person.program)?"boat":"package",packageDetail:packageDetail(person.program),amount:lineAmount(person.program.qty,person.program.price),paymentMethod:booking.paymentMethod||defaultPayment(paymentMethods,"general")});
     for(const addon of person.preAddOns||[]){if(addon.selected===false)continue;rows.push({source:isTentAddon(addon)?"tent":"equipment",amount:lineAmount(equipmentBillableUnits(addon),addon.price),paymentMethod:addon.paymentMethod||defaultPayment(paymentMethods,"equipment")||booking.paymentMethod||""})}
-    for(const addon of person.islandAddOns||[])rows.push({source:"island",amount:lineAmount(addon.qty,addon.price),paymentMethod:addon.paymentMethod||defaultPayment(paymentMethods,"island")||booking.paymentMethod||""});
+    for(const addon of person.islandAddOns||[])rows.push({source:"island",amount:lineAmount(islandBillableUnits(addon),addon.price),paymentMethod:addon.paymentMethod||defaultPayment(paymentMethods,"island")||booking.paymentMethod||""});
   }
   for(const accommodation of accommodationsOf(booking))if(accommodation.accommodationBookedBy==="company")rows.push({source:"accommodation",amount:accommodationRevenue(accommodation),paymentMethod:booking.paymentMethod||defaultPayment(paymentMethods,"general")});
   rows.push(...transportationRevenueLines(booking,paymentMethods));
@@ -398,7 +399,7 @@ function managementReport(bookings,financialRows,expenseRows,date,toDate=date,ma
   });
   const today=rows[0]||{};
   const categoryNames=["ค่าตั๋วเรือ","ที่พัก","มัดจำ","ขายเชื่อ","ค่าน้ำ","ค่าน้ำเกาะ","หน้ากาก","ชูชีพ","ฟิน","น้ำแข็ง","เต็นท์","เหมาเรือ","ค่าระวาง","อื่นๆ","รวมรายได้"];
-  const incomeMatrix=categoryNames.map(category=>({category,values:Object.fromEntries(days.map(day=>{const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===day);let amount=0;if(category==="ค่าตั๋วเรือ")amount=daily.flatMap(passengersOf).reduce((sum,p)=>sum+money(p.program?.qty||1)*money(p.program?.price),0);else if(category==="ที่พัก")amount=daily.reduce((sum,booking)=>sum+sumMoney(accommodationsOf(booking),accommodationRevenue),0);else if(category==="มัดจำ")amount=daily.reduce((sum,b)=>sum+money(b.depositAmount),0);else if(category==="ขายเชื่อ")amount=daily.reduce((sum,b)=>sum+money(b.creditAmount),0);else if(category==="รวมรายได้")amount=daily.reduce((sum,b)=>sum+money(b.totalAmount),0);else amount=daily.flatMap(passengersOf).reduce((sum,p)=>sum+(p.preAddOns||[]).filter(a=>a.selected&&incomeCategory(a.name)===category).reduce((value,a)=>value+equipmentBillableUnits(a)*money(a.price),0)+(p.islandAddOns||[]).filter(a=>incomeCategory(a.name)===category).reduce((value,a)=>value+money(a.qty||1)*money(a.price),0),0);return[day,amount]}))}));
+  const incomeMatrix=categoryNames.map(category=>({category,values:Object.fromEntries(days.map(day=>{const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===day);let amount=0;if(category==="ค่าตั๋วเรือ")amount=daily.flatMap(passengersOf).reduce((sum,p)=>sum+money(p.program?.qty||1)*money(p.program?.price),0);else if(category==="ที่พัก")amount=daily.reduce((sum,booking)=>sum+sumMoney(accommodationsOf(booking),accommodationRevenue),0);else if(category==="มัดจำ")amount=daily.reduce((sum,b)=>sum+money(b.depositAmount),0);else if(category==="ขายเชื่อ")amount=daily.reduce((sum,b)=>sum+money(b.creditAmount),0);else if(category==="รวมรายได้")amount=daily.reduce((sum,b)=>sum+money(b.totalAmount),0);else amount=daily.flatMap(passengersOf).reduce((sum,p)=>sum+(p.preAddOns||[]).filter(a=>a.selected&&incomeCategory(a.name)===category).reduce((value,a)=>value+equipmentBillableUnits(a)*money(a.price),0)+(p.islandAddOns||[]).filter(a=>incomeCategory(a.name)===category).reduce((value,a)=>value+islandBillableUnits(a)*money(a.price),0),0);return[day,amount]}))}));
   const parkPersonCodes=new Set(["thai_adult_fee","thai_child_fee","thai_infant_fee","foreign_adult_fee","foreign_child_fee","foreign_infant_fee","foc_fee","park_people_total"]);
   const baseExpenseNames=["ค่าธรรมเนียมเรือ","ค่าธรรมเนียมอุทยาน","ค่าธรรมเนียมกางเต็นท์","ค่าน้ำแข็ง"];
   const expenseLabel=item=>{const code=item.category_code||item.categoryCode||"",itemCode=item.expense_item_code||item.expenseItemCode||"";if(code==="boat_fee"||code==="park_boat_total"||itemCode==="boat_park_fee")return"ค่าธรรมเนียมเรือ";if(parkPersonCodes.has(code)||itemCode==="national_park_fee")return"ค่าธรรมเนียมอุทยาน";if(code==="tent_fee"||itemCode==="park_tent_fee")return"ค่าธรรมเนียมกางเต็นท์";if(code==="ice"||itemCode==="ice")return"ค่าน้ำแข็ง";const name=item.category_name_snapshot||item.categoryName||"ค่าใช้จ่ายอื่น",detail=item.expense_detail||item.expenseDetail||"";return detail&&detail!==name?`${name} — ${detail}`:name};
@@ -488,7 +489,7 @@ function receiptDocumentLines(booking,{masterAddOns,masterIslandAddOns,masterAcc
     }
     for(const addon of person.islandAddOns||[]){
       const visibility=islandAddons.get(addon.id)?.show_money_receipt??addon.documentVisibility?.show_money_receipt??true;
-      if(visibility!==false)add("island",lineAmount(addon.qty,addon.price),addon.paymentMethod||defaultPayment(paymentMethods,"island")||booking.paymentMethod);
+      if(visibility!==false)add("island",lineAmount(islandBillableUnits(addon),addon.price),addon.paymentMethod||defaultPayment(paymentMethods,"island")||booking.paymentMethod);
     }
   }
   for(const accommodation of accommodationsOf(booking)){
