@@ -440,7 +440,7 @@ test("reference reports and category payment defaults are wired end to end",()=>
 test("van work order prints a large-font A4 landscape driver slip without vehicle or cost columns",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");
   const source=app.slice(app.indexOf("function vanWorkOrderReferenceHtml"),app.indexOf("const referencePrintReportHtmlBeforeTemplateReports"));
-  const context={referenceReportHeader:()=>"<header>Sabina</header>",referenceReportNotes:()=>"",referenceReportDate:value=>value,escapeHtml:value=>String(value),money:value=>Number(value||0).toFixed(2)};
+  const context={referenceReportHeader:report=>`<header>${report.title}</header>`,referenceReportNotes:()=>"",referenceReportDate:value=>value,escapeHtml:value=>String(value),money:value=>Number(value||0).toFixed(2)};
   require("node:vm").runInNewContext(`${source}\nhtml=vanWorkOrderReferenceHtml({type:'van_work_order_reference',date:'2026-10-20',rows:[{no:1,date:'2026-10-20',direction:'จุดแวะ 1',leader:'มาลี',phone:'081',pax:2,method:'รถตู้',from:'สนามบิน',to:'ซาบีน่า',amount:850}],summary:{jobs:1,pax:2,amount:850}});`,context);
   assert.match(context.html,/reference-report-landscape reference-van-work-report reference-van-driver-slip/);
   assert.match(context.html,/สนามบิน<\/span> <b aria-hidden="true">→<\/b> <span>ซาบีน่า/);
@@ -450,7 +450,14 @@ test("van work order prints a large-font A4 landscape driver slip without vehicl
   assert.equal((context.html.match(/<thead><tr>(.*?)<\/tr><\/thead>/)||[])[1]?.match(/<th>/g)?.length,8);
   assert.match(css,/\.reference-van-driver-slip \.reference-report-header\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,100mm\)/);
   assert.match(css,/\.reference-van-driver-slip \.reference-van-work-table\{font-size:13pt\}/);
-  assert.equal((context.html.match(/class="reference-total-row"/g)||[]).length,1);
+  assert.match(context.html,/ใบรับ/);assert.match(context.html,/ใบกลับ/);
+  assert.equal((context.html.match(/class="reference-total-row"/g)||[]).length,2);
+});
+test("Register travel lines honor Master Data visibility, including historical method names",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),source=app.slice(app.indexOf("function transportationConfiguration"),app.indexOf("function accommodationConfiguration"));
+  const context={master:{transportationMethods:[{method_id:"bus",method_name:"รถบัส",show_register:false,show_van_receipt:true},{method_id:"van",method_name:"รถตู้",show_register:false,show_van_receipt:true}]},documentVisibilityField:profile=>profile.field};
+  require("node:vm").runInNewContext(`${source}\nresult=[transportationVisibleOnDocument({transportationMethod:" รถบัส "},{},{field:"show_register"}),transportationVisibleOnDocument({transportationMethod:"van"},{},{field:"show_register"}),transportationVisibleOnDocument({transportationMethod:"รถตู้เก่า"},{},{field:"show_register"}),transportationVisibleOnDocument({transportationMethod:"รถบัส"},{},{field:"show_van_receipt"})]`,context);
+  assert.deepEqual([...context.result],[false,false,false,true]);
 });
 test("printable reports keep the company in the top-right and repeat table headings across pages",()=>{
   const css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");

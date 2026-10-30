@@ -293,7 +293,8 @@ function transportWorkOrderReferenceReport(bookings,date,toDate,paymentMethods,t
   for(const booking of bookings.filter(activeBooking))for(const leg of transportationRevenueLines(booking,paymentMethods,transportationMethods)){
     if(!methodMatches(leg.method,transportationMethods)||!leg.operationalDate||leg.operationalDate<date||leg.operationalDate>toDate)continue;
     const key=JSON.stringify([booking.bookingCode,leg.direction,leg.operationalDate,leg.from,leg.to,leg.method]);
-    const row=groups.get(key)||{date:leg.operationalDate,direction:leg.direction,leader:leaderName(booking),phone:booking.phone||"",pax:0,vehicles:0,method:leg.method,from:leg.from,to:leg.to,location:leg.destination,note:booking.bookingNote||"",bookingCode:booking.bookingCode,amount:0};
+    const phase=leg.direction==="ขากลับ"||(leg.direction.startsWith("จุดแวะ")&&booking.returnDate&&leg.operationalDate>=booking.returnDate)?"return":"outbound";
+    const row=groups.get(key)||{date:leg.operationalDate,direction:leg.direction,phase,leader:leaderName(booking),phone:booking.phone||"",pax:0,vehicles:0,method:leg.method,from:leg.from,to:leg.to,location:leg.destination,note:booking.bookingNote||"",bookingCode:booking.bookingCode,amount:0};
     row.pax++;row.vehicles=Math.max(row.vehicles,leg.quantity);row.amount=Math.round((row.amount+leg.amount)*100)/100;groups.set(key,row);
   }
   const rows=[...groups.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.bookingCode.localeCompare(b.bookingCode)||a.direction.localeCompare(b.direction)).map((row,index)=>({no:index+1,...row}));
