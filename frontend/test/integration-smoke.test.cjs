@@ -58,8 +58,19 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.30-03/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js","js/deploymentGuard.js"]){const version=asset==="js/islandAddonMaster.js"?"20261030-03":["css/style.css","js/app.js","js/financial.js"].includes(asset)?"20261030-02":["js/travelStops.js","js/deploymentGuard.js"].includes(asset)?"20261029-02":asset==="js/api.js"?"20261023-03":asset==="js/bookingOriginal.js"?"20261021-03":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.10\.30-04/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js","js/deploymentGuard.js"]){const version=asset==="js/app.js"?"20261030-04":asset==="js/islandAddonMaster.js"?"20261030-03":["css/style.css","js/financial.js"].includes(asset)?"20261030-02":["js/travelStops.js","js/deploymentGuard.js"].includes(asset)?"20261029-02":asset==="js/api.js"?"20261023-03":asset==="js/bookingOriginal.js"?"20261021-03":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+});
+test("booking CSV protects text cells from spreadsheet formulas while preserving numeric values",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),source=app.slice(app.indexOf("function excelCell"),app.indexOf("function bookingExcelRow")),context={};
+  vm.runInNewContext(`${source}\nresult=[excelCell('=1+1'),excelCell(' @line'),excelCell(-50),excelCell('ปกติ')]`,context);
+  assert.deepEqual([...context.result],['"\'=1+1"','"\' @line"','"-50"','"ปกติ"']);
+});
+test("receipt summary displays unspecified payment separately from cash and transfer",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),source=app.slice(app.indexOf("function dailySummaryReportHtml"),app.indexOf("function frontChargeReportHtml"));
+  const context={escapeHtml:value=>String(value??""),getCompanySettings:()=>({company_name:"Sabina"}),money:value=>String(Number(value||0))};
+  vm.runInNewContext(`${source}\nresult=dailySummaryReportHtml({type:'receipt_summary',title:'รายงาน',date:'2026-10-30',rows:[{no:1,agent:'',leader:'A',program:'',totalUnknown:1000,grandTotal:1000}],receiptTotals:{totalUnknown:1000,grandTotal:1000}})`,context);
+  assert.match(context.result,/ยังไม่ระบุช่องทาง/);assert.match(context.result,/<td class="num">1000<\/td>/);
 });
 test("booking form uses the available desktop width without stretching other pages",()=>{
   const css=fs.readFileSync(path.join(root,"css","style.css"),"utf8");

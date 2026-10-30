@@ -84,7 +84,7 @@ const paymentDefaultName={general:"นฤมล",equipment:"ลัดดาว�
 const paymentDefaultField={general:"default_general",equipment:"default_equipment",island:"default_island",transport:"default_transport"};
 const normalized=value=>String(value||"").trim().toLocaleLowerCase("th-TH");
 const paymentMeta=(name,methods=[])=>methods.find(method=>method.method_name===name)||null;
-const paymentKind=(name,methods=[])=>{const method=paymentMeta(name,methods),code=normalized(method?.method_id);if(code==="cash")return"cash";if(code.includes("bank_transfer"))return"transfer";if(method?.payment_type==="cash")return"cash";if(method?.payment_type==="transfer")return"transfer";return/cash|สด/i.test(String(name||""))?"cash":"transfer"};
+const paymentKind=(name,methods=[])=>{const value=normalized(name),method=paymentMeta(name,methods),code=normalized(method?.method_id);if(!value||/ไม่ระบุ|ไม่ทราบ|unspecified|reconfirm/.test(value)||/unspecified|reconfirm/.test(code))return"unknown";if(code==="cash")return"cash";if(code.includes("bank_transfer"))return"transfer";if(method?.payment_type==="cash")return"cash";if(method?.payment_type==="transfer")return"transfer";if(/cash|สด/i.test(value))return"cash";if(/bank|โอน/i.test(value)||namedPaymentAccounts.some(account=>value.includes(account)))return"transfer";return"unknown"};
 const bookingSavedPaymentMethod=(booking,kind)=>{
   const field=kind==="deposit"?"depositPaymentMethod":"creditPaymentMethod",saved=String(booking?.[field]||"").trim();
   if(saved)return saved;
@@ -205,14 +205,14 @@ function tourExpenseReferenceReport(bookings,date,toDate,paymentMethods){
     return{
       date:day,boatCash:sum("boat","cash"),boatTransfer:sum("boat","transfer"),packageCash:packageSum("cash"),packageTransfer:packageSum("transfer"),
       tentCash:sum("tent","cash"),tentTransfer:sum("tent","transfer"),accommodationCash:sum("accommodation","cash"),accommodationTransfer:sum("accommodation","transfer"),oneDayCash:detailSum("oneDay","cash"),oneDayTransfer:detailSum("oneDay","transfer"),dayTripOvernightCash:detailSum("dayTripOvernight","cash"),dayTripOvernightTransfer:detailSum("dayTripOvernight","transfer"),
-      deposit:sumMoney(deposits,row=>row.amount),credit:sumMoney(daily,booking=>booking.creditAmount),
+      deposit:sumMoney(deposits,row=>row.amount),credit:sumMoney(daily,booking=>booking.creditAmount),unknownPayment:sum("","unknown"),
       naruemonTransfer:sumMoney(services.filter(line=>["boat","package","tent"].includes(line.source)&&namedAccount(line.paymentMethod)==="นฤมล"&&paymentKind(line.paymentMethod,paymentMethods)==="transfer"),line=>line.amount),
       rungruedeeTransfer:accountTransferTotal(accountLines,"รุ่งฤดี",paymentMethods),
       rujirojDepositCash:sumMoney(deposits.filter(row=>namedAccount(row.method)==="รุจิโรจน์"&&paymentKind(row.method,paymentMethods)==="cash"),row=>row.amount),
       rujirojDepositTransfer:sumMoney(deposits.filter(row=>namedAccount(row.method)==="รุจิโรจน์"&&paymentKind(row.method,paymentMethods)==="transfer"),row=>row.amount),
       totalRevenue:sumMoney(daily.flatMap(booking=>serviceRevenueLines(booking,paymentMethods)).filter(line=>line.source!=="transport"),line=>line.amount),accounts:accountTotals
     };
-  }),moneyFields=["boatCash","boatTransfer","packageCash","packageTransfer","tentCash","tentTransfer","accommodationCash","accommodationTransfer","oneDayCash","oneDayTransfer","dayTripOvernightCash","dayTripOvernightTransfer","deposit","credit","naruemonTransfer","rungruedeeTransfer","rujirojDepositCash","rujirojDepositTransfer","totalRevenue"],totals=Object.fromEntries(moneyFields.map(field=>[field,sumMoney(rows,row=>row[field])]));
+  }),moneyFields=["boatCash","boatTransfer","packageCash","packageTransfer","tentCash","tentTransfer","accommodationCash","accommodationTransfer","oneDayCash","oneDayTransfer","dayTripOvernightCash","dayTripOvernightTransfer","deposit","credit","unknownPayment","naruemonTransfer","rungruedeeTransfer","rujirojDepositCash","rujirojDepositTransfer","totalRevenue"],totals=Object.fromEntries(moneyFields.map(field=>[field,sumMoney(rows,row=>row[field])]));
   totals.accounts=Object.fromEntries(namedPaymentAccounts.map(account=>[account,sumMoney(rows,row=>row.accounts?.[account])]));
   const monthly=tourMonthlyReferenceReport(bookings,date,toDate,paymentMethods);
   return{date,type:"tour_expense_reference",title:"รายงานทัวร์และค่าใช้จ่าย",purpose:"ยอดตามวันเดินทางไป แยกมัดจำและขายเชื่อจากยอดสด/โอน ไม่รวมค่าเดินทาง",range:{from:date,to:toDate},rows,totals,monthlyRows:monthly.rows,monthlyTotals:monthly.totals,accountNames:namedPaymentAccounts,sourceNotes:["วันที่อ้างอิงวันเดินทางไปของ Booking","ตั๋วเรือใช้ Program code boat_ticket; แพ็คเกจไม่รวม One Day Trip และ Day Trip Overnight","One Day Trip ใช้ code one_day และ Day Trip Overnight ใช้ code DO; ทั้งคู่มีคอลัมน์แยก ไม่รวมซ้ำในแพ็คเกจ","ยอดสด/โอนหักมัดจำและขายเชื่อก่อน โดยตัดจาก Program ก่อน แล้วจึงตัดจากรายการอื่น","โอนนฤมลรวมยอดโอนตั๋วเรือ แพ็คเกจ One Day Trip Day Trip Overnight และเต็นท์หลังหักมัดจำ/ขายเชื่อ; โอนรุ่งฤดีคือยอดขายสุทธิและมัดจำที่เข้าบัญชีรุ่งฤดี ไม่บวกซ้ำในรวมรายได้","รวมรายได้นับยอดขายครั้งเดียว รวมมัดจำ ขายเชื่อ อุปกรณ์และ Island Add-on แต่ไม่รวมค่าเดินทาง","เต็นท์ใช้อุปกรณ์ code tent"]};
@@ -272,9 +272,10 @@ function boatTentReport(bookings,date,paymentMethods=[],masterPrograms=[]){
     const programLines=splitProgramRevenueLines(booking,people.filter(person=>person.program).map(person=>({source:isBoatProgram(person.program)?"boat":"package",amount:lineAmount(person.program.qty,person.program.price),paymentMethod:booking.paymentMethod})),{includeDeposit:true}).filter(line=>line.source==="boat");
     const boatCash=sumMoney(programLines.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="cash"),line=>line.amount),boatTransfer=sumMoney(programLines.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="transfer"),line=>line.amount);
     const tentKind=paymentKind(booking.paymentMethod,paymentMethods),tentCash=tentKind==="cash"?tentAmount:0,tentTransfer=tentKind==="transfer"?tentAmount:0;
-    rows.push({returnDate:booking.returnDate||"",leader:leaderName(booking),qty,price,boatCash,boatTransfer,discount:Math.max(defaultAmount-amount,0),balance:amount,smallTentQty,largeTentQty,tentCash,tentTransfer,totalCash:boatCash+tentCash,totalTransfer:boatTransfer+tentTransfer,customerSource:booking.source||booking.contactEmail||"",bookingCode:booking.bookingCode||""});
+    const boatUnknown=sumMoney(programLines.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="unknown"),line=>line.amount),tentUnknown=tentKind==="unknown"?tentAmount:0;
+    rows.push({returnDate:booking.returnDate||"",leader:leaderName(booking),qty,price,boatCash,boatTransfer,discount:Math.max(defaultAmount-amount,0),balance:amount,smallTentQty,largeTentQty,tentCash,tentTransfer,totalCash:boatCash+tentCash,totalTransfer:boatTransfer+tentTransfer,totalUnknown:boatUnknown+tentUnknown,customerSource:booking.source||booking.contactEmail||"",bookingCode:booking.bookingCode||""});
   }
-  const fields=["qty","boatCash","boatTransfer","discount","balance","smallTentQty","largeTentQty","tentCash","tentTransfer","totalCash","totalTransfer"],totals=Object.fromEntries(fields.map(field=>[field,rows.reduce((sum,row)=>sum+money(row[field]),0)]));
+  const fields=["qty","boatCash","boatTransfer","discount","balance","smallTentQty","largeTentQty","tentCash","tentTransfer","totalCash","totalTransfer","totalUnknown"],totals=Object.fromEntries(fields.map(field=>[field,rows.reduce((sum,row)=>sum+money(row[field]),0)]));
   return{date,type:"boat_tent_reference",title:"ตั๋วเรือ - เต็นท์",purpose:"ยอดตั๋วเรือและเต็นท์ประจำวัน",range:{from:date,to:date},rows,totals,sourceNotes:["วันที่อ้างอิงวันเดินทางไปเกาะ","จำนวนรวมผู้โดยสารตั๋วเรือ; ราคาอ้างอิงราคาเริ่มต้นตั๋วเรือจาก Master Data","จำนวนเงินและคงเหลือเป็นยอดขายตั๋วเรือสุทธิที่บันทึกจริง ไม่ใช่จำนวน × ราคาเริ่มต้น; ส่วนลดเป็นผลต่างจากยอดราคาเริ่มต้น","เต็นท์อ้างอิงจากที่พักที่เราเป็นผู้จอง ไม่ใช่อุปกรณ์; ยอดเงินคิดจำนวนเต็นท์ × จำนวนคืนที่พนักงานกรอก × ราคาต่อคืน","สด/โอนอ้างอิงช่องทางชำระเงินของ Booking"]};
 }
 
@@ -283,7 +284,7 @@ function vanRevenueLines(bookings,paymentMethods,transportationMethods){
 }
 function vanDailyReferenceReport(bookings,date,toDate,paymentMethods,transportationMethods){
   const lines=vanRevenueLines(bookings,paymentMethods,transportationMethods);
-  const days=reportDays(date,toDate),rows=days.map(day=>{const daily=lines.filter(line=>line.operationalDate===day),cash=daily.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="cash").reduce((sum,line)=>sum+line.amount,0),transfer=daily.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="transfer").reduce((sum,line)=>sum+line.amount,0);return{date:day,cash,transfer,total:cash+transfer}}),totals={cash:rows.reduce((sum,row)=>sum+row.cash,0),transfer:rows.reduce((sum,row)=>sum+row.transfer,0),total:rows.reduce((sum,row)=>sum+row.total,0)};
+  const days=reportDays(date,toDate),rows=days.map(day=>{const daily=lines.filter(line=>line.operationalDate===day),cash=daily.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="cash").reduce((sum,line)=>sum+line.amount,0),transfer=daily.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="transfer").reduce((sum,line)=>sum+line.amount,0),unknownPayment=daily.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="unknown").reduce((sum,line)=>sum+line.amount,0);return{date:day,cash,transfer,unknownPayment,total:cash+transfer+unknownPayment}}),totals={cash:rows.reduce((sum,row)=>sum+row.cash,0),transfer:rows.reduce((sum,row)=>sum+row.transfer,0),unknownPayment:rows.reduce((sum,row)=>sum+row.unknownPayment,0),total:rows.reduce((sum,row)=>sum+row.total,0)};
   const periodLines=lines.filter(line=>line.operationalDate>=date&&line.operationalDate<=toDate),summary={vanLegs:periodLines.length,unpricedLegs:periodLines.filter(line=>line.amount<=0).length};
   const monthly=vanMonthlyReferenceReport(bookings,date,toDate,paymentMethods,transportationMethods);
   return{date,type:"van_daily_reference",title:"รายงานรถตู้",purpose:"ยอดค่ารถตู้ตามวันให้บริการของแต่ละขา แยกเงินสดและเงินโอน",range:{from:date,to:toDate},rows,totals,summary,monthlyRows:monthly.rows,monthlyTotals:monthly.totals,sourceNotes:["นับขาไป ขากลับ และจุดแวะเพิ่มเติมตามวันให้บริการรายบุคคล","ระบุรถตู้จากรหัสวิธีการเดินทางใน Master Data หรือชื่อรถตู้ของรายการเดิม","เงินสด/โอนใช้ช่องทางชำระของแต่ละขาและ code ใน Payment Method Master"]};
@@ -351,15 +352,15 @@ function tourMonthlyReferenceReport(bookings,date,toDate,paymentMethods){
     const deposits=selected.map(booking=>({amount:money(booking.depositAmount),paymentMethod:bookingSavedPaymentMethod(booking,"deposit")||booking.paymentMethod||""}));
     const cash=sumMoney(services.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="cash"),line=>line.amount);
     const transfer=sumMoney(services.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="transfer"),line=>line.amount);
-    return{month,cash,transfer,deposit:sumMoney(deposits,line=>line.amount),credit:sumMoney(selected,booking=>booking.creditAmount),rungruedeeTransfer:accountTransferTotal([...services,...deposits],"รุ่งฤดี",paymentMethods)};
+    return{month,cash,transfer,unknownPayment:sumMoney(services.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="unknown"),line=>line.amount),deposit:sumMoney(deposits,line=>line.amount),credit:sumMoney(selected,booking=>booking.creditAmount),rungruedeeTransfer:accountTransferTotal([...services,...deposits],"รุ่งฤดี",paymentMethods)};
   });
-  const fields=["cash","transfer","deposit","credit","rungruedeeTransfer"],totals=Object.fromEntries(fields.map(field=>[field,sumMoney(rows,row=>row[field])]));
+  const fields=["cash","transfer","unknownPayment","deposit","credit","rungruedeeTransfer"],totals=Object.fromEntries(fields.map(field=>[field,sumMoney(rows,row=>row[field])]));
   return{date,type:"tour_monthly_reference",title:"รายงานสรุปรายการทัวร์",purpose:"สรุปรายเดือนตามวันเดินทางไป",range:{from:date,to:toDate},rows,totals,sourceNotes:["มัดจำและขายเชื่อแยกจากยอดสด/โอน ไม่บวกซ้ำ","โอนรุ่งฤดีรวมยอดขายสุทธิและมัดจำที่เข้าบัญชีรุ่งฤดี โดยไม่นับมัดจำซ้ำ","ตัดคอลัมน์เบิกทัวร์และคงเหลือตามข้อกำหนด"]};
 }
 function vanMonthlyReferenceReport(bookings,date,toDate,paymentMethods,transportationMethods=[]){
   const vanLines=vanRevenueLines(bookings,paymentMethods,transportationMethods).filter(line=>line.operationalDate>=date&&line.operationalDate<=toDate);
-  const rows=reportMonths(date,toDate).map(month=>{const lines=vanLines.filter(line=>line.operationalDate.slice(0,7)===month),cash=lines.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="cash").reduce((sum,line)=>sum+line.amount,0),transfer=lines.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="transfer").reduce((sum,line)=>sum+line.amount,0);return{month,cash,transfer,total:cash+transfer}});
-  const totals={cash:rows.reduce((sum,row)=>sum+row.cash,0),transfer:rows.reduce((sum,row)=>sum+row.transfer,0),total:rows.reduce((sum,row)=>sum+row.total,0)};
+  const rows=reportMonths(date,toDate).map(month=>{const lines=vanLines.filter(line=>line.operationalDate.slice(0,7)===month),cash=lines.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="cash").reduce((sum,line)=>sum+line.amount,0),transfer=lines.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="transfer").reduce((sum,line)=>sum+line.amount,0),unknownPayment=lines.filter(line=>paymentKind(line.paymentMethod,paymentMethods)==="unknown").reduce((sum,line)=>sum+line.amount,0);return{month,cash,transfer,unknownPayment,total:cash+transfer+unknownPayment}});
+  const totals={cash:rows.reduce((sum,row)=>sum+row.cash,0),transfer:rows.reduce((sum,row)=>sum+row.transfer,0),unknownPayment:rows.reduce((sum,row)=>sum+row.unknownPayment,0),total:rows.reduce((sum,row)=>sum+row.total,0)};
   return{date,type:"van_monthly_reference",title:"รายงานสรุปรายการรถตู้",purpose:"สรุปค่ารถตู้รายเดือนตามวันให้บริการของแต่ละขาและจุดแวะ",range:{from:date,to:toDate},rows,totals,sourceNotes:["นับขาไป ขากลับ และจุดแวะตามวันเดินทางรายบุคคลของแต่ละรายการ","เงินสด/โอนพิจารณาจาก code ใน Payment Method Master"]};
 }
 const incomeCategory=name=>{const value=String(name||"").toLowerCase();if(value.includes("น้ำแข็ง"))return"น้ำแข็ง";if(value.includes("น้ำเกาะ"))return"ค่าน้ำเกาะ";if(value.includes("น้ำ"))return"ค่าน้ำ";if(value.includes("หน้ากาก"))return"หน้ากาก";if(value.includes("ชูชีพ"))return"ชูชีพ";if(value.includes("ฟิน")||value.includes("ตีนกบ"))return"ฟิน";if(value.includes("เต็นท์"))return"เต็นท์";if(value.includes("เหมาเรือ"))return"เหมาเรือ";if(value.includes("ระวาง"))return"ค่าระวาง";return"อื่นๆ"};
@@ -509,28 +510,28 @@ function receiptV2BalanceSplit(booking,masters,deposit,credit,paymentMethods){
   }
   const program=splitProgramRevenueLines(booking,lines.filter(line=>line.source==="program"),{includeCredit:false});
   const remaining=[...program,...lines.filter(line=>line.source!=="program")];
-  return remaining.reduce((result,line)=>{result[paymentKind(line.paymentMethod,paymentMethods)==="cash"?"cash":"transfer"]+=receiptCents(line.amount);return result},{cash:0,transfer:0});
+  return remaining.reduce((result,line)=>{result[paymentKind(line.paymentMethod,paymentMethods)]+=receiptCents(line.amount);return result},{cash:0,transfer:0,unknown:0});
 }
 function receiptPaymentSplit(amount,source,selected,paymentMethods){
   const cents=receiptCents(amount),parts=Object.entries(source||{}).filter(([,value])=>receiptCents(value)>0);
-  if(!parts.length)return paymentKind(selected,paymentMethods)==="cash"?{cash:cents,transfer:0}:{cash:0,transfer:cents};
+  if(!parts.length){const result={cash:0,transfer:0,unknown:0};result[paymentKind(selected,paymentMethods)]=cents;return result}
   const total=parts.reduce((sum,[,value])=>sum+receiptCents(value),0);
-  let remaining=cents,cash=0,transfer=0;
+  let remaining=cents,cash=0,transfer=0,unknown=0;
   parts.forEach(([name,value],index)=>{
     const share=index===parts.length-1?remaining:Math.min(Math.round(cents*receiptCents(value)/total),remaining);
-    if(paymentKind(name,paymentMethods)==="cash")cash+=share;else transfer+=share;
+    const kind=paymentKind(name,paymentMethods);if(kind==="cash")cash+=share;else if(kind==="transfer")transfer+=share;else unknown+=share;
     remaining-=share;
   });
-  return{cash,transfer};
+  return{cash,transfer,unknown};
 }
 function dailyReceiptSummary(bookings,date,paymentMethods,masters){
-  const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===date),totals={depositCash:0,depositTransfer:0,creditCash:0,creditTransfer:0,balanceCash:0,balanceTransfer:0,totalCash:0,totalTransfer:0,grandTotal:0};
+  const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===date),totals={depositCash:0,depositTransfer:0,creditCash:0,creditTransfer:0,balanceCash:0,balanceTransfer:0,totalCash:0,totalTransfer:0,totalUnknown:0,grandTotal:0};
   const rows=daily.map((booking,index)=>{
     const total=receiptDocumentTotal(booking,masters),deposit=Math.min(receiptCents(booking.depositAmount),total),credit=Math.min(receiptCents(booking.creditAmount),total-deposit),balance=total-deposit-credit,breakdown=booking.paymentBreakdown||{};
     const depositSplit=receiptPaymentSplit(receiptAmount(deposit),breakdown.deposit,bookingSavedPaymentMethod(booking,"deposit"),paymentMethods);
     const creditSplit=receiptPaymentSplit(receiptAmount(credit),breakdown.credit,bookingSavedPaymentMethod(booking,"credit"),paymentMethods);
     const balanceSplit=breakdown.version===2?receiptV2BalanceSplit(booking,masters,deposit,credit,paymentMethods):receiptPaymentSplit(receiptAmount(balance),breakdown.remaining,booking.paymentMethod,paymentMethods);
-    const row={no:index+1,agent:booking.agentName||"",leader:leaderName(booking),program:uniqueValues(passengersOf(booking),p=>programShort(p.program?.name)),depositCash:receiptAmount(depositSplit.cash),depositTransfer:receiptAmount(depositSplit.transfer),creditCash:receiptAmount(creditSplit.cash),creditTransfer:receiptAmount(creditSplit.transfer),balanceCash:receiptAmount(balanceSplit.cash),balanceTransfer:receiptAmount(balanceSplit.transfer),totalCash:receiptAmount(depositSplit.cash+creditSplit.cash+balanceSplit.cash),totalTransfer:receiptAmount(depositSplit.transfer+creditSplit.transfer+balanceSplit.transfer),grandTotal:receiptAmount(total)};
+    const row={no:index+1,agent:booking.agentName||"",leader:leaderName(booking),program:uniqueValues(passengersOf(booking),p=>programShort(p.program?.name)),depositCash:receiptAmount(depositSplit.cash),depositTransfer:receiptAmount(depositSplit.transfer),creditCash:receiptAmount(creditSplit.cash),creditTransfer:receiptAmount(creditSplit.transfer),balanceCash:receiptAmount(balanceSplit.cash),balanceTransfer:receiptAmount(balanceSplit.transfer),totalCash:receiptAmount(depositSplit.cash+creditSplit.cash+balanceSplit.cash),totalTransfer:receiptAmount(depositSplit.transfer+creditSplit.transfer+balanceSplit.transfer),totalUnknown:receiptAmount(depositSplit.unknown+creditSplit.unknown+balanceSplit.unknown),grandTotal:receiptAmount(total)};
     for(const key of Object.keys(totals))totals[key]+=row[key];
     return row;
   });
@@ -559,8 +560,9 @@ function dailyEquipmentSummary(bookings,date,masterAddOns=[],paymentMethods=[]){
       equipment[code]=(equipment[code]||0)+money(addon.qty||1);
       const cents=Math.round(equipmentBillableUnits(addon)*money(addon.price)*100);
       const method=String(addon.paymentMethod||"").trim();
-      if(!method)unknownCents+=cents;
-      else if(paymentKind(method,paymentMethods)==="cash")cashCents+=cents;
+      const kind=paymentKind(method,paymentMethods);
+      if(kind==="unknown")unknownCents+=cents;
+      else if(kind==="cash")cashCents+=cents;
       else transferCents+=cents;
     }
     return{no:index+1,bookingCode:booking.bookingCode||"",leader:leaderName(booking),pax:people.length,

@@ -234,6 +234,18 @@ test("Island Add-on days multiply quantity and price in receipt and tour reports
   assert.match(sql,/upsert_booking_v30/);assert.match(sql,/list_bookings_json_v27/);assert.match(sql,/addon_source='island'/);assert.match(sql,/jsonb_build_object\('days',coalesce\(d\.nights,1\)\)/);
 });
 
+test("an unspecified payment channel is not reported as a bank transfer",()=>{
+  const date="2026-10-30",booking={bookingCode:"UNKNOWN",travelDate:date,status:"confirmed",paymentMethod:"ยังไม่ระบุ",totalAmount:1000,depositAmount:0,creditAmount:0,passengers:[{program:{programId:"boat_ticket",name:"ตั๋วเรือ",qty:1,price:1000}}]};
+  const paymentMethods=[{method_id:"Reconfirm",method_name:"ยังไม่ระบุ",payment_type:"transfer"}];
+  const report=type=>buildPrintCenterReport({bookings:[booking],date,toDate:date,type,paymentMethods});
+  const tour=report("tour_expense_reference");assert.equal(tour.rows[0].boatTransfer,0);assert.equal(tour.rows[0].unknownPayment,1000);assert.equal(tour.monthlyRows[0].unknownPayment,1000);
+  const receipt=report("receipt_summary");assert.equal(receipt.rows[0].totalTransfer,0);assert.equal(receipt.rows[0].totalUnknown,1000);assert.equal(receipt.rows[0].grandTotal,1000);
+  const boat=report("boat_tent_reference");assert.equal(boat.rows[0].boatTransfer,0);assert.equal(boat.rows[0].totalUnknown,1000);
+  const transport={...booking,passengers:[{...booking.passengers[0],transportationMethod:"รถตู้",transportationAmount:200,transportationPaymentMethod:"ยังไม่ระบุ",passengerTravelDate:date,preAddOns:[{id:"fin",selected:true,qty:1,price:50,paymentMethod:"ยังไม่ระบุ"}]}]};
+  const van=buildPrintCenterReport({bookings:[transport],date,toDate:date,type:"van_daily_reference",paymentMethods});assert.equal(van.totals.unknownPayment,200);assert.equal(van.totals.total,200);assert.equal(van.totals.transfer,0);
+  const equipment=buildPrintCenterReport({bookings:[transport],date,type:"equipment_summary",paymentMethods});assert.equal(equipment.rows[0].unknown,50);assert.equal(equipment.rows[0].transfer,0);
+});
+
 test("new Booking payment split reaches daily, monthly, boat and receipt reports without moving equipment money",()=>{
   const booking={bookingCode:"SPLIT-1",travelDate:"2026-10-24",status:"confirmed",paymentMethod:"Naruemon",depositPaymentMethod:"Naruemon",depositAmount:1000,creditAmount:0,paymentBreakdown:{version:2,primary:{method:"Naruemon",amount:2000},secondary:{method:"Cash",amount:1000},remaining:{Naruemon:3000}},passengers:[{program:{programId:"boat_ticket",name:"ตั๋วเรือ",qty:1,price:4000},preAddOns:[{id:"fin",selected:true,qty:1,nights:1,price:200,paymentMethod:"Laddawan"}]}]};
   const masters={paymentMethods:[{method_name:"Cash",method_code:"cash",payment_type:"cash"},{method_name:"Naruemon",method_code:"bank_transfer_naruemon",payment_type:"transfer"},{method_name:"Laddawan",method_code:"bank_transfer_laddawan",payment_type:"transfer"}],masterAddOns:[{addon_id:"fin",show_money_receipt:true}],masterIslandAddOns:[],masterAccommodations:[],transportationMethods:[],masterPrograms:[{program_id:"boat_ticket",default_price:1700}]};
@@ -499,17 +511,17 @@ test("reference reports follow travel date, stable payment codes and fixed tent 
   const referenceBookings=[{bookingCode:"REF1",travelDate:"2026-09-21",returnDate:"2026-09-23",leaderFirstName:"หัวหน้า",leaderLastName:"ทริป",phone:"081",status:"confirmed",paymentMethod:"นฤมล",depositAmount:100,depositPaymentMethod:"รุจิโรจน์",creditAmount:200,passengers:[{program:{programId:"boat_ticket",name:"ตั๋วเรือ",qty:1,price:1000},preAddOns:[{id:"tent",name:"เต็นท์",selected:true,qty:2,price:300,paymentMethod:"เงินสด"}],islandAddOns:[{id:"dive",name:"ดำน้ำ",qty:1,price:400,paymentMethod:"เรืองโรจน์"}],transportationMethod:"รถตู้",transportationAmount:500,transportationPaymentMethod:"ลัดดาวรรณ์",passengerTravelDate:"2026-09-21",outboundDestination:"บขส.",returnTransportationMethod:"รถตู้",returnTransportationAmount:600,returnTransportationPaymentMethod:"เงินสด",passengerReturnDate:"2026-09-23",returnDestination:"สนามบิน"}]}];
   const tour=buildPrintCenterReport({bookings:referenceBookings,paymentMethods,date:"2026-09-21",toDate:"2026-09-21",type:"tour_expense_reference"});
   assert.equal(tour.rows[0].boatTransfer,700);assert.equal(tour.rows[0].naruemonTransfer,700);assert.equal(tour.rows[0].tentCash,600);assert.equal(tour.rows[0].deposit,100);assert.equal(tour.rows[0].credit,200);assert.equal(tour.rows[0].totalRevenue,2000);assert.equal(tour.rows[0].rujirojDepositTransfer,100);assert.equal(tour.totals.accounts["นฤมล"],700);assert.equal(tour.totals.accounts["เรืองโรจน์"],400);assert.equal(tour.totals.accounts["ลัดดาวรรณ์"],0);assert.equal(tour.totals.accounts["รุจิโรจน์"],100);
-  assert.deepEqual(tour.monthlyRows,[{month:"2026-09",cash:600,transfer:1100,deposit:100,credit:200,rungruedeeTransfer:0}]);assert.deepEqual(tour.monthlyTotals,{cash:600,transfer:1100,deposit:100,credit:200,rungruedeeTransfer:0});
+  assert.deepEqual(tour.monthlyRows,[{month:"2026-09",cash:600,transfer:1100,unknownPayment:0,deposit:100,credit:200,rungruedeeTransfer:0}]);assert.deepEqual(tour.monthlyTotals,{cash:600,transfer:1100,unknownPayment:0,deposit:100,credit:200,rungruedeeTransfer:0});
   const naruemonDeposit=buildPrintCenterReport({bookings:[{bookingCode:"DEP1",travelDate:"2026-09-21",status:"confirmed",paymentMethod:"เงินสด",depositAmount:300,depositPaymentMethod:"นฤมล",passengers:[{program:{programId:"boat_ticket",name:"ตั๋วเรือ",qty:1,price:1000}}]}],paymentMethods,date:"2026-09-21",toDate:"2026-09-21",type:"tour_expense_reference"});
   assert.equal(naruemonDeposit.rows[0].boatCash,700);assert.equal(naruemonDeposit.rows[0].naruemonTransfer,0);assert.equal(naruemonDeposit.totals.accounts["นฤมล"],300);
   const tent=buildPrintCenterReport({bookings:referenceBookings,date:"2026-09-21",toDate:"2026-09-21",type:"tent_fee_reference"});
   assert.equal(tent.rows[0].nights,2);assert.equal(tent.rows[0].people,2);assert.equal(tent.rows[0].rate,80);assert.equal(tent.rows[0].total,320);
   const van=buildPrintCenterReport({bookings:referenceBookings,paymentMethods,date:"2026-09-21",toDate:"2026-09-21",type:"van_daily_reference"});
-  assert.deepEqual(van.rows[0],{date:"2026-09-21",cash:0,transfer:500,total:500});assert.deepEqual(van.monthlyRows,[{month:"2026-09",cash:0,transfer:500,total:500}]);assert.deepEqual(van.monthlyTotals,{cash:0,transfer:500,total:500});
+  assert.deepEqual(van.rows[0],{date:"2026-09-21",cash:0,transfer:500,unknownPayment:0,total:500});assert.deepEqual(van.monthlyRows,[{month:"2026-09",cash:0,transfer:500,unknownPayment:0,total:500}]);assert.deepEqual(van.monthlyTotals,{cash:0,transfer:500,unknownPayment:0,total:500});
   const work=buildPrintCenterReport({bookings:referenceBookings,paymentMethods,date:"2026-09-21",toDate:"2026-09-23",type:"van_work_order_reference"});
   assert.equal(work.rows.length,2);assert.equal(work.rows[0].location,"บขส. → ไม่ระบุ");assert.equal(work.rows[1].location,"สนามบิน → ไม่ระบุ");
   const monthly=buildPrintCenterReport({bookings:referenceBookings,paymentMethods,date:"2026-09-01",toDate:"2026-09-30",type:"tour_monthly_reference"});
-  assert.deepEqual(monthly.rows[0],{month:"2026-09",cash:600,transfer:1100,deposit:100,credit:200,rungruedeeTransfer:0});assert.deepEqual(monthly.totals,{cash:600,transfer:1100,deposit:100,credit:200,rungruedeeTransfer:0});assert.equal("remaining" in monthly.rows[0],false);assert.equal("withdrawal" in monthly.rows[0],false);
+  assert.deepEqual(monthly.rows[0],{month:"2026-09",cash:600,transfer:1100,unknownPayment:0,deposit:100,credit:200,rungruedeeTransfer:0});assert.deepEqual(monthly.totals,{cash:600,transfer:1100,unknownPayment:0,deposit:100,credit:200,rungruedeeTransfer:0});assert.equal("remaining" in monthly.rows[0],false);assert.equal("withdrawal" in monthly.rows[0],false);
 });
 
 test("boat-ticket totals follow program code, not a package name containing boat ticket",()=>{
@@ -570,7 +582,7 @@ test("15 October tour report separates deposits, excludes travel and keeps equip
   assert.deepEqual([row.boatCash,row.boatTransfer,row.packageCash,row.packageTransfer,row.tentCash,row.tentTransfer,row.accommodationCash,row.accommodationTransfer],[4100,5900,0,28000,0,0,0,0]);
   assert.deepEqual([row.deposit,row.credit,row.naruemonTransfer,row.rungruedeeTransfer,row["rujirojDepositCash"],row["rujirojDepositTransfer"],row.totalRevenue],[4700,0,33900,700,0,0,43030]);
   assert.equal(report.totals.totalRevenue,43030);
-  assert.deepEqual(report.monthlyRows,[{month:"2026-10",cash:4100,transfer:34230,deposit:4700,credit:0,rungruedeeTransfer:700}]);
+  assert.deepEqual(report.monthlyRows,[{month:"2026-10",cash:4100,transfer:34230,unknownPayment:0,deposit:4700,credit:0,rungruedeeTransfer:700}]);
 });
 
 test("Rungruedee daily and monthly columns include net sales as well as deposits",()=>{
@@ -607,9 +619,9 @@ test("van report uses each leg's service date and Master Data code even when the
   const report=buildPrintCenterReport({bookings:[booking],paymentMethods,transportationMethods,date:"2026-09-21",toDate:"2026-09-23",type:"van_daily_reference"});
   assert.equal(report.title,"รายงานรถตู้");
   assert.deepEqual(report.summary,{vanLegs:2,unpricedLegs:0});
-  assert.deepEqual(report.rows,[{date:"2026-09-21",cash:400,transfer:0,total:400},{date:"2026-09-22",cash:0,transfer:0,total:0},{date:"2026-09-23",cash:0,transfer:600,total:600}]);
-  assert.deepEqual(report.monthlyRows,[{month:"2026-09",cash:400,transfer:600,total:1000}]);
-  assert.deepEqual(report.monthlyTotals,{cash:400,transfer:600,total:1000});
+  assert.deepEqual(report.rows,[{date:"2026-09-21",cash:400,transfer:0,unknownPayment:0,total:400},{date:"2026-09-22",cash:0,transfer:0,unknownPayment:0,total:0},{date:"2026-09-23",cash:0,transfer:600,unknownPayment:0,total:600}]);
+  assert.deepEqual(report.monthlyRows,[{month:"2026-09",cash:400,transfer:600,unknownPayment:0,total:1000}]);
+  assert.deepEqual(report.monthlyTotals,{cash:400,transfer:600,unknownPayment:0,total:1000});
   const returnDay=buildPrintCenterReport({bookings:[booking],paymentMethods,transportationMethods,date:"2026-09-23",toDate:"2026-09-23",type:"van_daily_reference"});
   assert.equal(returnDay.totals.total,600);
   assert.equal(returnDay.monthlyTotals.total,600);
