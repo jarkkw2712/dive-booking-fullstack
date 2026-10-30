@@ -33,6 +33,16 @@ function accommodationInputError(booking){
 }
 function travelStopInputError(booking){const validQuantity=value=>Number.isInteger(Number(value??1))&&Number(value??1)>=1&&Number(value??1)<=30;for(const person of booking.passengers||[]){if(!validQuantity(person.transportationQuantity)||!validQuantity(person.returnTransportationQuantity))return"จำนวนรถต้องเป็นจำนวนเต็ม 1–30 คัน";const stops=person.extraTransportStops??[];if(!Array.isArray(stops)||stops.length>30)return"จุดรับส่งเพิ่มเติมต้องเป็นรายการไม่เกิน 30 จุดต่อคน";for(const stop of stops){if(!stop||typeof stop!=="object"||Array.isArray(stop))return"รูปแบบจุดรับส่งเพิ่มเติมไม่ถูกต้อง";if(!validQuantity(stop.quantity))return"จำนวนรถของจุดแวะต้องเป็นจำนวนเต็ม 1–30 คัน";const amount=Number(stop.amount??0);if(!Number.isFinite(amount)||amount<0||amount>100000000||Math.abs(amount*100-Math.round(amount*100))>0.000001)return"ราคาจุดรับส่งเพิ่มเติมต้องเป็นตัวเลขไม่ติดลบและมีทศนิยมไม่เกิน 2 ตำแหน่ง";if(stop.date&&!/^\d{4}-\d{2}-\d{2}$/.test(String(stop.date)))return"วันที่จุดรับส่งเพิ่มเติมไม่ถูกต้อง";if((stop.method||amount)&&!stop.date)return"กรุณาระบุวันที่ของจุดรับส่งเพิ่มเติม";if(amount&&!stop.method)return"กรุณาเลือกวิธีการเดินทางของจุดรับส่งที่มีราคา";for(const field of ["from","to","method","paymentMethod"])if(String(stop[field]??"").length>250)return"รายละเอียดจุดรับส่งเพิ่มเติมยาวเกินไป"}}return""}
 async function saveBookingRpc(booking){
+  const incompleteIslandItems=(booking.passengers||[]).flatMap(person=>person.islandAddOns||[]).filter(item=>item.days===undefined||item.days===null);
+  if(booking.bookingCode&&incompleteIslandItems.length){
+    const existing=await supabaseAdmin.rpc("list_bookings_json_v27");
+    if(existing.error&&!missingBookingRpc(existing.error))return existing;
+    if(!existing.error){
+      const current=(existing.data||[]).find(row=>row.bookingCode===booking.bookingCode);
+      const saved=(current?.passengers||[]).flatMap(person=>person.islandAddOns||[]);
+      if(incompleteIslandItems.some(item=>saved.some(old=>old.id===item.id&&Number(old.days??1)>1)))return{error:{message:"Booking นี้มี Island Add-on หลายวัน กรุณารีเฟรชหน้าและเปิด Booking ใหม่ก่อนบันทึก เพื่อรักษาจำนวนวัน"},migrationRequired:false};
+    }
+  }
   const withIslandDays=await supabaseAdmin.rpc("upsert_booking_v30",{p_booking:booking});
   if(!missingBookingRpc(withIslandDays.error))return withIslandDays;
   if(hasMultiDayIslandAddon(booking))return{error:{message:"กรุณารัน migration 20261030_050_island_addon_days.sql ก่อนบันทึก Island Add-on หลายวัน"},migrationRequired:true};

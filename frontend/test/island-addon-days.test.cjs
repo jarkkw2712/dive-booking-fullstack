@@ -17,3 +17,11 @@ test("Island Add-on defaults to one day and bills days times quantity times unit
   assert.match(app,/islandAddOnRevenue:isl/);
   assert.match(app,/islandAddonBillableQty\(item\)\*Number\(item\.price\|\|0\)/);
 });
+
+test("dive receipt keeps items with different day counts on distinct lines",()=>{
+  const source=island.slice(island.indexOf("const groupedItemsBeforeDiveReceipt"));
+  const context={documentGroupedItems:()=>[],addonVisibleOnDocument:()=>true,islandAddonDays:item=>Number(item.days??1),islandAddonBillableQty:item=>Number(item.qty??1)*Number(item.days??1)};
+  vm.runInNewContext(`${source}\nresult=documentGroupedItems({passengers:[{islandAddOns:[{id:"dive",name:"ดำน้ำ",days:1,qty:1,price:100},{id:"dive",name:"ดำน้ำ",days:3,qty:1,price:100}]}]},{diveOnly:true})`,context);
+  assert.equal(context.result.length,2);assert.deepEqual([...context.result].map(row=>row.total),[100,300]);
+  assert.match(context.result[0].name,/1 วัน/);assert.match(context.result[1].name,/3 วัน/);
+});

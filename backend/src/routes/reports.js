@@ -27,7 +27,8 @@ router.get("/print-center",async(req,res)=>{
     if(!reportPermissions[type])return res.status(400).json({error:"Invalid report type"});
     if(req.user?.role!=="admin"&&!reportPermissions[type].some(permission=>req.user?.permissions?.[permission]))return res.status(403).json({error:"Permission denied for this report"});
     if(!nonFinancialReportTypes.has(type)&&!can(req.user,"viewMoney"))return res.status(403).json({error:"Permission denied: viewMoney"});
-    let bookingResult=await supabaseAdmin.rpc("list_bookings_json_v26");
+    let bookingResult=await supabaseAdmin.rpc("list_bookings_json_v27");
+    if(["PGRST202","42883"].includes(bookingResult.error?.code))bookingResult=await supabaseAdmin.rpc("list_bookings_json_v26");
     if(["PGRST202","42883"].includes(bookingResult.error?.code))bookingResult=await supabaseAdmin.rpc("list_bookings_json_v25");
     if(["PGRST202","42883"].includes(bookingResult.error?.code))bookingResult=await supabaseAdmin.rpc("list_bookings_json_v24");
     if(["PGRST202","42883"].includes(bookingResult.error?.code))bookingResult=await supabaseAdmin.rpc("list_bookings_json_v23");
