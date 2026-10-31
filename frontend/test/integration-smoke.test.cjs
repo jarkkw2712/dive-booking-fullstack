@@ -58,7 +58,7 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.30-04/);
+  assert.match(html,/Version 2026\.10\.31-01/);
   for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js","js/deploymentGuard.js"]){const version=asset==="js/app.js"?"20261030-04":asset==="js/islandAddonMaster.js"?"20261030-03":["css/style.css","js/financial.js"].includes(asset)?"20261030-02":["js/travelStops.js","js/deploymentGuard.js"].includes(asset)?"20261029-02":asset==="js/api.js"?"20261023-03":asset==="js/bookingOriginal.js"?"20261021-03":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
 });
 test("booking CSV protects text cells from spreadsheet formulas while preserving numeric values",()=>{
