@@ -585,6 +585,16 @@ test("15 October tour report separates deposits, excludes travel and keeps equip
   assert.deepEqual(report.monthlyRows,[{month:"2026-10",cash:4100,transfer:34230,unknownPayment:0,deposit:4700,credit:0,rungruedeeTransfer:700}]);
 });
 
+test("company-booked tent accommodation appears in tour tent transfer and monthly totals",()=>{
+  const date="2026-10-16",paymentMethods=[{method_id:"bank_transfer",method_name:"นฤมล",payment_type:"transfer"},{method_id:"bank_transfer4",method_name:"ลัดดาวรรณ์",payment_type:"transfer"}];
+  const booking={bookingCode:"BK1790215269755",status:"confirmed",travelDate:date,paymentMethod:"นฤมล",depositAmount:1000,depositPaymentMethod:"นฤมล",creditAmount:0,paymentBreakdown:{deposit:{"นฤมล":1000},remaining:{"นฤมล":3650}},accommodations:[{accommodationId:"SB Tent",accommodationName:"เต็นท์ใหญ่",accommodationBookedBy:"company",accommodationQty:1,accommodationNights:1,accommodationPrice:650}],passengers:[{program:{programId:"boat_ticket",qty:1,price:1700},preAddOns:[{id:"mask",selected:true,qty:2,nights:2,price:50,paymentMethod:"ลัดดาวรรณ์"},{id:"fin",selected:true,qty:2,nights:2,price:100,paymentMethod:"ลัดดาวรรณ์"}]},{program:{programId:"boat_ticket",qty:1,price:1700}}]};
+  const report=buildPrintCenterReport({bookings:[booking],paymentMethods,date,toDate:date,type:"tour_expense_reference"});
+  assert.equal(report.rows[0].tentTransfer,650);assert.equal(report.rows[0].accommodationTransfer,0);assert.equal(report.rows[0].naruemonTransfer,3050);assert.equal(report.rows[0].totalRevenue,4650);assert.equal(report.monthlyTotals.transfer,3650);
+  const withOtherStays={...booking,accommodations:[...booking.accommodations,{accommodationId:"small_tent",accommodationName:"เต็นท์เล็ก",accommodationBookedBy:"company",accommodationQty:2,accommodationNights:2,accommodationPrice:450},{accommodationId:"park_house",accommodationName:"บ้านพัก",accommodationBookedBy:"company",accommodationQty:1,accommodationPrice:500},{accommodationId:"park_tent",accommodationName:"เต็นท์อุทยาน",accommodationBookedBy:"customer",accommodationQty:1,accommodationPrice:700}]};
+  const mixed=buildPrintCenterReport({bookings:[withOtherStays],paymentMethods,date,toDate:date,type:"tour_expense_reference"}).rows[0];
+  assert.equal(mixed.tentTransfer,2450);assert.equal(mixed.accommodationTransfer,500);assert.equal(mixed.totalRevenue,6950);
+});
+
 test("Rungruedee daily and monthly columns include net sales as well as deposits",()=>{
   const paymentMethods=[
     {method_id:"bank_transfer2",method_name:"รุ่งฤดี",payment_type:"transfer"},
