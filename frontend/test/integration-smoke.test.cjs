@@ -58,8 +58,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.10\.31-03/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js","js/deploymentGuard.js"]){const version=asset==="js/app.js"?"20261030-04":asset==="js/islandAddonMaster.js"?"20261030-03":["css/style.css","js/financial.js"].includes(asset)?"20261030-02":["js/travelStops.js","js/deploymentGuard.js"].includes(asset)?"20261029-02":asset==="js/api.js"?"20261023-03":asset==="js/bookingOriginal.js"?"20261021-03":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.10\.31-04/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js","js/deploymentGuard.js"]){const version=asset==="js/app.js"?"20261031-04":asset==="js/islandAddonMaster.js"?"20261030-03":["css/style.css","js/financial.js"].includes(asset)?"20261030-02":["js/travelStops.js","js/deploymentGuard.js"].includes(asset)?"20261029-02":asset==="js/api.js"?"20261023-03":asset==="js/bookingOriginal.js"?"20261021-03":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
 });
 test("booking CSV protects text cells from spreadsheet formulas while preserving numeric values",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),source=app.slice(app.indexOf("function excelCell"),app.indexOf("function bookingExcelRow")),context={};
@@ -489,12 +489,13 @@ test("printable reports keep the company in the top-right and repeat table headi
 test("songthaew report prints BKS and Lignite routes separately on landscape A4",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
   const source=app.slice(app.indexOf("function vanWorkOrderReferenceHtml"),app.indexOf("const referencePrintReportHtmlBeforeTemplateReports"));
-  const context={referenceReportHeader:()=>"<header>Sabina</header>",referenceReportNotes:()=>"",referenceReportDate:value=>value,escapeHtml:value=>String(value),money:value=>Number(value||0).toFixed(2)};
+  const context={referenceReportHeader:report=>`<header>${report.title}</header>`,referenceReportNotes:()=>"",referenceReportDate:value=>value,escapeHtml:value=>String(value),money:value=>Number(value||0).toFixed(2)};
   require("node:vm").runInNewContext(`${source}\nhtml=vanWorkOrderReferenceHtml({type:'songthaew_work_order_reference',rows:[{no:1,date:'2026-10-20',direction:'ขาไป',leader:'มาลี',phone:'081',pax:2,vehicles:1,method:'รับลิกไนท์',from:'บขส.',to:'ซาบีน่า',amount:300}],summary:{jobs:1,pax:2,vehicles:1,amount:300}});`,context);
   assert.match(context.html,/reference-report-landscape reference-van-work-report/);
   assert.match(context.html,/บขส\.<\/span> <b aria-hidden="true">→<\/b> <span>ซาบีน่า/);
-  assert.match(context.html,/รับลิกไนท์/);assert.match(context.html,/300\.00/);
-  assert.equal((context.html.match(/class="reference-total-row"/g)||[]).length,1);
+  for(const label of ["ใบรับ","ใบกลับ","ชื่อคนขับ","คันที่","รอบที่","ประเภทรถ","ทะเบียนรถ"])assert.ok(context.html.includes(label));
+  assert.doesNotMatch(context.html,/จำนวนรถ|ค่ารถรวม|วิธีเดินทาง|300\.00/);
+  assert.equal((context.html.match(/class="reference-total-row"/g)||[]).length,2);
 });
 test("front charge print report keeps template columns and handwritten crew fields on A4",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),css=fs.readFileSync(path.join(root,"css","style.css"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/reports.js"),"utf8");
