@@ -21,7 +21,9 @@ const nonFinancialReportTypes=new Set(["boat","island","insurance","driver","cus
 async function creditSettlementsForDate(date){
   const result=[];
   for(let offset=0;;offset+=1000){
-    const {data,error}=await supabaseAdmin.from("booking_credit_settlements").select("settlement_date,origin_travel_date,payment_type,amount,bookings!inner(booking_code)").eq("settlement_date",date).order("settlement_id").range(offset,offset+999);
+    const query=()=>supabaseAdmin.from("booking_credit_settlements").select("settlement_date,origin_travel_date,payment_type,amount,bookings!inner(booking_code)").eq("settlement_date",date);
+    let {data,error}=await query().is("voided_at",null).order("settlement_id").range(offset,offset+999);
+    if(error&&["42703","PGRST204"].includes(error.code)&&/voided_at/i.test(error.message||""))({data,error}=await query().order("settlement_id").range(offset,offset+999));
     if(error)throw error;
     for(const row of data||[])result.push({bookingCode:row.bookings?.booking_code,date:row.settlement_date,originTravelDate:row.origin_travel_date,paymentType:row.payment_type,amount:row.amount});
     if(!data||data.length<1000)break;

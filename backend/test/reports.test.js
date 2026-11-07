@@ -33,6 +33,17 @@ test("credit settlement migration is atomic, idempotent and limits historical da
   assert.doesNotMatch(sql,/delete\s+from|truncate\s/i);assert.match(route,/requirePermission\("viewMoney"\)/);assert.match(route,/upsert_booking_v31/);
 });
 
+test("voided credit settlements are excluded from receipt query and preserve the audit trail",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../supabase/migrations/20261107152205_credit_settlement_void.sql"),"utf8"),reports=fs.readFileSync(path.resolve(testDir,"../src/routes/reports.js"),"utf8"),route=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8");
+  assert.match(reports,/\.is\("voided_at",null\)/);assert.match(sql,/CREDIT_SETTLEMENT_VOIDED/);assert.match(sql,/voided_at is null/);assert.match(sql,/for update/i);assert.doesNotMatch(sql,/delete\s+from/i);assert.match(route,/requirePermission\("editBooking"\),requirePermission\("viewMoney"\)/);
+});
+
+test("receipt settlements stay readable before the void migration and exclude voids after it",async()=>{
+  const route=fs.readFileSync(path.resolve(testDir,"../src/routes/reports.js"),"utf8"),source=route.slice(route.indexOf("async function creditSettlementsForDate"),route.indexOf('router.get("/print-center"'));
+  async function check(migrationInstalled){const attempts=[];const row={settlement_date:'2026-10-28',payment_type:'cash',amount:1000,bookings:{booking_code:'BK1'}};const context={supabaseAdmin:{from(){let filtered=false;const q={select(){return q},eq(){return q},is(){filtered=true;return q},order(){return q},range(){attempts.push(filtered);return Promise.resolve(filtered&&!migrationInstalled?{error:{code:'42703',message:'column voided_at does not exist'}}:{data:[row],error:null})}};return q}}};vm.runInNewContext(`${source};this.fetch=creditSettlementsForDate`,context);const rows=await context.fetch('2026-10-28');assert.equal(rows[0].amount,1000);assert.deepEqual(attempts,migrationInstalled?[true]:[true,false])}
+  await check(false);await check(true);
+});
+
 test("booking API caches expensive list reads and invalidates after mutations",()=>{
   const route=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8");
   assert.match(route,/const bookingCache=/);
