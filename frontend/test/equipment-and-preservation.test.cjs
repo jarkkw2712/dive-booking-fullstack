@@ -258,5 +258,5 @@ test("equipment range renders all master columns in each of two tables with subt
   const report={title:"ใบรายงานอุปกรณ์ (ช่วงวันที่)",range:{from:"2026-11-07",to:"2026-11-08"},equipmentColumns:columns,rows:[{date:"2026-11-07",program:"ตั๋วเรือ",...amount},{date:"2026-11-07",subtotal:true,...amount}],dailyRows:[{date:"2026-11-07",...amount}],equipmentTotals:amount};
   const context={report,escapeHtml:String,getCompanySettings:()=>({company_name:"Sabina"}),money:value=>String(Number(value||0))};
   vm.runInNewContext(`${section("function equipmentRangeReportHtml(report)","function excelDate(")};html=equipmentRangeReportHtml(report);`,context);
-  assert.equal((context.html.match(/equipment-range-page/g)||[]).length,2);assert.equal((context.html.match(/อุปกรณ์ 12/g)||[]).length,2);assert.match(context.html,/รวมรายวัน/);assert.equal((context.html.match(/รวมทั้งหมด/g)||[]).length,2);
+  assert.equal((context.html.match(/equipment-range-page/g)||[]).length,2);assert.equal((context.html.match(/อุปกรณ์ 12/g)||[]).length,2);assert.match(context.html,/รวมรายวัน/);assert.equal((context.html.match(/รวมทั้งหมด/g)||[]).length,2);assert.match(context.html,/>07\/11<\/td>/);
 });
