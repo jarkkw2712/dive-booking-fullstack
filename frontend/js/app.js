@@ -477,6 +477,10 @@ function configureReportOptions(){
   const management=select.querySelector('option[value="management"]');if(management)management.dataset.anyPermission="printManagementReport";
   if(!select.querySelector('option[value="front_charge"]')){const option=new Option("ใบหน้าชาร์จ (รายวัน)","front_charge");option.dataset.anyPermission="printCounterReport,printDailyReport";select.querySelector('option[value="register_summary"]')?.before(option)}
   if(!select.querySelector('option[value="register_summary_range"]')){const option=new Option("ใบสรุปยอดยืนยันการจอง (ช่วงวันที่)","register_summary_range");option.dataset.anyPermission="printCounterReport,printDailyReport";select.options[1]?.before(option)}
+  const selected=select.value,options=[...select.options];
+  for(const option of options){const current=option.textContent.trim(),prefix=/^ใบสรุป/.test(current)?"ใบสรุป":"ใบรายงาน",name=current.replace(/^(?:ใบรายงาน|ใบสรุป|รายงาน|ใบ)\s*/,"");option.textContent=`${prefix} ${name}`}
+  options.sort((a,b)=>a.textContent.replace(/^ใบ(?:รายงาน|สรุป)\s+/,"").localeCompare(b.textContent.replace(/^ใบ(?:รายงาน|สรุป)\s+/,""),"th",{numeric:true}));
+  for(const option of options)select.appendChild(option);select.value=selected;
   [...select.options].forEach(option=>{option.hidden=!hasAnyPermission(option.dataset.anyPermission);option.disabled=option.hidden;option.classList.toggle("permission-hidden",option.hidden)});
   if(select.selectedOptions[0]?.disabled)select.value=[...select.options].find(option=>!option.disabled)?.value||"";
 }
