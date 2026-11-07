@@ -20,5 +20,5 @@ test("an old browser cannot silently replace saved Island Add-on days",async()=>
   assert.match(blocked.error.message,/รีเฟรช/);
   assert.deepEqual(calls,["list_bookings_json_v27"]);
   const saved=await context.save({bookingCode:"BK1",passengers:[{islandAddOns:[{id:"dive",qty:2,price:100,days:3}]}]});
-  assert.equal(saved.data.bookingCode,"BK1");assert.equal(calls.at(-1),"upsert_booking_v30");
+  assert.equal(saved.data.bookingCode,"BK1");assert.equal(calls.at(-1),"upsert_booking_v31");
 });

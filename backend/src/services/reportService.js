@@ -528,7 +528,7 @@ function receiptPaymentSplit(amount,source,selected,paymentMethods){
   });
   return{cash,transfer,unknown};
 }
-function dailyReceiptSummary(bookings,date,paymentMethods,masters){
+function dailyReceiptSummary(bookings,date,paymentMethods,masters,creditSettlements=[]){
   const daily=bookings.filter(booking=>activeBooking(booking)&&booking.travelDate===date),totals={depositCash:0,depositTransfer:0,creditCash:0,creditTransfer:0,balanceCash:0,balanceTransfer:0,totalCash:0,totalTransfer:0,totalUnknown:0,grandTotal:0};
   const rows=daily.map((booking,index)=>{
     const total=receiptDocumentTotal(booking,masters),deposit=Math.min(receiptCents(booking.depositAmount),total),credit=Math.min(receiptCents(booking.creditAmount),total-deposit),balance=total-deposit-credit,breakdown=booking.paymentBreakdown||{};
@@ -539,6 +539,15 @@ function dailyReceiptSummary(bookings,date,paymentMethods,masters){
     for(const key of Object.keys(totals))totals[key]+=row[key];
     return row;
   });
+  const bookingsByCode=new Map(bookings.map(booking=>[booking.bookingCode,booking]));
+  for(const settlement of creditSettlements){
+    const booking=bookingsByCode.get(settlement.bookingCode),amount=receiptAmount(receiptCents(settlement.amount));
+    if(!booking||settlement.date!==date||settlement.originTravelDate===date||booking.travelDate===date||amount<=0||!["cash","transfer"].includes(settlement.paymentType))continue;
+    const cash=settlement.paymentType==="cash"?amount:0,transfer=settlement.paymentType==="transfer"?amount:0;
+    const row={no:rows.length+1,agent:booking.agentName||"",leader:leaderName(booking),program:uniqueValues(passengersOf(booking),p=>programShort(p.program?.name)),depositCash:0,depositTransfer:0,creditCash:0,creditTransfer:0,balanceCash:cash,balanceTransfer:transfer,totalCash:cash,totalTransfer:transfer,totalUnknown:0,grandTotal:amount,creditSettlement:true};
+    for(const key of Object.keys(totals))totals[key]+=row[key];
+    rows.push(row);
+  }
   for(const key of Object.keys(totals))totals[key]=receiptAmount(receiptCents(totals[key]));
   return{date,type:"receipt_summary",title:"ใบสรุปยอดใบสำคัญรับเงิน",purpose:"รายงานประจำวัน",rows,receiptTotals:totals,summary:{bookings:daily.length,pax:daily.reduce((sum,booking)=>sum+passengersOf(booking).length,0)}};
 }
@@ -580,7 +589,7 @@ function dailyEquipmentSummary(bookings,date,masterAddOns=[],paymentMethods=[]){
     equipmentColumns,rows,equipmentTotals,summary:{bookings:rows.length,pax:equipmentTotals.pax}};
 }
 
-export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows=[],paymentMethods=[],masterPrograms=[],masterAddOns=[],masterIslandAddOns=[],masterAccommodations=[],masterAgents=[],transportationMethods=[],packageCostRates=[],date,toDate,type}){
+export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows=[],paymentMethods=[],masterPrograms=[],masterAddOns=[],masterIslandAddOns=[],masterAccommodations=[],masterAgents=[],transportationMethods=[],packageCostRates=[],creditSettlements=[],date,toDate,type}){
   const active=bookings.filter(activeBooking);
   toDate=toDate||(type==="management"?isoDate(date,6):date);
   const selectedDays=reportDays(date,toDate),entries=selectedDays.flatMap(day=>movements(active,day).map(row=>({...row,date:day})));
@@ -588,7 +597,7 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows
   if(type==="register_summary")return dailyRegisterSummary(active,date);
   if(type==="register_summary_range")return rangeRegisterSummary(active,date,toDate);
   if(type==="front_charge")return frontChargeReport(active,date);
-  if(type==="receipt_summary")return dailyReceiptSummary(active,date,paymentMethods,{masterAddOns,masterIslandAddOns,masterAccommodations,transportationMethods});
+  if(type==="receipt_summary")return dailyReceiptSummary(bookings,date,paymentMethods,{masterAddOns,masterIslandAddOns,masterAccommodations,transportationMethods},creditSettlements);
   if(type==="equipment_summary")return dailyEquipmentSummary(active,date,masterAddOns,paymentMethods);
   if(type==="management")return{date,type,...managementReport(active,financialRows,expenseRows,date,toDate,masterAddOns,masterAccommodations)};
   if(type==="tour_expense_reference")return tourExpenseReferenceReport(active,date,toDate,paymentMethods);

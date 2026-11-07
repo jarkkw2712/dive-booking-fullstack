@@ -1,7 +1,7 @@
 import express from "express";
 import { requireAuth, requirePermission } from "../middleware/auth.js";
 import { supabaseAdmin } from "../services/supabase.js";
-import { bankReferencesForUser, bookingForUser } from "../services/permissionViews.js";
+import { bankReferencesForUser, bookingForUser, can } from "../services/permissionViews.js";
 
 const router=express.Router();
 router.use(requireAuth);
@@ -43,6 +43,9 @@ async function saveBookingRpc(booking){
       if(incompleteIslandItems.some(item=>saved.some(old=>old.id===item.id&&Number(old.days??1)>1)))return{error:{message:"Booking นี้มี Island Add-on หลายวัน กรุณารีเฟรชหน้าและเปิด Booking ใหม่ก่อนบันทึก เพื่อรักษาจำนวนวัน"},migrationRequired:false};
     }
   }
+  const creditAware=await supabaseAdmin.rpc("upsert_booking_v31",{p_booking:booking});
+  if(!missingBookingRpc(creditAware.error))return creditAware;
+  if((booking.creditSettlementsPending||[]).length)return{error:{message:"กรุณารัน migration 20261107145557_credit_settlement_v1.sql ก่อนบันทึกรับชำระยอดเชื่อ"},migrationRequired:true};
   const withIslandDays=await supabaseAdmin.rpc("upsert_booking_v30",{p_booking:booking});
   if(!missingBookingRpc(withIslandDays.error))return withIslandDays;
   if(hasMultiDayIslandAddon(booking))return{error:{message:"กรุณารัน migration 20261030_050_island_addon_days.sql ก่อนบันทึก Island Add-on หลายวัน"},migrationRequired:true};
@@ -93,8 +96,9 @@ router.post("/check-duplicate",async(req,res)=>{
   }
   res.json({duplicates:[...found.values()]});
 });
-router.post("/",requirePermission("createBooking"),async(req,res)=>{const inputError=equipmentInputError(req.body||{})||islandAddonInputError(req.body||{})||accommodationInputError(req.body||{})||travelStopInputError(req.body||{});if(inputError)return res.status(400).json({error:inputError});const {data,error,migrationRequired}=await saveBookingRpc({...req.body,createdBy:req.user.username});if(error)return res.status(migrationRequired?503:500).json({error:error.message});invalidateBookingCache();res.json(data)});
-router.put("/:code",requirePermission("editBooking"),async(req,res)=>{const inputError=equipmentInputError(req.body||{})||islandAddonInputError(req.body||{})||accommodationInputError(req.body||{})||travelStopInputError(req.body||{});if(inputError)return res.status(400).json({error:inputError});const {data,error,migrationRequired}=await saveBookingRpc({...req.body,bookingCode:req.params.code,createdBy:req.user.username});if(error)return res.status(migrationRequired?503:500).json({error:error.message});invalidateBookingCache();res.json(data)});
+router.post("/",requirePermission("createBooking"),async(req,res)=>{const pending=req.body?.creditSettlementsPending;if(pending!==undefined&&!Array.isArray(pending))return res.status(400).json({error:"Invalid credit settlement entries"});if(pending?.length&&!can(req.user,"viewMoney"))return res.status(403).json({error:"Permission denied: viewMoney"});const inputError=equipmentInputError(req.body||{})||islandAddonInputError(req.body||{})||accommodationInputError(req.body||{})||travelStopInputError(req.body||{});if(inputError)return res.status(400).json({error:inputError});const {data,error,migrationRequired}=await saveBookingRpc({...req.body,createdBy:req.user.username,settlementActor:req.user.username,settlementActorRole:req.user.role});if(error)return res.status(migrationRequired?503:500).json({error:error.message});invalidateBookingCache();res.json(data)});
+router.put("/:code",requirePermission("editBooking"),async(req,res)=>{const pending=req.body?.creditSettlementsPending;if(pending!==undefined&&!Array.isArray(pending))return res.status(400).json({error:"Invalid credit settlement entries"});if(pending?.length&&!can(req.user,"viewMoney"))return res.status(403).json({error:"Permission denied: viewMoney"});const inputError=equipmentInputError(req.body||{})||islandAddonInputError(req.body||{})||accommodationInputError(req.body||{})||travelStopInputError(req.body||{});if(inputError)return res.status(400).json({error:inputError});const {data,error,migrationRequired}=await saveBookingRpc({...req.body,bookingCode:req.params.code,createdBy:req.user.username,settlementActor:req.user.username,settlementActorRole:req.user.role});if(error)return res.status(migrationRequired?503:500).json({error:error.message});invalidateBookingCache();res.json(data)});
+router.get("/:code/credit-settlements",requirePermission("viewMoney"),async(req,res)=>{try{const booking=await supabaseAdmin.from("bookings").select("booking_id").eq("booking_code",req.params.code).maybeSingle();if(booking.error)throw booking.error;if(!booking.data)return res.status(404).json({error:"Booking not found"});const rows=[];for(let offset=0;;offset+=1000){const result=await supabaseAdmin.from("booking_credit_settlements").select("idempotency_key,settlement_date,payment_method_id,payment_method_name,payment_type,amount,created_by,created_at").eq("booking_id",booking.data.booking_id).order("created_at").order("idempotency_key").range(offset,offset+999);if(result.error)throw result.error;rows.push(...(result.data||[]));if((result.data||[]).length<1000)break}res.json(rows)}catch(error){res.status(503).json({error:"ไม่สามารถโหลดประวัติรับชำระยอดเชื่อ: "+error.message})}});
 router.post("/:code/cancel",requirePermission("cancelBooking"),async(req,res)=>{if(!String(req.body.reason||"").trim())return res.status(400).json({error:"Cancellation reason is required"});const {data,error}=await supabaseAdmin.rpc("cancel_booking_by_code",{p_booking_code:req.params.code,p_reason:req.body.reason});if(error)return res.status(500).json({error:error.message});invalidateBookingCache();res.json(data)});
 router.get("/:code/timeline",requirePermission("viewAudit"),async(req,res)=>{const {data,error}=await supabaseAdmin.from("audit_logs").select("*").eq("booking_code",req.params.code).order("changed_at",{ascending:true});if(error)return res.status(500).json({error:error.message});res.json(data||[])});
 export default router;

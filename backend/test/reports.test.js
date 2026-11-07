@@ -8,6 +8,31 @@ import { buildPrintCenterReport } from "../src/services/reportService.js";
 
 const testDir=path.dirname(fileURLToPath(import.meta.url));
 
+test("credit settlement rows appear only on later receipt dates and do not change other reports",()=>{
+  const booking={bookingCode:"CREDIT-A",status:"confirmed",travelDate:"2026-10-23",returnDate:"2026-10-25",leaderTitle:"นาย",leaderFirstName:"A",creditAmount:1650,creditPaymentMethod:"เงินสด",paymentMethod:"เงินสด",passengers:[{program:{programId:"boat_ticket",name:"ตั๋วเรือ",price:1650,qty:1}}]};
+  const settlements=[{bookingCode:"CREDIT-A",date:"2026-10-28",paymentType:"cash",amount:1000},{bookingCode:"CREDIT-A",date:"2026-11-01",paymentType:"transfer",amount:650},{bookingCode:"CREDIT-A",date:"2026-10-23",paymentType:"cash",amount:100}];
+  const methods=[{method_id:"cash",method_name:"เงินสด",payment_type:"cash"}],base={bookings:[booking],paymentMethods:methods};
+  const before=buildPrintCenterReport({...base,date:"2026-10-23",type:"receipt_summary"});
+  const original=buildPrintCenterReport({...base,date:"2026-10-23",type:"receipt_summary",creditSettlements:settlements});
+  assert.deepEqual(original,before);assert.equal(original.rows[0].creditCash,1650);
+  const first=buildPrintCenterReport({...base,date:"2026-10-28",type:"receipt_summary",creditSettlements:settlements});
+  assert.equal(first.rows.length,1);assert.equal(first.rows[0].leader,"นาย A");assert.equal(first.rows[0].creditSettlement,true);assert.equal(first.rows[0].balanceCash,1000);assert.equal(first.rows[0].balanceTransfer,0);assert.equal(first.receiptTotals.totalCash,1000);assert.equal(first.receiptTotals.grandTotal,1000);
+  const second=buildPrintCenterReport({...base,date:"2026-11-01",type:"receipt_summary",creditSettlements:settlements});
+  assert.equal(second.rows.length,1);assert.equal(second.rows[0].balanceCash,0);assert.equal(second.rows[0].balanceTransfer,650);assert.equal(second.receiptTotals.grandTotal,650);
+  for(const type of ["tour_expense_reference","van_daily_reference","equipment_summary","front_charge"]){const args={...base,date:"2026-10-28",type};assert.deepEqual(buildPrintCenterReport({...args,creditSettlements:settlements}),buildPrintCenterReport(args),type)}
+  const moved={...booking,travelDate:"2026-10-28"};
+  const movedReport=buildPrintCenterReport({...base,bookings:[moved],date:"2026-10-28",type:"receipt_summary",creditSettlements:[{...settlements[0],originTravelDate:"2026-10-23"}]});
+  assert.equal(movedReport.rows.length,1);assert.notEqual(movedReport.rows[0].creditSettlement,true);
+  const originalDay=buildPrintCenterReport({...base,bookings:[moved],date:"2026-10-23",type:"receipt_summary",creditSettlements:[{...settlements[2],originTravelDate:"2026-10-23"}]});
+  assert.equal(originalDay.rows.length,0);
+});
+
+test("credit settlement migration is atomic, idempotent and limits historical data access",()=>{
+  const sql=fs.readFileSync(path.resolve(testDir,"../../supabase/migrations/20261107145557_credit_settlement_v1.sql"),"utf8"),route=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8");
+  for(const pattern of [/numeric\(14,2\)/,/idempotency_key uuid not null unique/,/for update/i,/v_paid\+v_amount>v_credit/,/enable row level security/i,/revoke all on public\.booking_credit_settlements from public,anon,authenticated/i,/CREDIT_SETTLEMENT_CREATED/,/upsert_booking_v30\(p_booking\)/])assert.match(sql,pattern);
+  assert.doesNotMatch(sql,/delete\s+from|truncate\s/i);assert.match(route,/requirePermission\("viewMoney"\)/);assert.match(route,/upsert_booking_v31/);
+});
+
 test("booking API caches expensive list reads and invalidates after mutations",()=>{
   const route=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8");
   assert.match(route,/const bookingCache=/);
