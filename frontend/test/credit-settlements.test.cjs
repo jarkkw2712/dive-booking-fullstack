@@ -34,5 +34,5 @@ test('a saved payment can be deleted without entering a reason and no longer cou
   vm.runInNewContext(source,context);context.loadBookingToForm({bookingCode:'BK1'});await new Promise(resolve=>setImmediate(resolve));
   assert.match(elements.creditSettlementHistory.innerHTML,/>ลบ<\/button>/);assert.match(elements.creditSettlementStatus.textContent,/1000 บาท/);
   await elements.creditSettlementHistory.click({target:{closest:selector=>selector==='[data-void-credit]'?{dataset:{voidCredit:'key'}}:null}});
-  assert.deepEqual(submitted,['BK1','key']);assert.match(elements.creditSettlementHistory.innerHTML,/ลบแล้ว/);assert.match(elements.creditSettlementStatus.textContent,/ชำระแล้ว \/ รอบันทึก 0 บาท/);
+  assert.deepEqual(submitted,['BK1','key']);assert.doesNotMatch(elements.creditSettlementHistory.innerHTML,/1000|ลบแล้ว/);assert.match(elements.creditSettlementStatus.textContent,/ชำระแล้ว \/ รอบันทึก 0 บาท/);
 });

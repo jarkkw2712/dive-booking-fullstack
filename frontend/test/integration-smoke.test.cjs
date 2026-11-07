@@ -58,8 +58,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.11\.07-05/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js","js/creditSettlements.js","js/deploymentGuard.js"]){const version=asset==="js/api.js"?"20261107-05":["css/style.css","js/app.js","js/deploymentGuard.js"].includes(asset)?"20261107-04":asset==="js/creditSettlements.js"?"20261107-02":asset==="js/islandAddonMaster.js"?"20261030-03":asset==="js/financial.js"?"20261030-02":asset==="js/travelStops.js"?"20261029-02":asset==="js/bookingOriginal.js"?"20261021-03":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.11\.07-06/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js","js/creditSettlements.js","js/deploymentGuard.js"]){const version=["js/api.js","css/style.css"].includes(asset)?"20261107-05":["js/app.js","js/deploymentGuard.js"].includes(asset)?"20261107-04":asset==="js/creditSettlements.js"?"20261107-03":asset==="js/islandAddonMaster.js"?"20261030-03":asset==="js/financial.js"?"20261030-02":asset==="js/travelStops.js"?"20261029-02":asset==="js/bookingOriginal.js"?"20261021-03":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
 });
 test("booking CSV protects text cells from spreadsheet formulas while preserving numeric values",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),source=app.slice(app.indexOf("function excelCell"),app.indexOf("function bookingExcelRow")),context={};
@@ -220,8 +220,8 @@ test("master data exposes existing prices and edit actions",()=>{
 test("print center exposes role-specific reports and seven-day management output",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8");
-  for(const type of ["counter","boat","island","insurance","driver","management"])assert.match(html,new RegExp(`value=["']${type}["']`));
-  assert.match(html,/ผู้ลงเกาะ\/ขึ้นจากเกาะ/);
+  for(const type of ["insurance","management"])assert.match(html,new RegExp(`value=["']${type}["']`));
+  for(const type of ["counter","boat","island","driver"])assert.doesNotMatch(html,new RegExp(`value=["']${type}["']`));
   assert.match(html,/สรุปวันนี้และ 7 วัน/);
   assert.match(app,/คาดการณ์รวม 7 วัน/);
   assert.match(app,/function configureReportOptions/);
