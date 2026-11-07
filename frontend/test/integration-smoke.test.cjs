@@ -58,8 +58,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.11\.07-06/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js","js/creditSettlements.js","js/deploymentGuard.js"]){const version=["js/api.js","css/style.css"].includes(asset)?"20261107-05":["js/app.js","js/deploymentGuard.js"].includes(asset)?"20261107-04":asset==="js/creditSettlements.js"?"20261107-03":asset==="js/islandAddonMaster.js"?"20261030-03":asset==="js/financial.js"?"20261030-02":asset==="js/travelStops.js"?"20261029-02":asset==="js/bookingOriginal.js"?"20261021-03":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.11\.07-07/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js","js/creditSettlements.js","js/deploymentGuard.js"]){const version=["css/style.css"].includes(asset)?"20261107-06":asset==="js/app.js"?"20261107-07":asset==="js/api.js"?"20261107-05":["js/deploymentGuard.js"].includes(asset)?"20261107-04":asset==="js/creditSettlements.js"?"20261107-03":asset==="js/islandAddonMaster.js"?"20261030-03":asset==="js/financial.js"?"20261030-02":asset==="js/travelStops.js"?"20261029-02":asset==="js/bookingOriginal.js"?"20261021-03":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
 });
 test("booking CSV protects text cells from spreadsheet formulas while preserving numeric values",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),source=app.slice(app.indexOf("function excelCell"),app.indexOf("function bookingExcelRow")),context={};
@@ -240,7 +240,7 @@ test("equipment sheet prints booking rows and one column per master item on A4",
   assert.match(app,/index\+=7/);
   assert.match(css,/\.equipment-report-page\{page:report/);
   assert.match(css,/\.equipment-report-table thead\{display:table-header-group/);
-  assert.match(route,/"equipment_summary"\]\.includes\(type\)\?await supabaseAdmin\.from\("master_addons"\)/);
+  assert.match(route,/"equipment_summary","equipment_summary_range"\]\.includes\(type\)\?await supabaseAdmin\.from\("master_addons"\)/);
 });
 test("booking list owns flexible document search while print center remains date-based",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");

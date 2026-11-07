@@ -253,3 +253,10 @@ test("equipment report paginates many master columns and repeats the correct tot
   assert.match(context.html,/สมชาย/);
   assert.equal((context.html.match(/250\.00/g)||[]).length,4);
 });
+test("equipment range renders all master columns in each of two tables with subtotals",()=>{
+  const columns=Array.from({length:12},(_,index)=>({code:`a${index}`,name:`อุปกรณ์ ${index+1}`})),amount={pax:2,equipment:{a11:3},cash:150,transfer:0,unknown:0,total:150};
+  const report={title:"ใบรายงานอุปกรณ์ (ช่วงวันที่)",range:{from:"2026-11-07",to:"2026-11-08"},equipmentColumns:columns,rows:[{date:"2026-11-07",program:"ตั๋วเรือ",...amount},{date:"2026-11-07",subtotal:true,...amount}],dailyRows:[{date:"2026-11-07",...amount}],equipmentTotals:amount};
+  const context={report,escapeHtml:String,getCompanySettings:()=>({company_name:"Sabina"}),money:value=>String(Number(value||0))};
+  vm.runInNewContext(`${section("function equipmentRangeReportHtml(report)","function excelDate(")};html=equipmentRangeReportHtml(report);`,context);
+  assert.equal((context.html.match(/equipment-range-page/g)||[]).length,2);assert.equal((context.html.match(/อุปกรณ์ 12/g)||[]).length,2);assert.match(context.html,/รวมรายวัน/);assert.equal((context.html.match(/รวมทั้งหมด/g)||[]).length,2);
+});
