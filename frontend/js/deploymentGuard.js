@@ -1,11 +1,11 @@
 // Keep an open Booking safe when a newer frontend is deployed.
 const DEPLOYMENT_DRAFT_KEY="sabinaDeploymentBookingDraft";
-const DEPLOYMENT_FORM_IDS=["tripType","travelDate","returnDate","bookingOriginal","leaderTitle","leaderFirstName","leaderLastName","phone","contactEmail","source","agentName","status","receiptBookNo","manualReceiptNo","boatTicketBookNo","boatTicketNo","bookingNote","paymentMethod","primaryPaymentAmount","secondaryPaymentMethod","secondaryPaymentAmount","depositAmount","depositPaymentMethod","creditAmount","creditPaymentMethod"];
+const DEPLOYMENT_FORM_IDS=["tripType","travelDate","returnDate","bookingOriginal","leaderTitle","leaderFirstName","leaderLastName","phone","contactEmail","source","agentName","status","receiptBookNo","manualReceiptNo","boatTicketBookNo","boatTicketNo","bookingNote","paymentMethod","primaryPaymentAmount","secondaryPaymentMethod","secondaryPaymentAmount","depositAmount","depositPaymentMethod","creditAmount","creditPaymentMethod","creditSettlementDate","creditSettlementMethod","creditSettlementAmount"];
 const DEPLOYMENT_VERSION=(document.getElementById("appVersion")?.textContent||"").match(/\d{4}\.\d{2}\.\d{2}-\d{2}/)?.[0]||"";
 let deploymentBookingBaseline=null,deploymentGuardBusy=false;
 
 function deploymentFormFields(){return Object.fromEntries(DEPLOYMENT_FORM_IDS.map(id=>[id,document.getElementById(id)?.value??""]))}
-function deploymentBookingState(){return{fields:deploymentFormFields(),passengers,bookingAccommodations,paymentBreakdown,bookingGroupPaymentSelection}}
+function deploymentBookingState(){return{fields:deploymentFormFields(),passengers,bookingAccommodations,paymentBreakdown,bookingGroupPaymentSelection,creditSettlementDrafts:window.creditSettlementDraftSnapshot?.()||[]}}
 function deploymentBookingSignature(){return JSON.stringify(deploymentBookingState())}
 function deploymentNotice(message){const node=document.getElementById("deploymentNotice");if(!node)return;node.textContent=message;node.classList.remove("hidden")}
 function deploymentSaveDraft(){const draft={...structuredClone(deploymentBookingState()),username:currentUser?.username||"",editingCode,pendingNewBookingCode,bookingPaymentLegacyMode,bookingPaymentLegacySnapshot,createdAt:Date.now()};sessionStorage.setItem(DEPLOYMENT_DRAFT_KEY,JSON.stringify(draft));return draft}
@@ -18,6 +18,7 @@ async function deploymentRestoreDraft(){
   for(const [id,value] of Object.entries(draft.fields||{})){const node=document.getElementById(id);if(!node)continue;if(node.tagName==="SELECT"&&value&&![...node.options].some(option=>option.value===value))node.add(new Option(`${value} (รายการเดิม)`,value));node.value=value}
   passengers=structuredClone(draft.passengers||[]);bookingAccommodations=structuredClone(draft.bookingAccommodations||[]);paymentBreakdown=structuredClone(draft.paymentBreakdown||{});bookingGroupPaymentSelection=structuredClone(draft.bookingGroupPaymentSelection||{equipment:"",island:""});
   bookingPaymentLegacyMode=Boolean(draft.bookingPaymentLegacyMode);bookingPaymentLegacySnapshot=structuredClone(draft.bookingPaymentLegacySnapshot||null);pendingNewBookingCode=draft.pendingNewBookingCode||null;
+  window.creditSettlementRestoreDraft?.(draft.creditSettlementDrafts||[]);
   updatePassengerCountInputs();renderPassengers();refreshSummary();renderPaymentBreakdownEditor();showPage("bookingPage");
   sessionStorage.removeItem(DEPLOYMENT_DRAFT_KEY);
   deploymentNotice("กู้คืนร่าง Booking หลังอัปเดตระบบแล้ว กรุณาตรวจข้อมูลและกดบันทึกอีกครั้ง");
