@@ -25,3 +25,14 @@ test('receipt summary paints settlement rows red without additional printed desc
   vm.runInNewContext(`${source}\nhtml=dailySummaryReportHtml({type:'receipt_summary',title:'รายงาน',date:'2026-10-28',rows:[{no:1,agent:'',leader:'นาย A',program:'ตั๋วเรือ',balanceCash:1000,totalCash:1000,grandTotal:1000,creditSettlement:true}],receiptTotals:{balanceCash:1000,totalCash:1000,grandTotal:1000}})`,context);
   assert.match(context.html,/class="credit-settlement-row"/);assert.match(context.html,/นาย A/);assert.doesNotMatch(context.html,/ยอดชำระจากขายเชื่อ/);assert.match(css,/credit-settlement-row td\{color:#b00020!important/);
 });
+
+test('a saved payment can be deleted without entering a reason and no longer counts toward paid total',async()=>{
+  const source=fs.readFileSync(path.join(root,'js','creditSettlements.js'),'utf8'),elements={};
+  for(const id of ['creditSettlementPanel','creditSettlementFields','creditAmount','creditSettlementStatus','creditSettlementMethod','creditSettlementHistory','creditSettlementMessage','creditSettlementDate','creditSettlementAmount','creditSettlementAdd'])elements[id]={value:'',innerHTML:'',textContent:'',disabled:false,classList:{toggle(){}},addEventListener(event,handler){this[event]=handler}};
+  elements.creditAmount.value='1650';let voided=false,submitted;
+  const context={document:{getElementById:id=>elements[id]},master:{paymentMethods:[{method_id:'cash',method_name:'เงินสด',active_flag:true}]},editingCode:'BK1',hasPermission:()=>true,paymentTypeLabel:()=> 'เงินสด',escapeHtml:String,money:String,crypto:{randomUUID:()=> 'new'},structuredClone,prompt:()=> 'กรอกผิด',confirm:()=>true,alert:()=>{},API:{creditSettlements:async()=>[{idempotency_key:'key',settlement_date:'2026-10-28',payment_method_name:'เงินสด',amount:1000,voided_at:voided?'2026-11-07':null,void_reason:voided?'กรอกผิด':null}],voidCreditSettlement:async(...args)=>{submitted=args;voided=true}},window:{},buildBooking:()=>({creditAmount:1650}),validateBooking:()=>'',startNewBooking:()=>{},loadBookingToForm:()=>{},saveBooking:async()=>true,updateBooking:async()=>true};
+  vm.runInNewContext(source,context);context.loadBookingToForm({bookingCode:'BK1'});await new Promise(resolve=>setImmediate(resolve));
+  assert.match(elements.creditSettlementHistory.innerHTML,/>ลบ<\/button>/);assert.match(elements.creditSettlementStatus.textContent,/1000 บาท/);
+  await elements.creditSettlementHistory.click({target:{closest:selector=>selector==='[data-void-credit]'?{dataset:{voidCredit:'key'}}:null}});
+  assert.deepEqual(submitted,['BK1','key']);assert.match(elements.creditSettlementHistory.innerHTML,/ลบแล้ว/);assert.match(elements.creditSettlementStatus.textContent,/ชำระแล้ว \/ รอบันทึก 0 บาท/);
+});

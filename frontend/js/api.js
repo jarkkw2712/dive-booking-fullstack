@@ -34,6 +34,7 @@ const API={
   duplicate:b=>apiFetch("/bookings/check-duplicate",{method:"POST",body:JSON.stringify(b)}),
   timeline:code=>apiFetch(`/bookings/${encodeURIComponent(code)}/timeline`),
   creditSettlements:code=>apiFetch(`/bookings/${encodeURIComponent(code)}/credit-settlements`),
+  voidCreditSettlement:(code,key)=>apiFetch(`/bookings/${encodeURIComponent(code)}/credit-settlements/${encodeURIComponent(key)}/void`,{method:"POST",body:"{}"}),
   master:()=>apiFetch("/master-data"),
   report:(date,type,to=date)=>apiFetch(`/reports/print-center?date=${encodeURIComponent(date)}&to=${encodeURIComponent(to)}&type=${encodeURIComponent(type)}`),
   operatingExpenses:(from,to=from)=>apiFetch(`/operating-expenses?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
