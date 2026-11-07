@@ -8,7 +8,7 @@ const router=express.Router();
 router.use(requireAuth);
 const dailyPermissions=["printCounterReport","printDailyReport"];
 const reportPermissions={
-  register_summary:dailyPermissions,register_summary_range:dailyPermissions,front_charge:dailyPermissions,receipt_summary:dailyPermissions,equipment_summary:dailyPermissions,
+  register_summary:dailyPermissions,register_summary_range:dailyPermissions,front_charge:dailyPermissions,receipt_summary:dailyPermissions,equipment_summary:dailyPermissions,equipment_summary_range:dailyPermissions,
   counter:dailyPermissions,boat:["printBoatReport","printDailyReport"],island:["addIslandAddOn","printBoatReport","printDailyReport"],
   insurance:["printInsuranceReport"],driver:dailyPermissions,management:["printManagementReport"],
   tour_expense_reference:dailyPermissions,tent_fee_reference:dailyPermissions,van_daily_reference:dailyPermissions,van_work_order_reference:dailyPermissions,songthaew_work_order_reference:dailyPermissions,
@@ -37,6 +37,7 @@ router.get("/print-center",async(req,res)=>{
     if(!/^\d{4}-\d{2}-\d{2}$/.test(String(date||"")))return res.status(400).json({error:"Valid date is required"});
     if(to&&!/^\d{4}-\d{2}-\d{2}$/.test(String(to)))return res.status(400).json({error:"Valid end date is required"});
     if(!reportPermissions[type])return res.status(400).json({error:"Invalid report type"});
+    if(type==="equipment_summary_range"&&(Date.parse(`${to||date}T00:00:00Z`)-Date.parse(`${date}T00:00:00Z`))/86400000>=366)return res.status(400).json({error:"รายงานอุปกรณ์รองรับช่วงวันที่ไม่เกิน 366 วัน"});
     if(req.user?.role!=="admin"&&!reportPermissions[type].some(permission=>req.user?.permissions?.[permission]))return res.status(403).json({error:"Permission denied for this report"});
     if(!nonFinancialReportTypes.has(type)&&!can(req.user,"viewMoney"))return res.status(403).json({error:"Permission denied: viewMoney"});
     let bookingResult=await supabaseAdmin.rpc("list_bookings_json_v27");
@@ -47,10 +48,10 @@ router.get("/print-center",async(req,res)=>{
     if(["PGRST202","42883"].includes(bookingResult.error?.code))bookingResult=await supabaseAdmin.rpc("list_bookings_json_v22");
     const financialResult=type==="management"?await supabaseAdmin.from("v_financial_outstanding").select("booking_code,net_cash_received,outstanding_amount"):{data:[],error:null};
     const expenseResult=type==="management"?await supabaseAdmin.from("v_current_daily_operating_expenses").select("expense_date,category_code,category_name_snapshot,qty,unit_price,amount,revision,created_by").gte("expense_date",date).lte("expense_date",to||date):{data:[],error:null};
-    const addOnMasterResult=["management","receipt_summary","equipment_summary"].includes(type)?await supabaseAdmin.from("master_addons").select("*").eq("active_flag",true).order("sort_order"):{data:[],error:null};
+    const addOnMasterResult=["management","receipt_summary","equipment_summary","equipment_summary_range"].includes(type)?await supabaseAdmin.from("master_addons").select("*").eq("active_flag",true).order("sort_order"):{data:[],error:null};
     const islandAddOnMasterResult=type==="receipt_summary"?await supabaseAdmin.from("master_island_addons").select("*").eq("active_flag",true).order("sort_order"):{data:[],error:null};
     const accommodationMasterResult=["management","receipt_summary"].includes(type)?await supabaseAdmin.from("master_accommodations").select("*").eq("active_flag",true).order("sort_order"):{data:[],error:null};
-    const paymentResult=type==="equipment_summary"||paymentReportTypes.has(type)?await supabaseAdmin.from("master_payment_methods").select("method_id,method_name,payment_type,default_general,default_equipment,default_island,default_transport,active_flag,sort_order").order("sort_order"):{data:[],error:null};
+    const paymentResult=["equipment_summary","equipment_summary_range"].includes(type)||paymentReportTypes.has(type)?await supabaseAdmin.from("master_payment_methods").select("method_id,method_name,payment_type,default_general,default_equipment,default_island,default_transport,active_flag,sort_order").order("sort_order"):{data:[],error:null};
     const agentMasterResult=type==="agent_reference"?await supabaseAdmin.from("master_agents").select("agent_id,agent_name,sort_order").order("sort_order"):{data:[],error:null};
     const transportationMasterResult=type==="receipt_summary"?await supabaseAdmin.from("master_transportation_methods").select("*").eq("active_flag",true).order("sort_order"):["van_daily_reference","van_work_order_reference","songthaew_work_order_reference","van_monthly_reference"].includes(type)?await supabaseAdmin.from("master_transportation_methods").select("method_id,method_name"):type==="customer_travel_daily_reference"?await supabaseAdmin.from("master_transportation_methods").select("method_id,method_name,sort_order").order("sort_order"):{data:[],error:null};
     const packageCostResult=type==="package_cost_reference"?await supabaseAdmin.from("master_package_cost_rates").select("*").eq("active_flag",true).order("sort_order"):{data:[],error:null};

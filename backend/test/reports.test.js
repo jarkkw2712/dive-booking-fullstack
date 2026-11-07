@@ -27,6 +27,13 @@ test("credit settlement rows appear only on later receipt dates and do not chang
   assert.equal(originalDay.rows.length,0);
 });
 
+test("equipment range sums daily program groups and retains historical master columns without duplicating totals",()=>{
+  const item=(id,program,amount,method,date='2026-11-07')=>({bookingCode:id,status:'confirmed',travelDate:date,passengers:[{program:{name:program},preAddOns:[{id:'mask',name:'หน้ากาก',selected:true,qty:2,nights:1,price:amount,paymentMethod:method}]}]});
+  const bookings=[item('A','ตั๋วเรือ',50,'เงินสด'),item('B','One Day Trip',100,'นฤมล'),item('C','ตั๋วเรือ',25,'เงินสด','2026-11-08')],masterAddOns=[{addon_id:'mask',addon_name:'หน้ากาก'},{addon_id:'fin',addon_name:'ฟิน'}],paymentMethods=[{method_id:'cash',method_name:'เงินสด',payment_type:'cash'},{method_id:'bank_transfer',method_name:'นฤมล',payment_type:'transfer'}];
+  const r=buildPrintCenterReport({bookings,date:'2026-11-07',toDate:'2026-11-08',type:'equipment_summary_range',masterAddOns,paymentMethods});
+  assert.equal(r.rows.length,5);assert.equal(r.rows.filter(row=>row.subtotal).length,2);assert.equal(r.dailyRows.length,2);assert.equal(r.equipmentTotals.pax,3);assert.equal(r.equipmentTotals.equipment.mask,6);assert.equal(r.equipmentTotals.total,350);assert.equal(r.equipmentTotals.cash,150);assert.equal(r.equipmentTotals.transfer,200);assert.equal(r.equipmentColumns.length,2);
+});
+
 test("credit settlement migration is atomic, idempotent and limits historical data access",()=>{
   const sql=fs.readFileSync(path.resolve(testDir,"../../supabase/migrations/20261107145557_credit_settlement_v1.sql"),"utf8"),route=fs.readFileSync(path.resolve(testDir,"../src/routes/bookings.js"),"utf8");
   for(const pattern of [/numeric\(14,2\)/,/idempotency_key uuid not null unique/,/for update/i,/v_paid\+v_amount>v_credit/,/enable row level security/i,/revoke all on public\.booking_credit_settlements from public,anon,authenticated/i,/CREDIT_SETTLEMENT_CREATED/,/upsert_booking_v30\(p_booking\)/])assert.match(sql,pattern);

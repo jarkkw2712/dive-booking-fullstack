@@ -28,7 +28,7 @@ app.use(cors({origin(origin,callback){if(!origin||!allowedOrigins.length||allowe
 app.use(express.json({limit:"10mb"}));
 app.use(morgan("dev"));
 app.use(mutationAudit);
-app.get("/api/health",(req,res)=>res.json({ok:true,service:"sabina-tour-booking-api",capabilities:{creditSettlementsV1:true,creditSettlementVoidV1:true},time:new Date().toISOString()}));
+app.get("/api/health",(req,res)=>res.json({ok:true,service:"sabina-tour-booking-api",capabilities:{creditSettlementsV1:true,creditSettlementVoidV1:true,equipmentRangeV1:true},time:new Date().toISOString()}));
 app.use("/api/auth",authRoutes);
 app.use("/api/bookings",bookingRoutes);
 app.use("/api/master-data",masterRoutes);

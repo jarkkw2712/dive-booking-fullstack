@@ -589,6 +589,16 @@ function dailyEquipmentSummary(bookings,date,masterAddOns=[],paymentMethods=[]){
     equipmentColumns,rows,equipmentTotals,summary:{bookings:rows.length,pax:equipmentTotals.pax}};
 }
 
+function rangeEquipmentSummary(bookings,from,to,masterAddOns,paymentMethods){
+  const days=reportDays(from,to),daily=days.map(date=>dailyEquipmentSummary(bookings,date,masterAddOns,paymentMethods)),columns=new Map();
+  for(const report of daily)for(const col of report.equipmentColumns)if(!columns.has(col.code))columns.set(col.code,col);
+  const equipmentColumns=[...columns.values()],empty=()=>({pax:0,equipment:{},cash:0,transfer:0,unknown:0,total:0});
+  const add=(target,row)=>{target.pax+=row.pax;for(const col of equipmentColumns)target.equipment[col.code]=(target.equipment[col.code]||0)+(row.equipment?.[col.code]||0);for(const key of ['cash','transfer','unknown','total'])target[key]=Math.round((target[key]+Number(row[key]||0))*100)/100;return target};
+  const detail=[],dailyRows=[],grand=empty();
+  for(const report of daily){if(!report.rows.length)continue;const groups=new Map(),subtotal=empty();for(const row of report.rows){const key=row.program||'ไม่ระบุโปรแกรม';if(!groups.has(key))groups.set(key,empty());add(groups.get(key),row);add(subtotal,row);add(grand,row)}for(const [program,values] of groups)detail.push({date:report.date,program,...values});detail.push({date:report.date,subtotal:true,...subtotal});dailyRows.push({date:report.date,...subtotal})}
+  return{date:from,type:'equipment_summary_range',title:'ใบรายงานอุปกรณ์ (ช่วงวันที่)',range:{from,to},equipmentColumns,rows:detail,dailyRows,equipmentTotals:grand,summary:{pax:grand.pax}};
+}
+
 export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows=[],paymentMethods=[],masterPrograms=[],masterAddOns=[],masterIslandAddOns=[],masterAccommodations=[],masterAgents=[],transportationMethods=[],packageCostRates=[],creditSettlements=[],date,toDate,type}){
   const active=bookings.filter(activeBooking);
   toDate=toDate||(type==="management"?isoDate(date,6):date);
@@ -599,6 +609,7 @@ export function buildPrintCenterReport({bookings=[],financialRows=[],expenseRows
   if(type==="front_charge")return frontChargeReport(active,date);
   if(type==="receipt_summary")return dailyReceiptSummary(bookings,date,paymentMethods,{masterAddOns,masterIslandAddOns,masterAccommodations,transportationMethods},creditSettlements);
   if(type==="equipment_summary")return dailyEquipmentSummary(active,date,masterAddOns,paymentMethods);
+  if(type==="equipment_summary_range")return rangeEquipmentSummary(active,date,toDate,masterAddOns,paymentMethods);
   if(type==="management")return{date,type,...managementReport(active,financialRows,expenseRows,date,toDate,masterAddOns,masterAccommodations)};
   if(type==="tour_expense_reference")return tourExpenseReferenceReport(active,date,toDate,paymentMethods);
   if(type==="tent_fee_reference")return tentFeeReferenceReport(active,date,toDate);
