@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sabina Tour Booking</title>
-<link rel="stylesheet" href="css/style.css?v=20261107-07">
+<link rel="stylesheet" href="css/style.css?v=20261108-01">
 </head>
 <body>
 <div id="globalSavingIndicator" class="saving-indicator hidden" role="status" aria-live="polite">
@@ -45,7 +45,7 @@
       <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
     </div>
     <div id="userBox" class="user-box"></div>
-    <div id="appVersion" class="app-version">Version 2026.11.07-09</div>
+    <div id="appVersion" class="app-version">Version 2026.11.08-01</div>
 
     <button onclick="showPage('dashboardPage')">Dashboard</button>
     <button data-permission="createBooking" onclick="openNewBooking()">+ เพิ่ม Booking</button>
@@ -155,6 +155,10 @@
           <div class="card">
             <h2>ผู้เดินทาง</h2>
             <div id="passengerList"></div>
+          </div>
+          <div class="card" id="otherServicesCard" data-permission="viewMoney">
+            <h2>ค่าบริการอื่น ๆ</h2><div id="otherServicesRows"></div>
+            <button type="button" class="btn soft" onclick="addOtherService()">+ เพิ่มค่าบริการ</button>
           </div>
         </div>
 
@@ -365,9 +369,11 @@
           <button class="btn soft" onclick="loadMasterDataPro('islands')">Islands</button>
           <button class="btn soft" onclick="loadMasterDataPro('price_reasons')">Price Reasons</button>
           <button class="btn soft" onclick="loadMasterDataPro('payment_methods')">Payment Methods</button>
+          <button class="btn soft" onclick="showOtherServiceDefaults()">ค่าบริการอื่น ๆ</button>
           <button class="btn soft" onclick="loadMasterDataPro('statuses')">Statuses</button>
         </div>
       </div>
+      <div id="otherServiceDefaultsCard" class="card hidden"><h2>ค่าบริการอื่น ๆ — เอกสารเริ่มต้น</h2><div id="otherServiceDefaultsOptions" class="document-visibility-options"></div><button type="button" class="btn primary" onclick="saveOtherServiceDefaults()">บันทึก</button></div>
       <div class="card">
         <div class="master-toolbar">
           <h2 id="mdpTitle">เลือกหมวดข้อมูล</h2>
@@ -478,12 +484,13 @@
 <script src="js/smartPaste.js?v=20261019-01"></script>
 <script src="js/csvImport.js?v=20261019-01"></script>
 <script src="js/bookingListFilters.js?v=20261019-01"></script>
-<script src="js/app.js?v=20261107-09"></script>
+<script src="js/app.js?v=20261108-01"></script>
 <script src="js/bookingOriginal.js?v=20261021-03"></script>
 <script src="js/islandAddonMaster.js?v=20261030-03"></script>
-<script src="js/financial.js?v=20261030-02"></script>
+<script src="js/financial.js?v=20261108-01"></script>
 <script src="js/travelStops.js?v=20261029-02"></script>
 <script src="js/creditSettlements.js?v=20261107-03"></script>
-<script src="js/deploymentGuard.js?v=20261107-04"></script>
+<script src="js/otherServices.js?v=20261108-01"></script>
+<script src="js/deploymentGuard.js?v=20261108-01"></script>
 </body>
 </html>

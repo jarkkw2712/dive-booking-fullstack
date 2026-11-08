@@ -58,8 +58,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.11\.07-09/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js","js/creditSettlements.js","js/deploymentGuard.js"]){const version=["css/style.css"].includes(asset)?"20261107-07":asset==="js/app.js"?"20261107-09":asset==="js/api.js"?"20261107-05":["js/deploymentGuard.js"].includes(asset)?"20261107-04":asset==="js/creditSettlements.js"?"20261107-03":asset==="js/islandAddonMaster.js"?"20261030-03":asset==="js/financial.js"?"20261030-02":asset==="js/travelStops.js"?"20261029-02":asset==="js/bookingOriginal.js"?"20261021-03":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.11\.08-01/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js","js/creditSettlements.js","js/otherServices.js","js/deploymentGuard.js"]){const version=["css/style.css"].includes(asset)?"20261108-01":["js/app.js","js/otherServices.js","js/financial.js","js/deploymentGuard.js"].includes(asset)?"20261108-01":asset==="js/api.js"?"20261107-05":asset==="js/creditSettlements.js"?"20261107-03":asset==="js/islandAddonMaster.js"?"20261030-03":asset==="js/travelStops.js"?"20261029-02":asset==="js/bookingOriginal.js"?"20261021-03":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
 });
 test("booking CSV protects text cells from spreadsheet formulas while preserving numeric values",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),source=app.slice(app.indexOf("function excelCell"),app.indexOf("function bookingExcelRow")),context={};
@@ -700,9 +700,9 @@ test("service-role key is not present in frontend",()=>{
 });
 test("every HTML click handler has a loaded implementation",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
-  const scripts=["js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/financial.js","js/travelStops.js"].map(file=>fs.readFileSync(path.join(root,file),"utf8")).join("\n");
+  const scripts=["js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/financial.js","js/travelStops.js","js/otherServices.js"].map(file=>fs.readFileSync(path.join(root,file),"utf8")).join("\n");
   const handlers=[...html.matchAll(/onclick=["']([A-Za-z_$][\w$]*)\s*\(/g)].map(match=>match[1]);
-  for(const name of new Set(handlers))assert.match(scripts,new RegExp(`(?:function\\s+${name}\\s*\\(|(?:const|let|var)\\s+${name}\\s*=)`),`missing click handler ${name}`);
+  for(const name of new Set(handlers))assert.match(scripts,new RegExp(`(?:function\\s+${name}\\s*\\(|(?:const|let|var)\\s+${name}\\s*=|window\\.${name}\\s*=)`),`missing click handler ${name}`);
 });
 test("active scripts do not declare duplicate global functions or constants",()=>{
   const sources=["js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/financial.js","js/travelStops.js"].map(file=>fs.readFileSync(path.join(root,file),"utf8"));

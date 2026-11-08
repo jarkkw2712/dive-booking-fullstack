@@ -70,6 +70,6 @@ test("result summary hides totals and each result respects viewMoney",()=>{
   assert.match(list,/<span>Booking<\/span>/);
   assert.match(list,/<span>ผู้เดินทาง<\/span>/);
   assert.doesNotMatch(list,/<span>ยอด Booking<\/span>/);
-  assert.match(list,/hasPermission\("viewMoney"\)\?` \| \$\{money\(b\.totalAmount\)\}/);
+  assert.match(list,/hasPermission\("viewMoney"\)\?` \| \$\{money\(/);assert.match(list,/b\.otherServices/);
   assert.match(css,/\.booking-list-result-summary\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
 });

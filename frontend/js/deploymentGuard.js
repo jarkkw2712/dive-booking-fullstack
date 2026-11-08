@@ -5,7 +5,7 @@ const DEPLOYMENT_VERSION=(document.getElementById("appVersion")?.textContent||""
 let deploymentBookingBaseline=null,deploymentGuardBusy=false;
 
 function deploymentFormFields(){return Object.fromEntries(DEPLOYMENT_FORM_IDS.map(id=>[id,document.getElementById(id)?.value??""]))}
-function deploymentBookingState(){return{fields:deploymentFormFields(),passengers,bookingAccommodations,paymentBreakdown,bookingGroupPaymentSelection,creditSettlementDrafts:window.creditSettlementDraftSnapshot?.()||[]}}
+function deploymentBookingState(){return{fields:deploymentFormFields(),passengers,bookingAccommodations,paymentBreakdown,bookingGroupPaymentSelection,creditSettlementDrafts:window.creditSettlementDraftSnapshot?.()||[],otherServiceDraft:window.otherServiceDraftSnapshot?.()||null}}
 function deploymentBookingSignature(){return JSON.stringify(deploymentBookingState())}
 function deploymentNotice(message){const node=document.getElementById("deploymentNotice");if(!node)return;node.textContent=message;node.classList.remove("hidden")}
 function deploymentSaveDraft(){const draft={...structuredClone(deploymentBookingState()),username:currentUser?.username||"",editingCode,pendingNewBookingCode,bookingPaymentLegacyMode,bookingPaymentLegacySnapshot,createdAt:Date.now()};sessionStorage.setItem(DEPLOYMENT_DRAFT_KEY,JSON.stringify(draft));return draft}
@@ -19,6 +19,7 @@ async function deploymentRestoreDraft(){
   passengers=structuredClone(draft.passengers||[]);bookingAccommodations=structuredClone(draft.bookingAccommodations||[]);paymentBreakdown=structuredClone(draft.paymentBreakdown||{});bookingGroupPaymentSelection=structuredClone(draft.bookingGroupPaymentSelection||{equipment:"",island:""});
   bookingPaymentLegacyMode=Boolean(draft.bookingPaymentLegacyMode);bookingPaymentLegacySnapshot=structuredClone(draft.bookingPaymentLegacySnapshot||null);pendingNewBookingCode=draft.pendingNewBookingCode||null;
   window.creditSettlementRestoreDraft?.(draft.creditSettlementDrafts||[]);
+  window.otherServiceRestoreDraft?.(draft.otherServiceDraft);
   updatePassengerCountInputs();renderPassengers();refreshSummary();renderPaymentBreakdownEditor();showPage("bookingPage");
   sessionStorage.removeItem(DEPLOYMENT_DRAFT_KEY);
   deploymentNotice("กู้คืนร่าง Booking หลังอัปเดตระบบแล้ว กรุณาตรวจข้อมูลและกดบันทึกอีกครั้ง");
