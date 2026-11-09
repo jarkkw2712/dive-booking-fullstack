@@ -58,8 +58,8 @@ test("print center exports the requested Excel-compatible booking columns",()=>{
 test("frontend assets are cache-busted and expose a visible deployment version",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   assert.match(html,/id="appVersion"/);
-  assert.match(html,/Version 2026\.11\.08-01/);
-  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js","js/creditSettlements.js","js/otherServices.js","js/deploymentGuard.js"]){const version=["css/style.css"].includes(asset)?"20261108-01":["js/app.js","js/otherServices.js","js/financial.js","js/deploymentGuard.js"].includes(asset)?"20261108-01":asset==="js/api.js"?"20261107-05":asset==="js/creditSettlements.js"?"20261107-03":asset==="js/islandAddonMaster.js"?"20261030-03":asset==="js/travelStops.js"?"20261029-02":asset==="js/bookingOriginal.js"?"20261021-03":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
+  assert.match(html,/Version 2026\.11\.09-01/);
+  for(const asset of ["css/style.css","js/api.js","js/smartPaste.js","js/csvImport.js","js/bookingListFilters.js","js/app.js","js/bookingOriginal.js","js/islandAddonMaster.js","js/financial.js","js/travelStops.js","js/creditSettlements.js","js/otherServices.js","js/deploymentGuard.js"]){const version=["css/style.css"].includes(asset)?"20261108-01":asset==="js/app.js"?"20261109-01":["js/otherServices.js","js/financial.js","js/deploymentGuard.js"].includes(asset)?"20261108-01":asset==="js/api.js"?"20261107-05":asset==="js/creditSettlements.js"?"20261107-03":asset==="js/islandAddonMaster.js"?"20261030-03":asset==="js/travelStops.js"?"20261029-02":asset==="js/bookingOriginal.js"?"20261021-03":"20261019-01";assert.match(html,new RegExp(`${asset.replace(/[/.]/g,"\\$&")}\\?v=${version}`))}
 });
 test("booking CSV protects text cells from spreadsheet formulas while preserving numeric values",()=>{
   const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),source=app.slice(app.indexOf("function excelCell"),app.indexOf("function bookingExcelRow")),context={};
@@ -534,6 +534,24 @@ test("payment account choices persist and equipment is available for every progr
   assert.match(app,/\["transportationPaymentMethod","returnTransportationPaymentMethod"\]\.includes\(field\).*return/);
   assert.match(app,/else if\(!person\[paymentField\]\)person\[paymentField\]=bookingDefaultPaymentMethod/);
   assert.match(app,/\(บัญชีเดิม\)/);
+});
+test("equipment additions follow the latest selected group channel and require normal Booking save",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),source=app.slice(app.indexOf("function setEquipmentPaymentMethod"),app.indexOf("function setIslandPaymentMethod"));
+  const context={passengers:[{preAddOns:[{selected:true,paymentMethod:"เงินสด"},{selected:false,paymentMethod:"ลัดดาวรรณ์"}]}],bookingGroupPaymentSelection:{equipment:"เงินสด"},bookingDefaultPaymentMethod:()=>"ลัดดาวรรณ์",refreshSummary:()=>{},alert:()=>{throw Error("unexpected alert")}};
+  require("node:vm").runInNewContext(`${source}\nsetEquipmentSelected(0,1,true,{checked:true});`,context);
+  assert.equal(context.passengers[0].preAddOns[1].paymentMethod,"เงินสด");
+  assert.equal(context.passengers[0].preAddOns[1].selected,true);
+  assert.match(app,/setEquipmentSelected\(\$\{pi\},\$\{ai\},this\.checked,this\)/);
+  assert.doesNotMatch(source,/API\.|fetch\(/);
+});
+test("equipment with mixed historical channels does not silently overwrite without a choice",()=>{
+  const app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),source=app.slice(app.indexOf("function setEquipmentPaymentMethod"),app.indexOf("function setIslandPaymentMethod")),presentation=app.slice(app.indexOf("function equipmentPaymentPresentation"),app.indexOf("function ensurePaymentMethod"));
+  const context={passengers:[{preAddOns:[{selected:true,paymentMethod:"เงินสด"},{selected:true,paymentMethod:"ลัดดาวรรณ์"},{selected:false,paymentMethod:"นฤมล"}]}],bookingGroupPaymentSelection:{equipment:"เงินสด"},checkbox:{checked:true},bookingDefaultPaymentMethod:()=>"ลัดดาวรรณ์",bookingPaymentOptions:v=>`[${v}]`,escapeHtml:v=>v,refreshSummary:()=>{},alert:m=>{context.message=m}};
+  require("node:vm").runInNewContext(`${source}\n${presentation}\nheader=groupPaymentHeader('อุปกรณ์','equipment','เงินสด','setEquipmentPaymentMethod');setEquipmentSelected(0,2,true,checkbox);`,context);
+  assert.match(context.header,/หลายช่องทาง/);assert.equal(context.checkbox.checked,false);assert.equal(context.passengers[0].preAddOns[2].selected,false);
+  assert.deepEqual(context.passengers[0].preAddOns.map(row=>row.paymentMethod),["เงินสด","ลัดดาวรรณ์","นฤมล"]);
+  require("node:vm").runInNewContext(`setEquipmentPaymentMethod('เงินสด');`,context);
+  assert.deepEqual(context.passengers[0].preAddOns.map(row=>row.paymentMethod),["เงินสด","เงินสด","เงินสด"]);
 });
 test("payment masters drive receipt accounts and booking totals use one source",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"js","app.js"),"utf8"),route=fs.readFileSync(path.resolve(root,"../backend/src/routes/masterDataPro.js"),"utf8"),sql=fs.readFileSync(path.resolve(root,"../database/migrations/20260818_024_payment_method_receipt_settings.sql"),"utf8");
