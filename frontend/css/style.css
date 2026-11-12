@@ -324,6 +324,10 @@ textarea{min-height:80px}
   .document-audit-line{margin-top:9px;padding-top:5px}
   .document-footer{margin-top:22px}
   .document-header,.document-meta,.document-table,.document-total,.document-note,.document-footer{break-inside:avoid}
+  .document-register .document-table,.document-money_receipt .document-table{break-inside:auto;page-break-inside:auto;font-size:10px}
+  .document-register .document-table thead,.document-money_receipt .document-table thead{display:table-header-group}
+  .document-register .document-table tr,.document-money_receipt .document-table tr{break-inside:avoid;page-break-inside:avoid}
+  .document-register .document-table th,.document-register .document-table td,.document-money_receipt .document-table th,.document-money_receipt .document-table td{padding:3px 5px}
   .report-paper{
     width:auto;
     min-height:auto;
